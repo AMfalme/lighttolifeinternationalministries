@@ -31,15 +31,28 @@
   max-width: 1180px;
   margin: 12px auto;
   padding: 10px 20px;
+  height: 64px;
   background: var(--surface);
   border-radius: 18px;
   border: 1px solid var(--surface-border);
   backdrop-filter: blur(12px);
+  overflow: visible;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
+  height: 64px;
+  overflow: visible;
+  position: relative;
+}
+
+.brand img {
+  width: auto;
+  height: 120px;
+  object-fit: contain;
+  display: block;
+  transform: translateY(-18px);
 }
 
 .navLinks {
