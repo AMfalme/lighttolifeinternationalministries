@@ -123,16 +123,16 @@ export default function Home() {
 
             <div className={styles.heroStats}>
               <div>
-                <strong>145</strong>
-                <span>Students assisted</span>
+                <strong>2000+</strong>
+                <span>Students sponsored</span>
               </div>
               <div>
-                <strong>06</strong>
-                <span>Church Branches</span>
+                <strong>15+</strong>
+                <span>Nations Reached</span>
               </div>
               <div>
-                <strong>5</strong>
-                <span>Projects Expanded</span>
+                <strong>100%</strong>
+                <span>Volunteer Driven</span>
               </div>
             </div>
           </div>
