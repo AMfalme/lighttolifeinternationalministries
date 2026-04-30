@@ -2,11 +2,28 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./navbar.module.css";
 
 export default function Navbar() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const initialTheme =
+      root.dataset.theme === "dark" || root.dataset.theme === "light"
+        ? (root.dataset.theme as "light" | "dark")
+        : window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+
+    setTheme(initialTheme);
+    root.dataset.theme = initialTheme;
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   return (
     <header className={styles.navbar}>
