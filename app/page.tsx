@@ -2,101 +2,14 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import Navbar from "./components/Navbar/Navbar";
 import styles from "./page.module.css";
 
 export default function Home() {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className={styles.page} data-theme={theme}>
-      <header className={styles.navbar}>
-        <a className={styles.brand} href="#home" aria-label="Go to homepage">
-          <Image
-            src="/logo.jpeg"
-            alt="LightToLife logo"
-            width={200}
-            height={150}
-            priority
-          />
-        </a>
-
-        <button
-          className={styles.hamburger}
-          aria-label="Toggle navigation menu"
-          aria-expanded={isOpen}
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          <span className={styles.hamburgerLine}></span>
-          <span className={styles.hamburgerLine}></span>
-          <span className={styles.hamburgerLine}></span>
-        </button>
-
-        <nav className={`${styles.navLinks} ${isOpen ? styles.navLinksOpen : ""}`} aria-label="Primary navigation">
-          <div className={styles.navItem}>
-            <a className={styles.navLink} href="/#about" onClick={() => setIsOpen(false)}>About Us</a>
-            <ul className={styles.navSub} aria-label="About sub-menu">
-              <li><a href="/#features" onClick={() => setIsOpen(false)}>Mission</a></li>
-              <li><a href="/#about" onClick={() => setIsOpen(false)}>About</a></li>
-              <li><a href="/#leadership" onClick={() => setIsOpen(false)}>Team</a></li>
-            </ul>
-          </div>
-
-          <div className={styles.navItem}>
-            <a className={styles.navLink} href="/events" onClick={() => setIsOpen(false)}>Events</a>
-            <ul className={styles.navSub} aria-label="Events sub-menu">
-              <li><a href="/events#calendar" onClick={() => setIsOpen(false)}>Calendar</a></li>
-              <li><a href="/events#upcoming" onClick={() => setIsOpen(false)}>Upcoming</a></li>
-            </ul>
-          </div>
-
-          <div className={styles.navItem}>
-            <a className={styles.navLink} href="/projects" onClick={() => setIsOpen(false)}>Projects</a>
-            <ul className={styles.navSub} aria-label="Projects sub-menu">
-              <li><a href="/projects#ongoing" onClick={() => setIsOpen(false)}>Ongoing</a></li>
-              <li><a href="/projects#partners" onClick={() => setIsOpen(false)}>Partners</a></li>
-            </ul>
-          </div>
-
-          <div className={styles.navItem}>
-            <a className={styles.navLink} href="/news" onClick={() => setIsOpen(false)}>News</a>
-            <ul className={styles.navSub} aria-label="News sub-menu">
-              <li><a href="/news#blog" onClick={() => setIsOpen(false)}>Blog</a></li>
-              <li><a href="/news#highlights" onClick={() => setIsOpen(false)}>Highlights</a></li>
-              <li><a href="/news#gallery" onClick={() => setIsOpen(false)}>Gallery</a></li>
-            </ul>
-          </div>
-
-          <div className={styles.navMobileActions}>
-            <a className={styles.authLink} href="/login" onClick={() => setIsOpen(false)}>Login</a>
-            <a className={styles.authLink} href="/register" onClick={() => setIsOpen(false)}>Register</a>
-            <a className={styles.navButton} href="#contact" onClick={() => setIsOpen(false)}>Support Us</a>
-          </div>
-        </nav>
-
-        <div className={styles.navActions}>
-          <a className={styles.authLink} href="/login">Login</a>
-          <a className={styles.authLink} href="/register">Register</a>
-          <a className={styles.navButton} href="#contact">Support Us</a>
-          <label className={styles.switch}>
-            <input
-              type="checkbox"
-              className={styles.switchInput}
-              checked={theme === "dark"}
-              onChange={() => setTheme(theme === "light" ? "dark" : "light")}
-              aria-label={theme === "light" ? "Enable dark theme" : "Enable light theme"}
-            />
-            <span className={styles.switchSlider}>
-              <span className={`${styles.switchIcon} ${styles.sunIcon}`} aria-hidden="true">
-                ☀
-              </span>
-              <span className={`${styles.switchIcon} ${styles.moonIcon}`} aria-hidden="true">
-                ☾
-              </span>
-            </span>
-          </label>
-        </div>
-      </header>
+    <div className={styles.page}>
+      <Navbar />
 
       <main className={styles.main} id="home">
         <section className={styles.hero}>
@@ -141,7 +54,7 @@ export default function Home() {
             <div className={styles.heroStack}>
               <div className={styles.heroCard}>
                 <Image
-                  src="/congregation.jpg"
+                  src="/praise.png"
                   alt="Congregation"
                   fill
                   className={styles.heroImage}
@@ -151,7 +64,7 @@ export default function Home() {
 
               <div className={styles.heroAccentCard}>
                 <Image
-                  src="/dove.svg"
+                  src="/dove.jpeg"
                   alt="Dove symbol"
                   fill
                   className={styles.heroImage}
@@ -280,25 +193,14 @@ export default function Home() {
             <div className={styles.leadershipGrid}>
               <div className={styles.leaderCard}>
                 <div className={styles.leaderImageBox}>
-                  <div className={styles.imagePlaceholder}>
-                    <span>Leader Image</span>
-                  </div>
+                  <Image
+                    src="/Bishop Francis Akaki.jpeg"
+                    alt="Pastor Rebecca Okonkwo"
+                    fill
+                    className={styles.leaderImage}
+                  />
                 </div>
-                <div className={styles.leaderInfo}>
-                  <h3 className={styles.leaderName}>Bishop John Okonkwo</h3>
-                  <p className={styles.leaderRole}>Senior Pastor & Founder</p>
-                  <p className={styles.leaderBio}>
-                    A visionary leader with over 30 years of ministry experience, dedicated to spiritual growth and community service.
-                  </p>
-                </div>
-              </div>
 
-              <div className={styles.leaderCard}>
-                <div className={styles.leaderImageBox}>
-                  <div className={styles.imagePlaceholder}>
-                    <span>Leader Image</span>
-                  </div>
-                </div>
                 <div className={styles.leaderInfo}>
                   <h3 className={styles.leaderName}>Pastor Rebecca Okonkwo</h3>
                   <p className={styles.leaderRole}>Women's Ministry Director</p>
@@ -310,9 +212,31 @@ export default function Home() {
 
               <div className={styles.leaderCard}>
                 <div className={styles.leaderImageBox}>
-                  <div className={styles.imagePlaceholder}>
-                    <span>Leader Image</span>
-                  </div>
+                  <Image
+                    src="/Bishop Francis Akaki.jpeg"
+                    alt="Pastor Rebecca Okonkwo"
+                    fill
+                    className={styles.leaderImage}
+                  />
+                </div>
+
+                <div className={styles.leaderInfo}>
+                  <h3 className={styles.leaderName}>Pastor Rebecca Okonkwo</h3>
+                  <p className={styles.leaderRole}>Women's Ministry Director</p>
+                  <p className={styles.leaderBio}>
+                    Passionate about empowering women and strengthening families through faith-based programs and mentorship.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.leaderCard}>
+                <div className={styles.leaderImageBox}>
+                  <Image
+                    src="/Bishop Francis Akaki.jpeg"
+                    alt="Pastor Rebecca Okonkwo"
+                    fill
+                    className={styles.leaderImage}
+                  />
                 </div>
                 <div className={styles.leaderInfo}>
                   <h3 className={styles.leaderName}>Dr. Samuel Adeyemi</h3>

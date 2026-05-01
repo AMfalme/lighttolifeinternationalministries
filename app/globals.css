@@ -1,6 +1,46 @@
+/* Theme variables */
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Navbar light theme */
+  --surface: #ffffff;
+  --surface-border: rgba(203, 213, 225, 0.5);
+  --text-main: #0f172a;
+  --text-nav: #334155;
+  --button-secondary-bg: rgba(226, 232, 240, 0.6);
+  --button-secondary-border: rgba(148, 163, 184, 0.34);
+  --nav-cta-bg: linear-gradient(135deg, #2563eb, #1d4ed8);
+  --nav-cta-text: #ffffff;
+  /* Footer */
+  --footer-bg: rgba(8, 28, 51, 0.9);
+}
+
+html[data-theme="light"] {
+  --background: #ffffff;
+  --foreground: #171717;
+  /* Navbar light theme */
+  --surface: #ffffff;
+  --surface-border: rgba(203, 213, 225, 0.5);
+  --text-main: #0f172a;
+  --text-nav: #334155;
+  --button-secondary-bg: rgba(226, 232, 240, 0.6);
+  --button-secondary-border: rgba(148, 163, 184, 0.34);
+  --nav-cta-bg: linear-gradient(135deg, #2563eb, #1d4ed8);
+  --nav-cta-text: #ffffff;
+}
+
+html[data-theme="dark"] {
+  --background: #0b2540;
+  --foreground: #f8fbff;
+  /* Navbar dark theme */
+  --surface: rgba(8, 28, 51, 0.98);
+  --surface-border: rgba(56, 189, 248, 0.25);
+  --text-main: #f0f9ff;
+  --text-nav: #bcdcff;
+  --button-secondary-bg: rgba(30, 58, 98, 0.7);
+  --button-secondary-border: rgba(147, 197, 253, 0.38);
+  --nav-cta-bg: linear-gradient(135deg, #38bdf8, #2563eb);
+  --nav-cta-text: #f8fbff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -11,6 +51,7 @@
 }
 
 html {
+  box-sizing: border-box;
   height: 100%;
 }
 

@@ -2,79 +2,14 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Navbar from "../components/Navbar/Navbar";
 import styles from "./projects.module.css";
 
 export default function ProjectsPage() {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
 
   return (
-    <div className={styles.page} data-theme={theme}>
-      <header className={styles.navbar}>
-        <a className={styles.brand} href="/" aria-label="Go to homepage">
-          <Image
-            src="/logo.jpeg"
-            alt="LightToLife logo"
-            width={200}
-            height={150}
-            priority
-          />
-        </a>
-
-        <nav className={styles.navLinks} aria-label="Primary navigation">
-          <div className={styles.navItem}>
-            <a className={styles.navLink} href="/#about">About Us</a>
-            <ul className={styles.navSub} aria-label="About sub-menu">
-              <li><a href="/#features">Mission</a></li>
-              <li><a href="/#about">About</a></li>
-              <li><a href="/#leadership">Team</a></li>
-            </ul>
-          </div>
-
-          <div className={styles.navItem}>
-            <a className={styles.navLink} href="/events">Events</a>
-            <ul className={styles.navSub} aria-label="Events sub-menu">
-              <li><a href="/events#calendar">Calendar</a></li>
-              <li><a href="/events#upcoming">Upcoming</a></li>
-            </ul>
-          </div>
-
-          <div className={styles.navItem}>
-            <a className={styles.navLink} href="/projects">Projects</a>
-            <ul className={styles.navSub} aria-label="Projects sub-menu">
-              <li><a href="/projects#ongoing">Ongoing</a></li>
-              <li><a href="/projects#partners">Partners</a></li>
-            </ul>
-          </div>
-
-          <div className={styles.navItem}>
-            <a className={styles.navLink} href="/news">News</a>
-            <ul className={styles.navSub} aria-label="News sub-menu">
-              <li><a href="/news#blog">Blog</a></li>
-              <li><a href="/news#highlights">Highlights</a></li>
-              <li><a href="/news#gallery">Gallery</a></li>
-            </ul>
-          </div>
-        </nav>
-
-        <div className={styles.navActions}>
-          <a className={styles.authLink} href="/login">Login</a>
-          <a className={styles.authLink} href="/register">Register</a>
-          <a className={styles.navButton} href="#contact">Support Us</a>
-          <label className={styles.switch}>
-            <input
-              type="checkbox"
-              className={styles.switchInput}
-              checked={theme === "dark"}
-              onChange={() => setTheme(theme === "light" ? "dark" : "light")}
-              aria-label={theme === "light" ? "Enable dark theme" : "Enable light theme"}
-            />
-            <span className={styles.switchSlider}>
-              <span className={`${styles.switchIcon} ${styles.sunIcon}`} aria-hidden="true">☀</span>
-              <span className={`${styles.switchIcon} ${styles.moonIcon}`} aria-hidden="true">☾</span>
-            </span>
-          </label>
-        </div>
-      </header>
+    <div className={styles.page}>
+      <Navbar />
 
       <main className={styles.main}>
         <section className={styles.pageHero}>

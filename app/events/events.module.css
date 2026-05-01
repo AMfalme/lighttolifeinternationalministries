@@ -1,16 +1,4 @@
 /* Events Page Styles */
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 .page {
   min-height: 100vh;
   padding: 24px;
@@ -62,36 +50,25 @@
   --nav-cta-text: #f8fbff;
 }
 
-:global(html) {
-  height: 100%;
-}
-
-:global(html),
-:global(body) {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-:global(body) {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-:global(*) {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-:global(a) {
-  color: inherit;
-  text-decoration: none;
+:global(html[data-theme="dark"]) .page {
+  --page-bg: #0b2540;
+  --page-glow-1: rgba(56, 189, 248, 0.14);
+  --page-glow-2: rgba(37, 99, 235, 0.18);
+  --surface: rgba(8, 28, 51, 0.8);
+  --surface-strong: rgba(10, 36, 64, 0.92);
+  --surface-soft: rgba(14, 45, 79, 0.78);
+  --surface-border: rgba(147, 197, 253, 0.28);
+  --text-main: #f8fbff;
+  --text-muted: #bcdcff;
+  --text-nav: #e0efff;
+  --accent-blue: #7dd3fc;
+  --button-primary-start: #38bdf8;
+  --button-primary-end: #2563eb;
+  --button-secondary-bg: rgba(15, 56, 98, 0.65);
+  --button-secondary-border: rgba(147, 197, 253, 0.34);
+  --button-secondary-text: #f8fbff;
+  --nav-cta-bg: linear-gradient(135deg, #38bdf8, #2563eb);
+  --nav-cta-text: #f8fbff;
 }
 
 .navbar {

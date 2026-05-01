@@ -59,6 +59,33 @@
   --card-shadow: 0 40px 80px rgba(1, 10, 25, 0.42);
 }
 
+:global(html[data-theme="dark"]) .page {
+  --page-bg: #0b2540;
+  --page-glow-1: rgba(56, 189, 248, 0.14);
+  --page-glow-2: rgba(37, 99, 235, 0.18);
+  --surface: rgba(8, 28, 51, 0.8);
+  --surface-strong: rgba(10, 36, 64, 0.92);
+  --surface-soft: rgba(14, 45, 79, 0.78);
+  --surface-border: rgba(147, 197, 253, 0.28);
+  --text-main: #f8fbff;
+  --text-muted: #bcdcff;
+  --text-nav: #e0efff;
+  --badge-bg: rgba(56, 189, 248, 0.18);
+  --badge-text: #f0f9ff;
+  --accent: #60a5fa;
+  --accent-blue: #7dd3fc;
+  --button-primary-start: #38bdf8;
+  --button-primary-end: #2563eb;
+  --button-secondary-bg: rgba(15, 56, 98, 0.65);
+  --button-secondary-border: rgba(147, 197, 253, 0.34);
+  --button-secondary-text: #f8fbff;
+  --hover-soft: rgba(125, 211, 252, 0.16);
+  --nav-cta-bg: linear-gradient(135deg, #38bdf8, #2563eb);
+  --nav-cta-text: #f8fbff;
+  --card-bg: linear-gradient(180deg, rgba(12, 37, 65, 0.98), rgba(10, 30, 52, 0.9));
+  --card-shadow: 0 40px 80px rgba(1, 10, 25, 0.42);
+}
+
 .navbar {
   display: flex;
   align-items: center;
@@ -128,6 +155,7 @@
   color: #e0efff;
   flex: 1;
   margin: 0 20px;
+  justify-content: center;
 }
 
 .navMobileActions {
@@ -788,20 +816,30 @@
     width: 100%;
     margin: 0;
     flex: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    align-items: center;
   }
 
   .navLinksOpen {
     max-height: calc(100vh - 56px);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .navItem {
     width: 100%;
+    text-align: center;
   }
 
   .navLink {
-    display: block;
+    display: flex;
     width: 100%;
     padding: 12px 12px;
+    justify-content: center;
+    text-align: center;
   }
 
   .navItem:hover .navSub {
@@ -823,10 +861,12 @@
   .navSub a {
     padding: 10px 16px;
     font-size: 0.85rem;
+    text-align: center;
   }
 
   .navMobileActions {
     display: flex;
+    align-items: stretch;
   }
 
   .navActions {
@@ -1029,9 +1069,11 @@
 }
 
 .leaderImageBox {
+  position: relative;
   width: 100%;
-  aspect-ratio: 3 / 3;
+  height: 280px;
   overflow: hidden;
+  border-radius: 12px;
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1));
 }
 
