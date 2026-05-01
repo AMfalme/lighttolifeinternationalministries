@@ -242,7 +242,18 @@
   .navbar {
     padding: 0 16px;
     height: 56px;
+    gap: 12px;
     justify-content: space-between;
+  }
+
+  .brand {
+    max-width: 45vw;
+  }
+
+  .brand img {
+    width: 140px;
+    height: auto;
+    transform: translateY(-8px);
   }
 
   .hamburger {

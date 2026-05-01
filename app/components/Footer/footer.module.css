@@ -1,9 +1,5 @@
 .siteFooter {
-  width: 100vw;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
+  width: 100%;
   background: var(--footer-bg);
   color: var(--text-main);
   padding: 28px 16px 12px;
