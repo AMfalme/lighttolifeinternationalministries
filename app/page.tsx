@@ -54,7 +54,7 @@ export default function Home() {
             <div className={styles.heroStack}>
               <div className={styles.heroCard}>
                 <Image
-                  src="/praise.png"
+                  src="/praise four.jpeg"
                   alt="Congregation"
                   fill
                   className={styles.heroImage}
