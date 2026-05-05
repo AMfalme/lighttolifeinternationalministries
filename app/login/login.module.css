@@ -133,6 +133,14 @@
 	box-shadow: 0 0 0 3px color-mix(in srgb, var(--auth-input-focus) 28%, transparent);
 }
 
+.error {
+	margin: -4px 0 0;
+	color: #dc2626;
+	font-size: 0.9rem;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
 .primary { 
 	padding: 12px 16px; 
 	border-radius: 10px; 
@@ -143,6 +151,12 @@
 	border: none; 
 	cursor: pointer;
 	transition: filter 160ms ease, transform 160ms ease;
+}
+
+.primary:disabled {
+	opacity: 0.7;
+	cursor: wait;
+	transform: none;
 }
 
 .primary:hover {
@@ -254,6 +268,10 @@
 	.form input {
 		height: 42px;
 		font-size: 16px;
+	}
+
+	.error {
+		font-size: 0.85rem;
 	}
 
 	.primary {

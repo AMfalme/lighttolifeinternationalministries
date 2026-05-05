@@ -1,9 +1,8 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getApp, getApps, initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -14,10 +13,10 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
+const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+export const auth = typeof window !== "undefined" ? getAuth(firebaseApp) : (null as any);
+export const db = getFirestore(firebaseApp);
+export const storage = getStorage(firebaseApp);
 
-export const db = getFirestore(app);
-export const auth = typeof window !== "undefined" ? getAuth(app) : (null as any);
-export const storage = getStorage(app);
+export default firebaseApp;

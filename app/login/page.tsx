@@ -2,10 +2,45 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signInWithEmailAndPassword } from "../lib/firebase";
 import Navbar from "../components/Navbar/Navbar";
 import styles from "./login.module.css";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+
+    const form = new FormData(e.currentTarget);
+    const email = (form.get("email") as string) || "";
+    const password = (form.get("password") as string) || "";
+
+    setLoading(true);
+    try {
+      const { result, error: signInError } = await signInWithEmailAndPassword(email, password);
+
+      if (signInError) {
+        throw signInError;
+      }
+
+      if (!result?.user) {
+        throw new Error("Sign in failed");
+      }
+
+      router.push("/");
+    } catch (err: any) {
+      setError(err?.message || "Sign in failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className={styles.page}>
       <Navbar />
@@ -28,7 +63,7 @@ export default function LoginPage() {
           <h2>Welcome Back</h2>
           <p className={styles.description}>Sign in to your account to continue</p>
 
-          <form className={styles.form}>
+          <form className={styles.form} onSubmit={handleSubmit}>
             <label>
               Email Address
               <input type="email" name="email" placeholder="you@example.com" required />
@@ -37,7 +72,10 @@ export default function LoginPage() {
               Password
               <input type="password" name="password" placeholder="••••••••" required />
             </label>
-            <button type="submit" className={styles.primary}>Sign In</button>
+            {error && <p className={styles.error}>{error}</p>}
+            <button type="submit" className={styles.primary} disabled={loading}>
+              {loading ? "Signing In..." : "Sign In"}
+            </button>
           </form>
 
           <p className={styles.switchText}>
