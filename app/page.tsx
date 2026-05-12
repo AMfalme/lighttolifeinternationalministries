@@ -213,15 +213,15 @@ export default function Home() {
               <div className={styles.leaderCard}>
                 <div className={styles.leaderImageBox}>
                   <Image
-                    src="/maisiba.png"
-                    alt="Pastor Charles Maisiba"
+                    src="/maisiba.PNG"
+                    alt="Rev. Charles Maisiba"
                     fill
                     className={styles.leaderImage}
                   />
                 </div>
 
                 <div className={styles.leaderInfo}>
-                  <h3 className={styles.leaderName}>Pastor Charles Maisiba</h3>
+                  <h3 className={styles.leaderName}>Rev. Charles Maisiba</h3>
                   <p className={styles.leaderRole}>Senior Pastor & Deputy Director</p>
                   <p className={styles.leaderBio}>
                     Dedicated to pastoral care, spiritual counseling, and overseeing day-to-day ministry operations and church growth.
@@ -232,7 +232,7 @@ export default function Home() {
               <div className={styles.leaderCard}>
                 <div className={styles.leaderImageBox}>
                   <Image
-                    src="/pastor Nyarongo.png"
+                    src="/pastor Nyarongo.PNG"
                     alt="Pastor Nicholas Nyarongo"
                     fill
                     className={styles.leaderImage}
