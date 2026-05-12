@@ -171,12 +171,9 @@ export default function Home() {
               </div>
               <div className={styles.aboutImage}>
                 <div className={styles.imageBox}>
-                  <Image
-                    src="/hero.jpeg"
-                    alt="Congregation"
-                    fill
-                    className={styles.leaderImage}
-                  />
+                  <div className={styles.imagePlaceholder}>
+                    <span>Church Community Image</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -250,20 +247,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className={styles.leaderCard}>
-                <div className={styles.leaderImageBox}>
-                  <div className={styles.imagePlaceholder}>
-                    <span>Team Member Image</span>
-                  </div>
-                </div>
-                <div className={styles.leaderInfo}>
-                  <h3 className={styles.leaderName}>Pastor Rebecca Okonkwo</h3>
-                  <p className={styles.leaderRole}>Women's Ministry Director</p>
-                  <p className={styles.leaderBio}>
-                    Passionate about empowering women and strengthening families through faith-based programs and spiritual mentorship.
-                  </p>
-                </div>
-              </div>
+              
             </div>
           </div>
         </section>

@@ -2,7 +2,7 @@ import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
 import firebase_app from "../config";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../config";
-import { userDetails } from "@/types/user";
+import { userDetails } from "@/app/types/user";
 import { generateFirebaseAuthErrorMessage } from "./firebaseErrorHandler";
 import { FirebaseError } from "firebase/app";
 import { AppDispatch } from "@/app/store/store";
@@ -27,10 +27,7 @@ export default async function signUp(
     return { result: null, error };
   }
 }
-export async function saveUserDetails(
-  userId: string,
-  userDetails: userDetails
-) {
+export async function saveUserDetails(userId: string, userDetails: userDetails) {
   const userInfo = await setDoc(doc(db, "users", userId), userDetails);
   console.log(userInfo);
   return { userInfo };
