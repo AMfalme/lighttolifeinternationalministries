@@ -213,7 +213,7 @@ export default function Home() {
               <div className={styles.leaderCard}>
                 <div className={styles.leaderImageBox}>
                   <Image
-                    src="/maisiba.PNG"
+                    src="/maisiba.png"
                     alt="Rev. Charles Maisiba"
                     fill
                     className={styles.leaderImage}
@@ -232,7 +232,7 @@ export default function Home() {
               <div className={styles.leaderCard}>
                 <div className={styles.leaderImageBox}>
                   <Image
-                    src="/pastor Nyarongo.PNG"
+                    src="/pastor Nyarongo.png"
                     alt="Pastor Nicholas Nyarongo"
                     fill
                     className={styles.leaderImage}
