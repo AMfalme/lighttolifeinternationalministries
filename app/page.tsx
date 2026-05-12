@@ -172,7 +172,7 @@ export default function Home() {
               <div className={styles.aboutImage}>
                 <div className={styles.imageBox}>
                   <Image
-                    src="/congregation.jpg"
+                    src="/hero.jpeg"
                     alt="Congregation"
                     fill
                     className={styles.leaderImage}
