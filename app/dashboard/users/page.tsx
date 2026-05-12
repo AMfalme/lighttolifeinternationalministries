@@ -4,8 +4,6 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLoading } from "../loading";
-import { getDoc, doc, collection, getDocs } from "firebase/firestore";
-import { db } from "@/app/lib/firebase/config";
 import styles from "../dashboard.module.css";
 
 export default function UsersPage() {
@@ -28,6 +26,9 @@ export default function UsersPage() {
           if (u) {
             setUser(u);
             try {
+              const fsConfig = await import("@/app/lib/firebase/config");
+              const db = fsConfig.db;
+              const { getDoc, doc } = await import("firebase/firestore");
               const userDoc = await getDoc(doc(db, "users", u.uid));
               if (userDoc && userDoc.exists()) {
                 const data: any = userDoc.data();
@@ -36,6 +37,7 @@ export default function UsersPage() {
                 setCurrentUserRole("user");
               }
             } catch (e) {
+              console.warn("Firestore unavailable, defaulting role:", e);
               setCurrentUserRole("user");
             }
           } else {
@@ -67,6 +69,9 @@ export default function UsersPage() {
 
     setLoadingUsers(true);
     try {
+      const fsConfig = await import("@/app/lib/firebase/config");
+      const db = fsConfig.db;
+      const { collection, getDocs } = await import("firebase/firestore");
       const qSnapshot = await getDocs(collection(db, "users"));
       setUsersList(qSnapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
     } catch (e) {
@@ -81,9 +86,11 @@ export default function UsersPage() {
     if (currentUserRole !== "admin") return;
 
     try {
-      const fstore = await import("firebase/firestore");
-      const userRef = fstore.doc(db, "users", u.id);
-      await fstore.updateDoc(userRef, { role: u.role || "user" });
+      const fsConfig = await import("@/app/lib/firebase/config");
+      const db = fsConfig.db;
+      const { doc, updateDoc } = await import("firebase/firestore");
+      const userRef = doc(db, "users", u.id);
+      await updateDoc(userRef, { role: u.role || "user" });
     } catch (e) {
       console.error("Error updating role:", e);
     }
