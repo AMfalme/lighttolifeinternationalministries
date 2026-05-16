@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/app/lib/firebase/admin";
-import { serverTimestamp } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 
 const requireAdmin = async (request: NextRequest) => {
   const header = request.headers.get("authorization") || "";
@@ -11,10 +11,15 @@ const requireAdmin = async (request: NextRequest) => {
   }
 
   const decoded = await adminAuth().verifyIdToken(token);
+  const hasAdminClaim = decoded.role === "admin" || decoded.role === "super-admin";
+  if (hasAdminClaim) {
+    return { uid: decoded.uid };
+  }
+
   const userDoc = await adminDb().collection("users").doc(decoded.uid).get();
   const role = userDoc.data()?.role;
 
-  if (role !== "admin") {
+  if (role !== "admin" && role !== "super-admin") {
     return { error: NextResponse.json({ error: "Admin access required." }, { status: 403 }) };
   }
 
@@ -33,6 +38,22 @@ export async function PATCH(request: NextRequest, { params }: { params: { uid: s
     const displayName = String(body.displayName || "").trim();
     const email = String(body.email || "").trim();
     const branchLocation = String(body.branchLocation || "").trim();
+    const branchAddress = String(body.branchAddress || "").trim();
+    const branchDescription = String(body.branchDescription || "").trim();
+    const pastorDescription = String(body.pastorDescription || "").trim();
+    const pastorImageURL = String(body.pastorImageURL || "").trim();
+    const churchGallery = Array.isArray(body.churchGallery)
+      ? body.churchGallery.map((item: string) => String(item).trim()).filter(Boolean)
+      : String(body.churchGallery || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+    const videos = Array.isArray(body.videos)
+      ? body.videos.map((v: string) => String(v).trim()).filter(Boolean)
+      : String(body.videos || "")
+          .split(/\n|,/) // allow newline or comma separated
+          .map((item) => item.trim())
+          .filter(Boolean);
     const phoneNumber = String(body.phoneNumber || "").trim();
     const photoURL = String(body.photoURL || "").trim();
 
@@ -51,12 +72,42 @@ export async function PATCH(request: NextRequest, { params }: { params: { uid: s
         displayName,
         email,
         branchLocation,
+        branchAddress,
+        branchDescription,
+        pastorDescription,
+        pastorImageURL,
+        churchGallery,
+        // include videos at user-level for convenience
+        videos: videos,
         phoneNumber,
         photoURL: photoURL || "",
-        updatedAt: serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
     );
+
+    // Also update or create a branches doc for this branch
+    try {
+      const slug = branchLocation.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      // Use the team member UID as the branch doc id
+      await adminDb().collection("branches").doc(uid).set(
+        {
+          branchLocation,
+          branchAddress,
+          branchDescription,
+          pastorDescription,
+          pastorImageURL,
+          gallery: churchGallery,
+          videos: videos,
+          // keep existing videos if any; merging will preserve
+          mainImage: photoURL || pastorImageURL || "",
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    } catch (e) {
+      console.error("Failed to update branch document:", e);
+    }
 
     return NextResponse.json({ uid, displayName, email, branchLocation, phoneNumber, photoURL: photoURL || "" });
   } catch (error) {

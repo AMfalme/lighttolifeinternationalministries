@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import styles from "./ImageUpload.module.css";
 import {
   DashboardImage,
@@ -22,16 +22,21 @@ type UploadResult = {
 
 type ImageUploadProps = {
   onSelectImage?: (image: DashboardImage | null) => void;
+  onSelectMultiple?: (images: DashboardImage[]) => void;
   initialSelectedUrl?: string;
+  initialSelectedUrls?: string[];
+  multiSelect?: boolean;
 };
 
-export default function ImageUpload({ onSelectImage, initialSelectedUrl }: ImageUploadProps) {
+export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSelectedUrl, initialSelectedUrls, multiSelect }: ImageUploadProps) {
   const [images, setImages] = useState<DashboardImage[]>([]);
   const [loadingImages, setLoadingImages] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const initialUrlsRef = useRef<string[] | null>(null);
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim() || "";
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim() || "";
@@ -73,19 +78,45 @@ export default function ImageUpload({ onSelectImage, initialSelectedUrl }: Image
   }, []);
 
   useEffect(() => {
-    onSelectImage?.(selectedImage);
-  }, [onSelectImage, selectedImage]);
+    if (multiSelect) {
+      const selected = images.filter((img) => selectedIds.has(img.id));
+      onSelectMultiple?.(selected);
+    } else {
+      onSelectImage?.(selectedImage);
+    }
+  }, [onSelectImage, selectedImage, onSelectMultiple, images, selectedIds, multiSelect]);
 
   useEffect(() => {
-    if (!initialSelectedUrl || !images.length) {
-      return;
+    if (!images.length) return;
+
+    if (initialSelectedUrl) {
+      const matchedImage = images.find((image) => image.url === initialSelectedUrl);
+      if (matchedImage && matchedImage.id !== selectedImageId) {
+        setSelectedImageId(matchedImage.id || null);
+      }
     }
 
-    const matchedImage = images.find((image) => image.url === initialSelectedUrl);
-    if (matchedImage && matchedImage.id !== selectedImageId) {
-      setSelectedImageId(matchedImage.id || null);
+    if (initialSelectedUrls && initialSelectedUrls.length) {
+      const previous = initialUrlsRef.current || [];
+      const next = [...initialSelectedUrls].sort();
+      const previousSorted = [...previous].sort();
+      const urlsChanged = previousSorted.length !== next.length || next.some((url, index) => url !== previousSorted[index]);
+
+      if (urlsChanged) {
+        initialUrlsRef.current = next;
+        const ids = new Set<string>();
+        initialSelectedUrls.forEach((u) => {
+          const m = images.find((image) => image.url === u);
+          if (m) ids.add(m.id);
+        });
+        const currentIds = [...selectedIds].sort().join(";");
+        const nextIds = [...ids].sort().join(";");
+        if (currentIds !== nextIds) {
+          setSelectedIds(ids);
+        }
+      }
     }
-  }, [images, initialSelectedUrl, selectedImageId]);
+  }, [images, initialSelectedUrl, initialSelectedUrls, selectedIds, selectedImageId]);
 
   const uploadToCloudinary = async (file: File) => {
     const formData = new FormData();
@@ -152,7 +183,13 @@ export default function ImageUpload({ onSelectImage, initialSelectedUrl }: Image
 
       const nextImages = [...uploadedImages, ...images];
       setImages(nextImages);
-      setSelectedImageId(uploadedImages[0]?.id ?? null);
+      if (multiSelect) {
+        const ids = new Set(selectedIds);
+        uploadedImages.forEach((i) => ids.add(i.id));
+        setSelectedIds(ids);
+      } else {
+        setSelectedImageId(uploadedImages[0]?.id ?? null);
+      }
       setStatusMessage(`${uploadedImages.length} image${uploadedImages.length > 1 ? "s" : ""} uploaded successfully.`);
     } catch (uploadError) {
       console.error("Image upload error:", uploadError);
@@ -164,8 +201,16 @@ export default function ImageUpload({ onSelectImage, initialSelectedUrl }: Image
   };
 
   const handleSelectImage = (image: DashboardImage) => {
-    setSelectedImageId(image.id || null);
-    setStatusMessage(`Selected ${image.fileName}.`);
+    if (multiSelect) {
+      const next = new Set(selectedIds);
+      if (next.has(image.id)) next.delete(image.id);
+      else next.add(image.id);
+      setSelectedIds(next);
+      setStatusMessage(`${next.size} image${next.size === 1 ? "" : "s"} selected.`);
+    } else {
+      setSelectedImageId(image.id || null);
+      setStatusMessage(`Selected ${image.fileName}.`);
+    }
   };
 
   const handleDeleteImage = async (image: DashboardImage) => {
@@ -276,6 +321,9 @@ export default function ImageUpload({ onSelectImage, initialSelectedUrl }: Image
                 }
               }}
             >
+              {selectedImageId === image.id ? (
+                <span className={styles.selectedBadge} aria-hidden>✓</span>
+              ) : null}
               <span
                 className={styles.galleryDeleteButton}
                 role="button"

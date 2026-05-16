@@ -18,6 +18,12 @@ interface TeamMember {
   displayName: string;
   email: string;
   branchLocation: string;
+  branchAddress?: string;
+  branchDescription?: string;
+  pastorDescription?: string;
+  pastorImageURL?: string;
+  churchGallery?: string[];
+  videos?: string[];
   phoneNumber?: string;
   photoURL?: string;
   createdAt?: string;
@@ -27,6 +33,12 @@ type TeamMemberForm = {
   displayName: string;
   email: string;
   branchLocation: string;
+  branchAddress: string;
+  branchDescription: string;
+  pastorDescription: string;
+  pastorImageURL: string;
+  churchGallery: string;
+  videos: string;
   phoneNumber: string;
   photoURL: string;
   password: string;
@@ -36,12 +48,18 @@ const emptyForm = (): TeamMemberForm => ({
   displayName: "",
   email: "",
   branchLocation: "",
+  branchAddress: "",
+  branchDescription: "",
+  pastorDescription: "",
+  pastorImageURL: "",
+  churchGallery: "",
+  videos: "",
   phoneNumber: "",
   photoURL: "",
   password: "",
 });
 
-const branches = ["Main Branch", "North Location", "South Location"];
+const branches = ["Mosocho", "Omogwa", "Nyanchwa"];
 
 export default function DashboardTeamPage() {
   const router = useRouter();
@@ -88,6 +106,11 @@ export default function DashboardTeamPage() {
           displayName: data.displayName || "",
           email: data.email || "",
           branchLocation: data.branchLocation || "",
+          branchAddress: data.branchAddress || "",
+              branchDescription: data.branchDescription || "",
+              pastorDescription: data.pastorDescription || "",
+          pastorImageURL: data.pastorImageURL || "",
+          churchGallery: Array.isArray(data.churchGallery) ? data.churchGallery : [],
           phoneNumber: data.phoneNumber || "",
           photoURL: data.photoURL || "",
           createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt || "",
@@ -113,6 +136,12 @@ export default function DashboardTeamPage() {
       displayName: member.displayName,
       email: member.email,
       branchLocation: member.branchLocation,
+      branchAddress: member.branchAddress || "",
+      branchDescription: member.branchDescription || "",
+      pastorDescription: member.pastorDescription || "",
+      pastorImageURL: member.pastorImageURL || "",
+      churchGallery: (member.churchGallery || []).join(", "),
+      videos: (member as any).videos ? (member as any).videos.join(", ") : "",
       phoneNumber: member.phoneNumber || "",
       photoURL: member.photoURL || "",
       password: "",
@@ -141,6 +170,25 @@ export default function DashboardTeamPage() {
     });
   }, []);
 
+  const handleSelectPastorImage = useCallback((image: { url: string } | null) => {
+    setFormData((current) => {
+      const next = image?.url || "";
+      return current.pastorImageURL === next ? current : { ...current, pastorImageURL: next };
+    });
+  }, []);
+
+  const initialGalleryUrls = useMemo(
+    () => formData.churchGallery.split(",").map((item) => item.trim()).filter(Boolean),
+    [formData.churchGallery],
+  );
+
+  const handleSelectGalleryImages = useCallback((images: { url: string }[]) => {
+    const nextGallery = images.map((image) => image.url).join(", ");
+    setFormData((current) => {
+      return current.churchGallery === nextGallery ? current : { ...current, churchGallery: nextGallery };
+    });
+  }, []);
+
   const handleSubmit = async () => {
     if (!formData.displayName || !formData.email || !formData.branchLocation) {
       alert("Please fill in all required fields.");
@@ -165,7 +213,17 @@ export default function DashboardTeamPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          churchGallery: formData.churchGallery
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+          videos: formData.videos
+            .split(/\n|,/)
+            .map((item) => item.trim())
+            .filter(Boolean),
+        }),
       });
 
       const payload = await response.json();
@@ -324,15 +382,40 @@ export default function DashboardTeamPage() {
                     </select>
                   </div>
                   <div className={styles.formGroup}>
+                    <label htmlFor="branchAddress">Branch Address</label>
+                    <input id="branchAddress" type="text" value={formData.branchAddress} onChange={(event) => setFormData({ ...formData, branchAddress: event.target.value })} placeholder="Enter branch address" />
+                  </div>
+                  <div className={styles.formGroupWide}>
+                    <label htmlFor="branchDescription">Branch Description</label>
+                    <textarea id="branchDescription" value={formData.branchDescription} onChange={(event) => setFormData({ ...formData, branchDescription: event.target.value })} placeholder="Describe the branch, worship style, values, and community." rows={5} />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Upload Pastor Image</label>
+                    <ImageUpload onSelectImage={handleSelectPastorImage} initialSelectedUrl={formData.pastorImageURL || undefined} />
+                  </div>
+                  <div className={styles.formGroupWide}>
+                    <label htmlFor="pastorDescription">Pastor Description</label>
+                    <textarea id="pastorDescription" value={formData.pastorDescription} onChange={(event) => setFormData({ ...formData, pastorDescription: event.target.value })} placeholder="Short bio or description of the pastor." rows={3} />
+                  </div>
+                  <div className={styles.formGroupWide}>
+                    <label>Church Gallery</label>
+                    <ImageUpload
+                      multiSelect
+                      initialSelectedUrls={initialGalleryUrls}
+                      onSelectMultiple={handleSelectGalleryImages}
+                    />
+                    <div className={styles.hint}>Click images to toggle selection; selected images will be saved to the branch gallery.</div>
+                  </div>
+                  <div className={styles.formGroupWide}>
+                    <label htmlFor="videos">Branch Videos (YouTube links, one per line or comma separated)</label>
+                    <textarea id="videos" value={formData.videos} onChange={(event) => setFormData({ ...formData, videos: event.target.value })} placeholder="Paste video URLs (YouTube or other)" rows={3} />
+                  </div>
+                  <div className={styles.formGroup}>
                     <label htmlFor="phoneNumber">Phone Number</label>
                     <input id="phoneNumber" type="tel" value={formData.phoneNumber} onChange={(event) => setFormData({ ...formData, phoneNumber: event.target.value })} placeholder="Enter phone number" />
                   </div>
                   <div className={styles.formGroupWide}>
-                    <label htmlFor="photoURL">Profile Image URL</label>
-                    <input id="photoURL" type="text" value={formData.photoURL} onChange={(event) => setFormData({ ...formData, photoURL: event.target.value })} placeholder="Select an uploaded image or paste an image URL" />
-                  </div>
-                  <div className={styles.formGroupWide}>
-                    <label>Choose from uploaded images</label>
+                    <label>Profile Image</label>
                     <ImageUpload onSelectImage={handleSelectImage} initialSelectedUrl={formData.photoURL || undefined} />
                   </div>
                   <div className={styles.formGroupWide}>

@@ -336,6 +336,32 @@
     box-shadow 0.18s ease;
 }
 
+.formGroup textarea,
+.formGroupWide textarea {
+  width: 100%;
+  min-height: 90px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
+  padding: 12px 14px;
+  color: var(--text-main);
+  outline: none;
+  resize: vertical;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+}
+
+.formGroup textarea:focus,
+.formGroupWide textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.06);
+}
+
+.hint {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 .formGroup input:focus,
 .formGroup select:focus,
 .formGroupWide input:focus {
