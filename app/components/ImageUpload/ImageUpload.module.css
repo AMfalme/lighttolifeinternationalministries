@@ -26,13 +26,21 @@
   line-height: 1.5;
 }
 
+.galleryImage {
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
 .uploadButton,
 .secondaryButton {
   border: none;
   border-radius: 999px;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
 .uploadButton {
@@ -82,10 +90,12 @@
   gap: 12px;
   align-items: stretch;
   padding: 12px;
-  border-radius: 12px;
-  background: rgba(226, 232, 240, 0.15);
+  border-radius: 16px;
+  background: rgba(226, 232, 240, 0.18);
   border: 1px solid rgba(148, 163, 184, 0.12);
+  backdrop-filter: blur(10px);
 }
+
 .selectedPreview,
 .galleryPreview {
   position: relative;
@@ -95,13 +105,12 @@
 
 .selectedPreview {
   min-height: 140px;
-  border-radius: 12px;
+  border-radius: 14px;
 }
 
 .galleryPreview {
   width: 100%;
-  aspect-ratio: 4 / 3;
-  border-radius: 10px 10px 0 0;
+  aspect-ratio: 1 / 1;
 }
 
 .selectedMeta {
@@ -121,7 +130,7 @@
 .selectedMeta strong,
 .galleryInfo strong {
   color: var(--text-main);
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 .selectedMeta p {
@@ -152,36 +161,89 @@
 
 .galleryGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 14px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 6px;
 }
 
 .galleryCard {
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
-  padding: 0;
+  position: relative;
   overflow: hidden;
-  text-align: left;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.12);
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+  backdrop-filter: blur(12px);
 }
 
 .galleryCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.14);
+}
+
+.galleryCard:hover .galleryImage {
+  transform: scale(1.06);
 }
 
 .galleryCardActive {
   border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.15),
+    0 12px 28px rgba(37, 99, 235, 0.12);
 }
 
 .galleryInfo {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.galleryInfo strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.galleryInfo span {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+}
+
+.galleryDeleteButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  z-index: 5;
+  backdrop-filter: blur(8px);
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.galleryDeleteButton:hover {
+  background: rgba(220, 38, 38, 0.92);
+  transform: scale(1.08);
 }
 
 .emptyState,
@@ -189,6 +251,19 @@
   color: var(--text-muted);
   background: rgba(226, 232, 240, 0.3);
   border: 1px dashed rgba(148, 163, 184, 0.3);
+}
+
+.galleryGrid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.galleryGrid::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 999px;
+}
+
+.galleryGrid::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 @media (max-width: 768px) {
@@ -200,5 +275,24 @@
 
   .selectedPreview {
     min-height: 220px;
+  }
+
+  .galleryGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .galleryGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .galleryInfo {
+    padding: 10px;
+  }
+
+  .galleryInfo strong {
+    font-size: 0.85rem;
   }
 }

@@ -1,62 +1,50 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import DashboardSidebar from "@/app/components/DashboardSidebar/DashboardSidebar";
 import { DashboardLoading } from "../loading";
+import { useFastAuth } from "@/app/lib/firebase/useFastAuth";
 import styles from "../dashboard.module.css";
 
 export default function UsersPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useFastAuth("/login");
   const [usersList, setUsersList] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [roleChecked, setRoleChecked] = useState(false);
+  const [editBranchById, setEditBranchById] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    let unsub: any = null;
+    if (!user) {
+      return;
+    }
+
     (async () => {
       try {
-        await import("@/app/lib/firebase/config");
-        const firebaseAuth = await import("firebase/auth");
-        const auth = firebaseAuth.getAuth();
-        unsub = firebaseAuth.onAuthStateChanged(auth, async (u) => {
-          if (u) {
-            setUser(u);
-            try {
-              const fsConfig = await import("@/app/lib/firebase/config");
-              const db = fsConfig.db;
-              const { getDoc, doc } = await import("firebase/firestore");
-              const userDoc = await getDoc(doc(db, "users", u.uid));
-              if (userDoc && userDoc.exists()) {
-                const data: any = userDoc.data();
-                setCurrentUserRole(data.role || null);
-              } else {
-                setCurrentUserRole("user");
-              }
-            } catch (e) {
-              console.warn("Firestore unavailable, defaulting role:", e);
-              setCurrentUserRole("user");
-            }
-          } else {
-            router.push("/login");
-          }
-          setRoleChecked(true);
-          setLoading(false);
-        });
-      } catch (e) {
-        console.error("Users auth init error:", e);
+        const fsConfig = await import("@/app/lib/firebase/config");
+        const db = fsConfig.db;
+        if (!db) {
+          setCurrentUserRole("user");
+          return;
+        }
+        const { getDoc, doc } = await import("firebase/firestore");
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc && userDoc.exists()) {
+          const data: any = userDoc.data();
+          setCurrentUserRole(data.role || null);
+        } else {
+          setCurrentUserRole("user");
+        }
+      } catch (error) {
+        console.warn("Firestore unavailable, defaulting role:", error);
+        setCurrentUserRole("user");
+      } finally {
         setRoleChecked(true);
-        setLoading(false);
       }
     })();
-
-    return () => {
-      if (unsub) unsub();
-    };
-  }, [router]);
+  }, [user]);
 
   useEffect(() => {
     if (roleChecked && user && currentUserRole !== "admin") {
@@ -71,6 +59,10 @@ export default function UsersPage() {
     try {
       const fsConfig = await import("@/app/lib/firebase/config");
       const db = fsConfig.db;
+      if (!db) {
+        setUsersList([]);
+        return;
+      }
       const { collection, getDocs } = await import("firebase/firestore");
       const qSnapshot = await getDocs(collection(db, "users"));
       setUsersList(qSnapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
@@ -88,11 +80,17 @@ export default function UsersPage() {
     try {
       const fsConfig = await import("@/app/lib/firebase/config");
       const db = fsConfig.db;
+      if (!db) {
+        throw new Error("Firestore is not configured.");
+      }
       const { doc, updateDoc } = await import("firebase/firestore");
       const userRef = doc(db, "users", u.id);
-      await updateDoc(userRef, { role: u.role || "user" });
-    } catch (e) {
-      console.error("Error updating role:", e);
+      await updateDoc(userRef, {
+        role: u.role || "user",
+        branchLocation: editBranchById[u.id] || u.branchLocation || "",
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
     }
   };
 
@@ -130,29 +128,7 @@ export default function UsersPage() {
   return (
     <div className={styles.page}>
       <div className={styles.dashboard}>
-        <aside className={styles.sidebar}>
-          <div className={styles.sidebarHeader}>
-            <Image src="/logo.jpeg" alt="Light to Life Logo" width={160} height={76} className={styles.logo} priority />
-          </div>
-          <nav className={styles.sidebarNav}>
-            <ul>
-              <li><a href="/dashboard/profile" className={styles.navLink}>👤 Profile</a></li>
-              <li><a href="/admin/blogs" className={styles.navLink}>📝 Manage Blogs</a></li>
-              <li><a href="/admin/events" className={styles.navLink}>📅 Manage Events</a></li>
-              <li><a href="/admin/projects" className={styles.navLink}>🏗️ Manage Projects</a></li>
-            </ul>
-          </nav>
-          <div className={styles.sidebarFooter}>
-            <ul>
-              <li><a href="/dashboard/settings" className={styles.navLink}>⚙️ Settings</a></li>
-              <li>
-                <button onClick={handleLogout} className={styles.logoutBtn}>
-                  🚪 Logout
-                </button>
-              </li>
-            </ul>
-          </div>
-        </aside>
+        <DashboardSidebar onLogout={handleLogout} />
         <main className={styles.main}>
           <header className={styles.header}>
             <div>
@@ -181,6 +157,7 @@ export default function UsersPage() {
                       <th>Email</th>
                       <th>Name</th>
                       <th>Role</th>
+                      <th>Branch Location</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -189,16 +166,40 @@ export default function UsersPage() {
                       <tr key={u.id}>
                         <td>{u.email}</td>
                         <td>{u.displayName || "—"}</td>
-                        <td>{u.role || "user"}</td>
                         <td>
                           {currentUserRole === "admin" ? (
-                            <>
-                              <select value={u.role || "user"} onChange={(e) => setUsersList((prev) => prev.map((p) => (p.id === u.id ? { ...p, role: e.target.value } : p)))}>
-                                <option value="user">user</option>
-                                <option value="admin">admin</option>
-                              </select>
-                              <button style={{ marginLeft: 8 }} onClick={() => saveRole(u)} className={styles.submitBtn}>Save</button>
-                            </>
+                            <select
+                              value={u.role || "user"}
+                              onChange={(event) =>
+                                setUsersList((prev) =>
+                                  prev.map((item) => (item.id === u.id ? { ...item, role: event.target.value } : item)),
+                                )
+                              }
+                            >
+                              <option value="user">user</option>
+                              <option value="admin">admin</option>
+                            </select>
+                          ) : (
+                            u.role || "user"
+                          )}
+                        </td>
+                        <td>
+                          {currentUserRole === "admin" ? (
+                            <input
+                              type="text"
+                              value={editBranchById[u.id] ?? u.branchLocation ?? ""}
+                              onChange={(event) => setEditBranchById((prev) => ({ ...prev, [u.id]: event.target.value }))}
+                              placeholder="Branch location"
+                            />
+                          ) : (
+                            u.branchLocation || "—"
+                          )}
+                        </td>
+                        <td>
+                          {currentUserRole === "admin" ? (
+                            <button onClick={() => saveRole(u)} className={styles.submitBtn}>
+                              Save
+                            </button>
                           ) : (
                             <span>—</span>
                           )}

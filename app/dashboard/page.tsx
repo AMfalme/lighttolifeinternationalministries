@@ -1,44 +1,15 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import DashboardSidebar from "@/app/components/DashboardSidebar/DashboardSidebar";
 import { DashboardLoading } from "./loading";
 import styles from "./dashboard.module.css";
 import ImageUpload from "@/app/components/ImageUpload/ImageUpload";
+import { useFastAuth } from "@/app/lib/firebase/useFastAuth";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let unsub: any = null;
-    (async () => {
-      try {
-        // ensure firebase app is initialized before using auth
-        await import("@/app/lib/firebase/config");
-        const firebaseAuth = await import("firebase/auth");
-        const auth = firebaseAuth.getAuth();
-        unsub = firebaseAuth.onAuthStateChanged(auth, async (u) => {
-          if (u) {
-            setUser(u);
-          } else {
-            router.push("/login");
-          }
-          setLoading(false);
-        });
-      } catch (e) {
-        // if anything goes wrong, avoid crashing the page
-        console.error("Auth init error:", e);
-        setLoading(false);
-      }
-    })();
-
-    return () => {
-      if (unsub) unsub();
-    };
-  }, [router]);
+  const { user, loading } = useFastAuth("/login");
 
   if (loading) {
     return <DashboardLoading />;
@@ -58,36 +29,7 @@ export default function DashboardPage() {
   return (
     <div className={styles.page}>
       <div className={styles.dashboard}>
-        <aside className={styles.sidebar}>
-          <div className={styles.sidebarHeader}>
-            <Image
-              src="/logo.jpeg"
-              alt="Light to Life Logo"
-              width={160}
-              height={76}
-              className={styles.logo}
-              priority
-            />
-          </div>
-          <nav className={styles.sidebarNav}>
-            <ul>
-              <li><a href="/dashboard/profile" className={styles.navLink}>👤 Profile</a></li>
-              <li><a href="/admin/blogs" className={styles.navLink}>📝 Manage Blogs</a></li>
-              <li><a href="/admin/events" className={styles.navLink}>📅 Manage Events</a></li>
-              <li><a href="/admin/projects" className={styles.navLink}>🏗️ Manage Projects</a></li>
-            </ul>
-          </nav>
-          <div className={styles.sidebarFooter}>
-            <ul>
-              <li><a href="/dashboard/settings" className={styles.navLink}>⚙️ Settings</a></li>
-              <li>
-                <button onClick={handleLogout} className={styles.logoutBtn}>
-                  🚪 Logout
-                </button>
-              </li>
-            </ul>
-          </div>
-        </aside>
+        <DashboardSidebar onLogout={handleLogout} />
         <main className={styles.main}>
           <header className={styles.header}>
             <div>
@@ -145,6 +87,13 @@ export default function DashboardPage() {
                     <p>Manage blog posts</p>
                   </div>
                 </a>
+                <a href="/dashboard/team" className={styles.contentLink}>
+                  <span className={styles.linkIcon}>👥</span>
+                  <div>
+                    <h4>Team</h4>
+                    <p>Manage team members</p>
+                  </div>
+                </a>
                 <a href="/dashboard/events" className={styles.contentLink}>
                   <span className={styles.linkIcon}>📅</span>
                   <div>
@@ -160,10 +109,10 @@ export default function DashboardPage() {
                   </div>
                 </a>
                 <a href="/dashboard/users" className={styles.contentLink}>
-                  <span className={styles.linkIcon}>👥</span>
+                  <span className={styles.linkIcon}>🔐</span>
                   <div>
                     <h4>Users</h4>
-                    <p>View and manage user roles (admin only)</p>
+                    <p>View and manage user roles</p>
                   </div>
                 </a>
                 <a href="/dashboard/settings" className={styles.contentLink}>

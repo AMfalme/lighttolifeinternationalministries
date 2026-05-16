@@ -3,42 +3,53 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import DashboardSidebar from "@/app/components/DashboardSidebar/DashboardSidebar";
+import ImageUpload from "@/app/components/ImageUpload/ImageUpload";
 import { DashboardLoading } from "../loading";
+import { useFastAuth } from "@/app/lib/firebase/useFastAuth";
 import styles from "../dashboard.module.css";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useFastAuth("/login");
+  const [userDetails, setUserDetails] = useState<any>(null);
   const [displayName, setDisplayName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [branchLocation, setBranchLocation] = useState("");
+  const [photoURL, setPhotoURL] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const branches = ["Main Branch", "North Location", "South Location"];
+
   useEffect(() => {
-    let unsub: any = null;
+    if (!user) {
+      return;
+    }
+
+    setDisplayName(user.displayName || "");
+    setPhotoURL(user.photoURL || "");
+
     (async () => {
       try {
-        await import("@/app/lib/firebase/config");
-        const firebaseAuth = await import("firebase/auth");
-        const auth = firebaseAuth.getAuth();
-        unsub = firebaseAuth.onAuthStateChanged(auth, (user) => {
-          if (user) {
-            setUser(user);
-            setDisplayName(user.displayName || "");
-          } else {
-            router.push("/login");
-          }
-          setLoading(false);
-        });
-      } catch (e) {
-        console.error("Profile auth init error:", e);
-        setLoading(false);
+        const { db } = await import("@/app/lib/firebase/config");
+        if (!db) {
+          return;
+        }
+        const { doc, getDoc } = await import("firebase/firestore");
+        const docSnap = await getDoc(doc(db, "users", user.uid));
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setUserDetails(data);
+          setPhoneNumber(data.phoneNumber || "");
+          setBranchLocation(data.branchLocation || "");
+          setPhotoURL(data.photoURL || user.photoURL || "");
+        }
+      } catch (error) {
+        console.error("Error loading user details:", error);
       }
     })();
-
-    return () => {
-      if (unsub) unsub();
-    };
-  }, [router]);
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -57,8 +68,30 @@ export default function ProfilePage() {
     setSaving(true);
     try {
       const firebaseAuth = await import("firebase/auth");
-      await firebaseAuth.updateProfile(user, { displayName });
-      setUser({ ...user, displayName });
+      await firebaseAuth.updateProfile(user, { displayName, photoURL: photoURL || null });
+      
+      // Update Firestore
+      const { db } = await import("@/app/lib/firebase/config");
+      if (!db) {
+        throw new Error("Firestore is not configured.");
+      }
+      const { doc, updateDoc } = await import("firebase/firestore");
+      
+      await updateDoc(doc(db, "users", user.uid), {
+        displayName,
+        phoneNumber,
+        branchLocation,
+        photoURL,
+        updatedAt: new Date(),
+      });
+      
+      setUserDetails({
+        ...userDetails,
+        displayName,
+        phoneNumber,
+        branchLocation,
+        photoURL,
+      });
       alert("Profile updated successfully!");
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -74,36 +107,7 @@ export default function ProfilePage() {
   return (
     <div className={styles.page}>
       <div className={styles.dashboard}>
-        <aside className={styles.sidebar}>
-          <div className={styles.sidebarHeader}>
-            <Image
-              src="/logo.jpeg"
-              alt="Light to Life Logo"
-              width={160}
-              height={76}
-              className={styles.logo}
-              priority
-            />
-          </div>
-          <nav className={styles.sidebarNav}>
-            <ul>
-              <li><a href="/dashboard/profile" className={styles.navLink}>👤 Profile</a></li>
-              <li><a href="/admin/blogs" className={styles.navLink}>📝 Manage Blogs</a></li>
-              <li><a href="/admin/events" className={styles.navLink}>📅 Manage Events</a></li>
-              <li><a href="/admin/projects" className={styles.navLink}>🏗️ Manage Projects</a></li>
-            </ul>
-          </nav>
-          <div className={styles.sidebarFooter}>
-            <ul>
-              <li><a href="/dashboard/settings" className={styles.navLink}>⚙️ Settings</a></li>
-              <li>
-                <button onClick={handleLogout} className={styles.logoutBtn}>
-                  🚪 Logout
-                </button>
-              </li>
-            </ul>
-          </div>
-        </aside>
+        <DashboardSidebar onLogout={handleLogout} />
         <main className={styles.main}>
           <header className={styles.header}>
             <div>
@@ -119,6 +123,23 @@ export default function ProfilePage() {
             </div>
             <form className={styles.form} onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
               <div className={styles.formGroup}>
+                <label>Profile Image</label>
+                {photoURL ? (
+                  <div style={{ marginBottom: 16, position: "relative", width: 120, height: 120, borderRadius: 999, overflow: "hidden" }}>
+                    <Image src={photoURL} alt={displayName || "Team member"} fill style={{ objectFit: "cover" }} />
+                  </div>
+                ) : null}
+                <input
+                  type="text"
+                  value={photoURL}
+                  onChange={(e) => setPhotoURL(e.target.value)}
+                  placeholder="Paste an image URL or choose from uploads"
+                />
+                <div style={{ marginTop: 12 }}>
+                  <ImageUpload onSelectImage={(image) => setPhotoURL(image?.url || "")} initialSelectedUrl={photoURL || undefined} />
+                </div>
+              </div>
+              <div className={styles.formGroup}>
                 <label>Full Name</label>
                 <input
                   type="text"
@@ -131,10 +152,33 @@ export default function ProfilePage() {
                 <label>Email</label>
                 <input
                   type="email"
-                  value={user.email}
+                  value={user.email || ""}
                   disabled
                   placeholder="Your email"
                 />
+              </div>
+              <div className={styles.formGroup}>
+                <label>Phone Number</label>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="Your phone number"
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>Branch Location</label>
+                <select
+                  value={branchLocation}
+                  onChange={(e) => setBranchLocation(e.target.value)}
+                >
+                  <option value="">Select your branch</option>
+                  {branches.map((branch) => (
+                    <option key={branch} value={branch}>
+                      {branch}
+                    </option>
+                  ))}
+                </select>
               </div>
               <button type="submit" className={styles.submitBtn} disabled={saving}>
                 {saving ? "Saving..." : "Save Changes"}

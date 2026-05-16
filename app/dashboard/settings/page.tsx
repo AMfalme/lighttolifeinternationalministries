@@ -1,46 +1,20 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import DashboardSidebar from "@/app/components/DashboardSidebar/DashboardSidebar";
 import { DashboardLoading } from "../loading";
 import { applyTheme, getStoredTheme, type Theme } from "@/app/lib/theme";
 import { DEFAULT_DONATION_NUMBER, getDonationNumber, setDonationNumber as saveDonationNumber } from "@/app/lib/firebase/firestore";
+import { useFastAuth } from "@/app/lib/firebase/useFastAuth";
 import styles from "../dashboard.module.css";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useFastAuth("/login");
   const [theme, setTheme] = useState<Theme>("light");
   const [donationNumber, setDonationNumber] = useState(DEFAULT_DONATION_NUMBER);
   const [savedDonationNumber, setSavedDonationNumber] = useState(DEFAULT_DONATION_NUMBER);
-
-  useEffect(() => {
-    let unsub: any = null;
-    (async () => {
-      try {
-        await import("@/app/lib/firebase/config");
-        const firebaseAuth = await import("firebase/auth");
-        const auth = firebaseAuth.getAuth();
-        unsub = firebaseAuth.onAuthStateChanged(auth, (user) => {
-          if (user) {
-            setUser(user);
-          } else {
-            router.push("/login");
-          }
-          setLoading(false);
-        });
-      } catch (e) {
-        console.error("Settings auth init error:", e);
-        setLoading(false);
-      }
-    })();
-
-    return () => {
-      if (unsub) unsub();
-    };
-  }, [router]);
 
   useEffect(() => {
     const savedTheme = getStoredTheme();
@@ -85,36 +59,7 @@ export default function SettingsPage() {
   return (
     <div className={styles.page}>
       <div className={styles.dashboard}>
-        <aside className={styles.sidebar}>
-          <div className={styles.sidebarHeader}>
-            <Image
-              src="/logo.jpeg"
-              alt="Light to Life Logo"
-              width={160}
-              height={76}
-              className={styles.logo}
-              priority
-            />
-          </div>
-          <nav className={styles.sidebarNav}>
-            <ul>
-              <li><a href="/dashboard/profile" className={styles.navLink}>👤 Profile</a></li>
-              <li><a href="/admin/blogs" className={styles.navLink}>📝 Manage Blogs</a></li>
-              <li><a href="/admin/events" className={styles.navLink}>📅 Manage Events</a></li>
-              <li><a href="/admin/projects" className={styles.navLink}>🏗️ Manage Projects</a></li>
-            </ul>
-          </nav>
-          <div className={styles.sidebarFooter}>
-            <ul>
-              <li><a href="/dashboard/settings" className={styles.navLink}>⚙️ Settings</a></li>
-              <li>
-                <button onClick={handleLogout} className={styles.logoutBtn}>
-                  🚪 Logout
-                </button>
-              </li>
-            </ul>
-          </div>
-        </aside>
+        <DashboardSidebar onLogout={handleLogout} />
         <main className={styles.main}>
           <header className={styles.header}>
             <div>

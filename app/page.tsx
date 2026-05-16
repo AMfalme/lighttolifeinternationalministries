@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import Navbar from "./components/Navbar/Navbar";
+import TeamSection from "./components/TeamSection/TeamSection";
 import styles from "./page.module.css";
 
 export default function Home() {
@@ -184,71 +185,13 @@ export default function Home() {
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeader}>
               <span className={styles.sectionLabel}>LEADERSHIP</span>
-              <h2 className={styles.sectionHeading}>Meet Our Dedicated Leadership Team</h2>
+              <h2 className={styles.sectionHeading}>Meet Our Dedicated Branch Team</h2>
               <p className={styles.sectionDescription}>
-                Led by faithful servants of Christ committed to spiritual excellence and community transformation.
+                The people serving at each branch are managed from the dashboard and shown here automatically.
               </p>
             </div>
 
-            <div className={styles.leadershipGrid}>
-              <div className={styles.leaderCard}>
-                <div className={styles.leaderImageBox}>
-                  <Image
-                    src="/Bishop Francis Akaki.jpeg"
-                    alt="Bishop Francis Akaki Obae"
-                    fill
-                    className={styles.leaderImage}
-                  />
-                </div>
-
-                <div className={styles.leaderInfo}>
-                  <h3 className={styles.leaderName}>Bishop Francis Akaki Obae</h3>
-                  <p className={styles.leaderRole}>Senior Bishop & Founder</p>
-                  <p className={styles.leaderBio}>
-                    Visionary leader and founder of Light to Life International Ministries, dedicated to spreading God's kingdom across nations.
-                  </p>
-                </div>
-              </div>
-
-              <div className={styles.leaderCard}>
-                <div className={styles.leaderImageBox}>
-                  <Image
-                    src="/maisiba.png"
-                    alt="Rev. Charles Maisiba"
-                    fill
-                    className={styles.leaderImage}
-                  />
-                </div>
-
-                <div className={styles.leaderInfo}>
-                  <h3 className={styles.leaderName}>Rev. Charles Mayore</h3>
-                  <p className={styles.leaderRole}>Senior Pastor & Deputy Director</p>
-                  <p className={styles.leaderBio}>
-                    Dedicated to pastoral care, spiritual counseling, and overseeing day-to-day ministry operations and church growth.
-                  </p>
-                </div>
-              </div>
-
-              <div className={styles.leaderCard}>
-                <div className={styles.leaderImageBox}>
-                  <Image
-                    src="/Nyarongo.png"
-                    alt="Pastor Nicholas Nyarongo"
-                    fill
-                    className={styles.leaderImage}
-                  />
-                </div>
-                <div className={styles.leaderInfo}>
-                  <h3 className={styles.leaderName}>Pastor Nicholas Nyarongo</h3>
-                  <p className={styles.leaderRole}>Education & Outreach Director</p>
-                  <p className={styles.leaderBio}>
-                    A visionary educator overseeing scholarship programs and educational initiatives for underprivileged youth across the globe.
-                  </p>
-                </div>
-              </div>
-
-              
-            </div>
+            <TeamSection />
           </div>
         </section>
 

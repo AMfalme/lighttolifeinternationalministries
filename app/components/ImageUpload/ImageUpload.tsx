@@ -6,6 +6,7 @@ import styles from "./ImageUpload.module.css";
 import {
   DashboardImage,
   createDashboardImage,
+  deleteDashboardImage,
   getAllDashboardImages,
 } from "@/app/lib/dashboardImages";
 
@@ -167,6 +168,28 @@ export default function ImageUpload({ onSelectImage, initialSelectedUrl }: Image
     setStatusMessage(`Selected ${image.fileName}.`);
   };
 
+  const handleDeleteImage = async (image: DashboardImage) => {
+    const confirmed = window.confirm(`Delete ${image.fileName} from the uploaded images list?`);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deleteDashboardImage(image.id);
+      const nextImages = images.filter((currentImage) => currentImage.id !== image.id);
+      setImages(nextImages);
+
+      if (selectedImageId === image.id) {
+        setSelectedImageId(null);
+      }
+
+      setStatusMessage(`${image.fileName} deleted.`);
+    } catch (deleteError) {
+      console.error("Image delete error:", deleteError);
+      setError("Could not delete the selected image.");
+    }
+  };
+
   const handleCopyImageUrl = async () => {
     if (!selectedImage?.url) {
       return;
@@ -187,7 +210,7 @@ export default function ImageUpload({ onSelectImage, initialSelectedUrl }: Image
         <div>
           <h3>Upload image</h3>
           <p>
-            Upload to Cloudinary, then pick from the saved gallery when you need an image in another section.
+            Upload images to the gallery, then pick from the saved gallery when you need an image in another section.
           </p>
         </div>
         <label className={styles.uploadButton}>
@@ -205,7 +228,7 @@ export default function ImageUpload({ onSelectImage, initialSelectedUrl }: Image
 
       {!configReady ? (
         <div className={styles.notice}>
-          Add NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET to your environment to turn on uploads.
+          Enable uploads in your environment to turn on uploads.
         </div>
       ) : null}
 
@@ -240,20 +263,53 @@ export default function ImageUpload({ onSelectImage, initialSelectedUrl }: Image
       ) : images.length ? (
         <div className={styles.galleryGrid}>
           {images.map((image) => (
-            <button
-              type="button"
+            <div
               key={image.id}
               className={`${styles.galleryCard} ${selectedImageId === image.id ? styles.galleryCardActive : ""}`}
               onClick={() => handleSelectImage(image)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  handleSelectImage(image);
+                }
+              }}
             >
+              <span
+                className={styles.galleryDeleteButton}
+                role="button"
+                tabIndex={0}
+                aria-label={`Delete ${image.fileName}`}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  void handleDeleteImage(image);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    void handleDeleteImage(image);
+                  }
+                }}
+              >
+                ×
+              </span>
               <div className={styles.galleryPreview}>
-                <Image src={getTransformedUrl(image.url, 240, 160)} alt={image.fileName} fill sizes="(max-width: 768px) 100vw, 240px" />
+                <Image
+                  src={getTransformedUrl(image.url, 240, 240)}
+                  alt={image.fileName}
+                  fill
+                  className={styles.galleryImage}
+                  sizes="(max-width: 768px) 50vw, 240px"
+                />
               </div>
               <div className={styles.galleryInfo}>
                 <strong>{image.fileName}</strong>
                 <span>{image.format || "image"}</span>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       ) : (

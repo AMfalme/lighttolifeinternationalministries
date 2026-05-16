@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import styles from "./dashboard.module.css";
 
 export function DashboardLoading() {
@@ -9,34 +8,27 @@ export function DashboardLoading() {
       <div className={styles.dashboard}>
         <aside className={styles.sidebar}>
           <div className={styles.sidebarHeader}>
-            <Image
-              src="/logo.jpeg"
-              alt="Light to Life Logo"
-              width={160}
-              height={76}
-              className={styles.logo}
-              priority
-            />
+            <div className={styles.skeletonText} style={{ height: 56, width: 140, borderRadius: 16 }} />
           </div>
-          <nav className={styles.sidebarNav}>
+          <nav className={styles.sidebarNav} aria-label="Loading navigation">
             <ul>
-              <li><div className={styles.skeletonText} style={{ height: 20, width: 120 }}></div></li>
-              <li><div className={styles.skeletonText} style={{ height: 20, width: 140 }}></div></li>
-              <li><div className={styles.skeletonText} style={{ height: 20, width: 130 }}></div></li>
-              <li><div className={styles.skeletonText} style={{ height: 20, width: 150 }}></div></li>
+              <li><div className={styles.skeletonText} style={{ height: 18, width: 120 }} /></li>
+              <li><div className={styles.skeletonText} style={{ height: 18, width: 140 }} /></li>
+              <li><div className={styles.skeletonText} style={{ height: 18, width: 130 }} /></li>
+              <li><div className={styles.skeletonText} style={{ height: 18, width: 150 }} /></li>
             </ul>
           </nav>
         </aside>
         <main className={styles.main}>
           <header className={styles.header}>
             <div>
-              <div className={styles.skeletonText} style={{ height: 32, width: 200, marginBottom: 12 }}></div>
-              <div className={styles.skeletonText} style={{ height: 16, width: 250 }}></div>
+              <div className={styles.skeletonText} style={{ height: 28, width: 220, marginBottom: 10 }} />
+              <div className={styles.skeletonText} style={{ height: 14, width: 260 }} />
             </div>
           </header>
           <div className={styles.loadingContainer}>
-            <div className={styles.spinner}></div>
-            <p>Loading...</p>
+            <div className={styles.spinner} />
+            <p>Loading dashboard...</p>
           </div>
         </main>
       </div>

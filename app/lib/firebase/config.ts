@@ -13,9 +13,22 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const hasFirebaseClientConfig = Boolean(
+  firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId &&
+    firebaseConfig.appId,
+);
 
-export const auth = typeof window !== "undefined" ? getAuth(firebaseApp) : (null as any);
+const firebaseApp = hasFirebaseClientConfig
+  ? getApps().length
+    ? getApp()
+    : initializeApp(firebaseConfig)
+  : initializeApp(firebaseConfig as any);
+
+export { hasFirebaseClientConfig };
+
+export const auth = getAuth(firebaseApp);
 export const db = getFirestore(firebaseApp);
 export const storage = getStorage(firebaseApp);
 
