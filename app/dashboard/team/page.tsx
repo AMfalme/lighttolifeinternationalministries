@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import DashboardSidebar from "@/app/components/DashboardSidebar/DashboardSidebar";
@@ -16,6 +16,7 @@ import dashStyles from "@/app/dashboard/dashboard.module.css";
 interface TeamMember {
   uid: string;
   displayName: string;
+  pastorTitle?: string;
   email: string;
   branchLocation: string;
   branchAddress?: string;
@@ -40,6 +41,7 @@ type UserOption = {
 
 type TeamMemberForm = {
   displayName: string;
+  pastorTitle: string;
   email: string;
   branchLocation: string;
   branchAddress: string;
@@ -54,8 +56,19 @@ type TeamMemberForm = {
   password: string;
 };
 
+type MediaUploadResult = {
+  public_id: string;
+  secure_url: string;
+  original_filename?: string;
+  format?: string;
+  width?: number;
+  height?: number;
+  bytes?: number;
+};
+
 const emptyForm = (): TeamMemberForm => ({
   displayName: "",
+  pastorTitle: "",
   email: "",
   branchLocation: "",
   branchAddress: "",
@@ -77,6 +90,8 @@ export default function DashboardTeamPage() {
   const { user, loading } = useFastAuth("/login");
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [saving, setSaving] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const [videoUploadError, setVideoUploadError] = useState<string | null>(null);
   const [creatingMember, setCreatingMember] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [formData, setFormData] = useState<TeamMemberForm>(emptyForm());
@@ -116,6 +131,7 @@ export default function DashboardTeamPage() {
         return {
           uid: document.id,
           displayName: data.displayName || "",
+          pastorTitle: data.pastorTitle || "",
           email: data.email || "",
           branchLocation: data.branchLocation || "",
           branchAddress: data.branchAddress || "",
@@ -143,6 +159,7 @@ export default function DashboardTeamPage() {
     setEditingMember(member);
     setFormData({
       displayName: member.displayName,
+      pastorTitle: member.pastorTitle || "",
       email: member.email,
       branchLocation: member.branchLocation,
       branchAddress: member.branchAddress || "",
@@ -210,6 +227,97 @@ export default function DashboardTeamPage() {
     [formData.churchGallery],
   );
 
+  const videoUrls = useMemo(
+    () => formData.videos.split(/\n|,/).map((item) => item.trim()).filter(Boolean),
+    [formData.videos],
+  );
+
+  const uploadToCloudinary = async (file: File) => {
+    const mediaFormData = new FormData();
+    mediaFormData.append("file", file);
+    mediaFormData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim() || "");
+    mediaFormData.append("folder", `${process.env.NEXT_PUBLIC_CLOUDINARY_FOLDER?.trim() || "dashboard-images"}/videos`);
+
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim() || ""}/auto/upload`, {
+      method: "POST",
+      body: mediaFormData,
+    });
+
+    if (!response.ok) {
+      throw new Error("Video upload failed.");
+    }
+
+    return response.json() as Promise<MediaUploadResult>;
+  };
+
+  const handleVideoUpload = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+
+    if (!files.length || videoUploading) {
+      return;
+    }
+
+    const oversized = files.filter((file) => file.size > 100 * 1024 * 1024);
+    const acceptedFiles = files.filter((file) => file.size <= 100 * 1024 * 1024);
+
+    if (!acceptedFiles.length) {
+      setVideoUploadError("All selected videos exceed the 100MB limit.");
+      event.target.value = "";
+      return;
+    }
+
+    if (oversized.length) {
+      setVideoUploadError("Some videos exceeded the 100MB limit and were skipped.");
+    } else {
+      setVideoUploadError(null);
+    }
+
+    setVideoUploading(true);
+
+    try {
+      const uploadedUrls = await Promise.all(
+        acceptedFiles.map(async (file) => {
+          const uploadResult = await uploadToCloudinary(file);
+          return uploadResult.secure_url;
+        }),
+      );
+
+      setFormData((current) => {
+        const currentVideos = current.videos.split(/\n|,/).map((item) => item.trim()).filter(Boolean);
+        const nextVideos = Array.from(new Set([...currentVideos, ...uploadedUrls]));
+        return { ...current, videos: nextVideos.join(", ") };
+      });
+    } catch (error) {
+      console.error("Video upload error:", error);
+      setVideoUploadError(error instanceof Error ? error.message : "Failed to upload video.");
+    } finally {
+      setVideoUploading(false);
+      event.target.value = "";
+    }
+  }, [videoUploading]);
+
+  const removeVideoUrl = useCallback((url: string) => {
+    setFormData((current) => {
+      const nextVideos = current.videos
+        .split(/\n|,/
+)
+        .map((item) => item.trim())
+        .filter((item) => item && item !== url);
+
+      return { ...current, videos: nextVideos.join(", ") };
+    });
+  }, []);
+
+  const getVideoLabel = (url: string, index: number) => {
+    try {
+      const pathname = new URL(url).pathname;
+      const fileName = decodeURIComponent(pathname.split("/").pop() || "").trim();
+      return fileName || `Video ${index + 1}`;
+    } catch {
+      return `Video ${index + 1}`;
+    }
+  };
+
   const handleSelectPastorGalleryImages = useCallback((images: { url: string }[]) => {
     const nextGallery = images.map((image) => image.url).join(", ");
     setFormData((current) => {
@@ -254,6 +362,7 @@ export default function DashboardTeamPage() {
         },
         body: JSON.stringify({
           ...formData,
+          pastorTitle: formData.pastorTitle || "",
           photoURL: formData.pastorImageURL || formData.photoURL,
           pastorGallery: formData.pastorGallery
             .split(",")
@@ -373,6 +482,10 @@ export default function DashboardTeamPage() {
                       <input id="displayName" type="text" value={formData.displayName} onChange={(event) => setFormData({ ...formData, displayName: event.target.value })} placeholder="Enter full name" />
                     </div>
                     <div className={styles.formGroup}>
+                      <label htmlFor="pastorTitle">Pastor Title</label>
+                      <input id="pastorTitle" type="text" value={formData.pastorTitle} onChange={(event) => setFormData({ ...formData, pastorTitle: event.target.value })} placeholder="Enter title, for example Lead Pastor" />
+                    </div>
+                    <div className={styles.formGroup}>
                       <label htmlFor="email">Email</label>
                       <input id="email" type="email" value={formData.email} onChange={(event) => setFormData({ ...formData, email: event.target.value })} placeholder="Enter email address" disabled={!creatingMember} />
                     </div>
@@ -420,8 +533,31 @@ export default function DashboardTeamPage() {
                       <div className={styles.hint}>Click images to toggle selection; selected images will be saved to the branch gallery.</div>
                     </div>
                     <div className={styles.formGroupWide}>
-                      <label htmlFor="videos">Branch Videos (YouTube links, one per line or comma separated)</label>
-                      <textarea id="videos" value={formData.videos} onChange={(event) => setFormData({ ...formData, videos: event.target.value })} placeholder="Paste video URLs (YouTube or other)" rows={3} />
+                      <label>Branch Videos</label>
+                      <label className={styles.uploadButton}>
+                        <input type="file" accept="video/*" multiple onChange={handleVideoUpload} disabled={videoUploading} aria-label="Upload videos" />
+                        {videoUploading ? "Uploading videos..." : "Upload branch videos"}
+                      </label>
+                      <div className={styles.hint}>Upload video files to Cloudinary. They will be saved automatically and used on the branch page.</div>
+                      {videoUploadError ? <div className={styles.videoError}>{videoUploadError}</div> : null}
+                      {videoUrls.length ? (
+                        <div className={styles.videoList}>
+                          {videoUrls.map((url, index) => (
+                            <div key={`${url}-${index}`} className={styles.videoItem}>
+                              <div>
+                                <strong>{getVideoLabel(url, index)}</strong>
+                                <span>{url}</span>
+                              </div>
+                              <div className={styles.videoItemActions}>
+                                <a href={url} target="_blank" rel="noreferrer">Preview</a>
+                                <button type="button" onClick={() => removeVideoUrl(url)}>Remove</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className={styles.hint}>No branch videos uploaded yet.</div>
+                      )}
                     </div>
                     <div className={styles.formGroup}>
                       <label htmlFor="phoneNumber">Phone Number</label>

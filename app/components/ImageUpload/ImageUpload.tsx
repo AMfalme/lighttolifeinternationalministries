@@ -32,6 +32,7 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
   const [images, setImages] = useState<DashboardImage[]>([]);
   const [loadingImages, setLoadingImages] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -91,14 +92,17 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
     }
 
     const normalizedSelectionKey = (initialSelectedUrls || []).slice().sort().join("|");
-    if (initialSelectionKeyRef.current === normalizedSelectionKey) {
+    if (!normalizedSelectionKey) {
+      initialSelectionKeyRef.current = "";
+      setSelectedIds(new Set());
       return;
     }
 
-    initialSelectionKeyRef.current = normalizedSelectionKey;
+    if (!images.length) {
+      return;
+    }
 
-    if (!normalizedSelectionKey) {
-      setSelectedIds(new Set());
+    if (initialSelectionKeyRef.current === normalizedSelectionKey) {
       return;
     }
 
@@ -110,6 +114,7 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
       }
     });
 
+    initialSelectionKeyRef.current = normalizedSelectionKey;
     setSelectedIds(ids);
   }, [images, initialSelectedUrls, multiSelect]);
 
@@ -251,7 +256,14 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
       const nextImages = images.filter((currentImage) => currentImage.id !== image.id);
       setImages(nextImages);
 
-      if (selectedImageId === image.id) {
+      if (multiSelect) {
+        setSelectedIds((current) => {
+          const next = new Set(current);
+          next.delete(image.id);
+          onSelectMultiple?.(nextImages.filter((currentImage) => next.has(currentImage.id)));
+          return next;
+        });
+      } else if (selectedImageId === image.id) {
         setSelectedImageId(null);
         onSelectImage?.(null);
       }
@@ -338,77 +350,99 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
         </div>
       ) : null}
 
-      <div className={styles.galleryHeader}>
-        <h4>Uploaded images</h4>
-        <span>{images.length} saved</span>
+      <div className={styles.libraryHeader}>
+        <div>
+          <h4>Uploaded images</h4>
+          <p>Browse the full image library and pick the files you want to use.</p>
+        </div>
+        <div className={styles.libraryActions}>
+          <span>{images.length} saved</span>
+          <button type="button" className={styles.libraryButton} onClick={() => setIsLibraryOpen(true)} disabled={!images.length}>
+            Browse uploaded images
+          </button>
+        </div>
       </div>
 
-      {loadingImages ? (
-        <div className={styles.loadingState}>Loading saved images...</div>
-      ) : images.length ? (
-        <div className={styles.galleryGrid}>
-          {images.map((image) => (
-            (() => {
-              const isSelected = multiSelect ? selectedIds.has(image.id) : selectedImageId === image.id;
+      {loadingImages ? <div className={styles.loadingState}>Loading saved images...</div> : null}
 
-              return (
-            <div
-              key={image.id}
-              className={`${styles.galleryCard} ${isSelected ? styles.galleryCardActive : ""}`}
-              onClick={() => handleSelectImage(image)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  handleSelectImage(image);
-                }
-              }}
-            >
-              <span className={`${styles.selectionBox} ${isSelected ? styles.selectionBoxActive : ""}`} aria-hidden>
-                {isSelected ? <span className={styles.selectionCheck}>✓</span> : null}
-              </span>
-              <span
-                className={styles.galleryDeleteButton}
-                role="button"
-                tabIndex={0}
-                aria-label={`Delete ${image.fileName}`}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  void handleDeleteImage(image);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    void handleDeleteImage(image);
-                  }
-                }}
-              >
-                ×
-              </span>
-              <div className={styles.galleryPreview}>
-                <Image
-                  src={getTransformedUrl(image.url, 240, 240)}
-                  alt={image.fileName}
-                  fill
-                  className={styles.galleryImage}
-                  sizes="(max-width: 768px) 50vw, 240px"
-                />
+      {isLibraryOpen ? (
+        <div className={styles.modalOverlay} onClick={() => setIsLibraryOpen(false)}>
+          <div className={styles.modalContent} onClick={(event) => event.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div>
+                <h3>Uploaded images</h3>
+                <p>Click an image to select or deselect it. Use the delete icon to remove it from the library.</p>
               </div>
-              <div className={styles.galleryInfo}>
-                <strong>{image.fileName}</strong>
-                <span>{image.format || "image"}</span>
-              </div>
+              <button type="button" className={styles.modalCloseButton} onClick={() => setIsLibraryOpen(false)}>
+                Close
+              </button>
             </div>
-              );
-            })()
-          ))}
+
+            {images.length ? (
+              <div className={styles.libraryGrid}>
+                {images.map((image) => {
+                  const isSelected = multiSelect ? selectedIds.has(image.id) : selectedImageId === image.id;
+
+                  return (
+                    <div
+                      key={image.id}
+                      className={`${styles.galleryCard} ${isSelected ? styles.galleryCardActive : ""}`}
+                      onClick={() => handleSelectImage(image)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          handleSelectImage(image);
+                        }
+                      }}
+                    >
+                      <span className={`${styles.selectionBox} ${isSelected ? styles.selectionBoxActive : ""}`} aria-hidden>
+                        {isSelected ? <span className={styles.selectionCheck}>✓</span> : null}
+                      </span>
+                      <span
+                        className={styles.galleryDeleteButton}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Delete ${image.fileName}`}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          void handleDeleteImage(image);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            void handleDeleteImage(image);
+                          }
+                        }}
+                      >
+                        ×
+                      </span>
+                      <div className={styles.galleryPreview}>
+                        <Image
+                          src={getTransformedUrl(image.url, 240, 240)}
+                          alt={image.fileName}
+                          fill
+                          className={styles.galleryImage}
+                          sizes="(max-width: 768px) 50vw, 240px"
+                        />
+                      </div>
+                      <div className={styles.galleryInfo}>
+                        <strong>{image.fileName}</strong>
+                        <span>{image.format || "image"}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className={styles.emptyState}>No images uploaded yet. Add the first one to start your dashboard image library.</div>
+            )}
+          </div>
         </div>
-      ) : (
-        <div className={styles.emptyState}>No images uploaded yet. Add the first one to start your dashboard image library.</div>
-      )}
+      ) : null}
     </div>
   );
 }

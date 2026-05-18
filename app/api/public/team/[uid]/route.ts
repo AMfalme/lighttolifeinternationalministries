@@ -8,6 +8,7 @@ type BranchDocumentData = {
   branchAddress?: string;
   branchDescription?: string;
   pastorDescription?: string;
+  pastorTitle?: string;
   pastorImageURL?: string;
   pastorGallery?: string[];
   gallery?: string[];
@@ -17,6 +18,7 @@ type BranchDocumentData = {
 
 type TeamMemberDocumentData = {
   displayName?: string;
+  pastorTitle?: string;
   branchKey?: string;
   branchLocation?: string;
   branchAddress?: string;
@@ -176,6 +178,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
           uid: member.uid,
           branchKey: member.branchKey || branchData?.branchKey || normalizedParams || member.uid,
           displayName: member.displayName || branchData?.displayName || branchData?.branchLocation || "Branch Leader",
+          pastorTitle: member.pastorTitle || branchData?.pastorTitle || "",
           branchLocation: branchData?.branchLocation || member.branchLocation || "Church Branch",
           branchAddress: branchData?.branchAddress || member.branchAddress || "",
           branchDescription:
@@ -209,6 +212,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
           uid: branchData?.branchKey || normalizedParams || routeUid,
           branchKey: branchData?.branchKey || normalizedParams || routeUid,
           displayName: branchData?.displayName || branchData?.branchLocation || "Branch Leader",
+          pastorTitle: branchData?.pastorTitle || "",
           branchLocation: branchData?.branchLocation || "Church Branch",
           branchAddress: branchData?.branchAddress || "",
           branchDescription:

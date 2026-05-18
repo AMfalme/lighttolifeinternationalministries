@@ -8,6 +8,7 @@ type TeamMemberRecord = {
   uid: string;
   branchKey?: string;
   displayName?: string;
+  pastorTitle?: string;
   email?: string;
   branchLocation?: string;
   branchAddress?: string;
@@ -151,7 +152,7 @@ export default function TeamSection() {
 
             <div className={pageStyles.leaderInfo}>
               <h3 className={pageStyles.leaderName}>{member.displayName || "Branch Leader"}</h3>
-              <p className={pageStyles.leaderRole}>{member.branchLocation || "Branch Leader"}</p>
+              <p className={pageStyles.leaderRole}>{member.pastorTitle || member.branchLocation || "Branch Leader"}</p>
               <p className={pageStyles.leaderBio}>
                 {member.pastorDescription
                   ? `${member.pastorDescription.slice(0, 120)}...`

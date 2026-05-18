@@ -7,6 +7,7 @@ type BranchDocumentData = {
   branchAddress?: string;
   branchDescription?: string;
   pastorDescription?: string;
+  pastorTitle?: string;
   pastorImageURL?: string;
   pastorGallery?: string[];
   gallery?: string[];
@@ -15,6 +16,7 @@ type BranchDocumentData = {
 
 type TeamMemberDocumentData = {
   displayName?: string;
+  pastorTitle?: string;
   branchKey?: string;
   branchLocation?: string;
   branchAddress?: string;
@@ -75,6 +77,7 @@ export async function GET() {
         uid: member.uid,
         branchKey: member.branchKey || branchKey || member.uid,
         displayName: member.displayName || branchData?.branchLocation || "Branch Leader",
+        pastorTitle: member.pastorTitle || branchData?.pastorTitle || "",
         branchLocation: member.branchLocation || branchData?.branchLocation || "Church Branch",
         branchAddress: member.branchAddress || branchData?.branchAddress || "",
         branchDescription:

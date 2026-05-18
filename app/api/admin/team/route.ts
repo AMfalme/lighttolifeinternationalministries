@@ -41,6 +41,7 @@ const createTeamMember = async ({
   email,
   password,
   displayName,
+  pastorTitle,
   photoURL,
   branchLocation,
   branchAddress,
@@ -56,6 +57,7 @@ const createTeamMember = async ({
   email: string;
   password: string;
   displayName: string;
+  pastorTitle: string;
   photoURL: string;
   branchLocation: string;
   branchAddress: string;
@@ -88,6 +90,7 @@ const createTeamMember = async ({
     uid: authUser.uid,
     email,
     displayName,
+    pastorTitle,
     branchLocation,
     branchKey,
     branchAddress,
@@ -110,6 +113,7 @@ const createTeamMember = async ({
       {
         branchKey,
           displayName,
+        pastorTitle,
         branchLocation,
         branchAddress,
         branchDescription,
@@ -142,6 +146,7 @@ export async function POST(request: NextRequest) {
     const email = String(body.email || "").trim();
     const password = String(body.password || "");
     const displayName = String(body.displayName || "").trim();
+    const pastorTitle = String(body.pastorTitle || "").trim();
     const branchLocation = String(body.branchLocation || "").trim();
     const branchAddress = String(body.branchAddress || "").trim();
     const branchDescription = String(body.branchDescription || "").trim();
@@ -176,6 +181,7 @@ export async function POST(request: NextRequest) {
       email,
       password,
       displayName,
+      pastorTitle,
       photoURL,
       branchLocation,
       branchAddress,
@@ -194,6 +200,7 @@ export async function POST(request: NextRequest) {
         uid: authUser.uid,
         email,
         displayName,
+        pastorTitle,
         branchLocation,
         phoneNumber,
         pastorGallery,

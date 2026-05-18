@@ -46,6 +46,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const { uid } = await params;
     const body = await request.json();
     const displayName = String(body.displayName || "").trim();
+    const pastorTitle = String(body.pastorTitle || "").trim();
     const email = String(body.email || "").trim();
     const branchLocation = String(body.branchLocation || "").trim();
     const branchAddress = String(body.branchAddress || "").trim();
@@ -94,6 +95,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     await adminDb().collection("users").doc(uid).set(
       {
         displayName,
+        pastorTitle,
         email,
         role: "leadership",
         branchLocation,
@@ -119,6 +121,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         {
           branchKey,
           displayName,
+          pastorTitle,
           branchLocation,
           branchAddress,
           branchDescription,
@@ -140,6 +143,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({
       uid,
       displayName,
+      pastorTitle,
       email,
       branchLocation,
       phoneNumber,
