@@ -38,3 +38,15 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Firebase Environment Variables
+
+The homepage team list and public team profile pages load data through server routes backed by Firebase Admin.
+
+Set these variables in production:
+
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL` or `NEXT_PUBLIC_FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY` or `NEXT_PUBLIC_FIREBASE_PRIVATE_KEY`
+
+If the Admin SDK credentials are missing in production, the domain deployment will not be able to load team member data even if it works locally.
