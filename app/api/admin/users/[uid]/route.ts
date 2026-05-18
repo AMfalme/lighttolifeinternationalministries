@@ -27,14 +27,13 @@ const requireAdmin = async (request: NextRequest) => {
   return { uid: decoded.uid };
 };
 
-export async function PATCH(request: NextRequest, { params }: { params: { uid: string } }) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ uid: string }> }) {
   try {
     const authCheck = await requireAdmin(request);
     if ("error" in authCheck) {
       return authCheck.error;
     }
-
-    const { uid } = params;
+    const { uid } = await context.params;
     const body = await request.json();
     const displayName = String(body.displayName || "").trim();
     const branchLocation = String(body.branchLocation || "").trim();
@@ -45,11 +44,20 @@ export async function PATCH(request: NextRequest, { params }: { params: { uid: s
       return NextResponse.json({ error: "Missing required user fields." }, { status: 400 });
     }
 
-    await adminAuth().updateUser(uid, {
-      displayName,
-    });
+    // Make Auth updates best-effort so Firestore update persists even if Auth fails
+    try {
+      await adminAuth().updateUser(uid, {
+        displayName,
+      });
+    } catch (authErr) {
+      console.warn("adminAuth.updateUser failed (continuing):", authErr);
+    }
 
-    await adminAuth().setCustomUserClaims(uid, { role });
+    try {
+      await adminAuth().setCustomUserClaims(uid, { role });
+    } catch (claimErr) {
+      console.warn("adminAuth.setCustomUserClaims failed (continuing):", claimErr);
+    }
 
     await adminDb().collection("users").doc(uid).set(
       {

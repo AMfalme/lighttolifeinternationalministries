@@ -2,8 +2,6 @@
 
 import Image from "next/image";
 import { useEffect, useState, useRef } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db, hasFirebaseClientConfig } from "@/app/lib/firebase/config";
 import pageStyles from "@/app/page.module.css";
 
 type TeamMemberRecord = {
@@ -31,20 +29,15 @@ export default function TeamSection() {
     hasFetched.current = true;
 
     const loadTeamMembers = async () => {
-      if (!hasFirebaseClientConfig || !db) {
-        setTeamMembers([]);
-        setLoading(false);
-        return;
-      }
-
       try {
-        const teamQuery = query(collection(db, "users"), where("role", "==", "team-member"));
-        const snapshot = await getDocs(teamQuery);
-        const members = snapshot.docs.map((document) => ({
-          ...(document.data() as Omit<TeamMemberRecord, "uid">),
-          uid: document.id,
-        }));
-        setTeamMembers(members.slice(0, 3));
+        const response = await fetch("/api/public/team");
+        const payload = (await response.json()) as { members?: TeamMemberRecord[]; error?: string };
+
+        if (!response.ok) {
+          throw new Error(payload.error || "Failed to load team members.");
+        }
+
+        setTeamMembers(payload.members || []);
       } catch (error) {
         console.error("Error loading team members:", error);
         setTeamMembers([]);
@@ -136,7 +129,11 @@ export default function TeamSection() {
         </>
       ) : teamMembers.length ? (
         teamMembers.map((member) => (
-          <a key={member.uid} href={`/team/${member.branchKey || toBranchKey(member.branchLocation || member.uid)}`} className={pageStyles.leaderCard}>
+          <a
+            key={member.uid}
+            href={`/team/${member.branchKey || (member.branchLocation ? toBranchKey(member.branchLocation) : member.uid)}`}
+            className={pageStyles.leaderCard}
+          >
             <div className={pageStyles.leaderImageBox}>
               {member.photoURL ? (
                 <Image
