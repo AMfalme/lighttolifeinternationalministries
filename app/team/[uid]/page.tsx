@@ -122,6 +122,9 @@ export default function TeamMemberBranchPage() {
         <div className={styles.heroText}>
           <p className={styles.superTitle}>Branch Spotlight</p>
           <h1>{member.branchLocation}</h1>
+          <p className={styles.profileTag}>
+            Lead Pastor: <strong>{member.displayName}</strong>
+          </p>
           <p className={styles.heroSubtitle}>{member.branchAddress}</p>
           <div className={styles.heroMeta}>
             {member.phoneNumber && (
@@ -168,10 +171,31 @@ export default function TeamMemberBranchPage() {
           </div>
 
           <div className={styles.profileBody}>
+            <p className={styles.branchSummary}>
+              {member.displayName} leads the {member.branchLocation} branch and serves this community through worship, discipleship, outreach, and pastoral care.
+            </p>
             <p>{member.branchDescription}</p>
             <p>
               This branch is designed for modern families, passionate believers, and seekers alike. Explore worship experiences, heart-led small groups, and ministry teams built for deeper connection.
             </p>
+            <div className={styles.detailGrid}>
+              <div className={styles.detailCard}>
+                <span className={styles.detailLabel}>Branch Key</span>
+                <strong className={styles.detailValue}>{member.branchKey || "Not set"}</strong>
+              </div>
+              <div className={styles.detailCard}>
+                <span className={styles.detailLabel}>Branch Address</span>
+                <strong className={styles.detailValue}>{member.branchAddress || "Not provided"}</strong>
+              </div>
+              <div className={styles.detailCard}>
+                <span className={styles.detailLabel}>Phone</span>
+                <strong className={styles.detailValue}>{member.phoneNumber || "Not provided"}</strong>
+              </div>
+              <div className={styles.detailCard}>
+                <span className={styles.detailLabel}>Email</span>
+                <strong className={styles.detailValue}>{member.email || "Not provided"}</strong>
+              </div>
+            </div>
             {member.pastorDescription ? (
               <div className={styles.pastorBio}>
                 <h4>About the Pastor</h4>
