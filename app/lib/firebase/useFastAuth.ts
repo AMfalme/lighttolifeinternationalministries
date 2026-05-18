@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import firebaseApp from "./config";
 
-export function useFastAuth(redirectTo = "/login") {
+export function useFastAuth(redirectTo?: string) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +30,9 @@ export function useFastAuth(redirectTo = "/login") {
 
       setUser(null);
       setLoading(false);
-      router.push(redirectTo);
+      if (redirectTo) {
+        router.push(redirectTo);
+      }
     });
 
     return () => unsubscribe();

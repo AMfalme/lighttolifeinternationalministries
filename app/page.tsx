@@ -1,12 +1,102 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Navbar from "./components/Navbar/Navbar";
 import TeamSection from "./components/TeamSection/TeamSection";
 import styles from "./page.module.css";
+import ImageUpload from "./components/ImageUpload/ImageUpload";
+import { getAllDashboardImages, type DashboardImage } from "./lib/dashboardImages";
+import { useFastAuth } from "./lib/firebase/useFastAuth";
+import { db } from "./lib/firebase/config";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function Home() {
+
+  const { user, loading: authLoading } = useFastAuth();
+  const [carouselImages, setCarouselImages] = useState<DashboardImage[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showEditor, setShowEditor] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const imgs = await getAllDashboardImages();
+        if (!mounted) return;
+        setCarouselImages(imgs || []);
+      } catch (e) {
+        console.error("Error loading carousel images:", e);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user || !db) {
+      setRole(null);
+      return;
+    }
+
+    let mounted = true;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (!mounted) return;
+        setRole(snap.exists() ? (snap.data().role as string) || null : null);
+      } catch (err) {
+        console.error("Error loading user role for homepage:", err);
+        if (mounted) setRole(null);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (carouselImages.length <= 1) return;
+    let mounted = true;
+    const interval = setInterval(() => {
+      if (!mounted) return;
+      setCurrentIndex((i) => (i + 1) % carouselImages.length);
+    }, 4500);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [carouselImages.length]);
+
+  // touch/swipe support
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current == null || touchEndX.current == null) return;
+    const delta = touchStartX.current - touchEndX.current;
+    const threshold = 40; // px
+    if (delta > threshold) {
+      setCurrentIndex((i) => (i + 1) % carouselImages.length);
+    } else if (delta < -threshold) {
+      setCurrentIndex((i) => (i - 1 + carouselImages.length) % carouselImages.length);
+    }
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
 
   return (
     <div className={styles.page}>
@@ -172,8 +262,63 @@ export default function Home() {
               </div>
               <div className={styles.aboutImage}>
                 <div className={styles.imageBox}>
-                  <div className={styles.imagePlaceholder}>
-                    <span>Church Community Image</span>
+                  {carouselImages.length ? (
+                    <div
+                      onTouchStart={handleTouchStart}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
+                      style={{ position: "relative", width: "100%", height: 320, borderRadius: 12, overflow: "hidden" }}
+                    >
+                      <Image src={carouselImages[currentIndex].url} alt={carouselImages[currentIndex].fileName || "Church community"} fill style={{ objectFit: "cover" }} />
+                    </div>
+                  ) : (
+                    <div className={styles.imagePlaceholder}>
+                      <span>No community images yet</span>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center", flexDirection: "column" }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <div style={{ display: "flex", gap: 6 }} aria-hidden>
+                        {carouselImages.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setCurrentIndex(idx)}
+                            aria-label={`Show image ${idx + 1}`}
+                            style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: 99,
+                              background: idx === currentIndex ? "var(--button-primary-start)" : "rgba(15,23,42,0.12)",
+                              border: "none",
+                              padding: 0,
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <span style={{ color: "var(--text-muted)", fontSize: 14 }}>{carouselImages.length} images</span>
+                    </div>
+
+                    {(role === "admin" || role === "leadership") && user ? (
+                      <div style={{ marginTop: 8 }}>
+                        <button type="button" onClick={() => setShowEditor((s) => !s)} className={styles.secondaryButton}>
+                          {showEditor ? "Close Editor" : "Edit Images"}
+                        </button>
+                      </div>
+                    ) : null}
+
+                    {showEditor && (role === "admin" || role === "leadership") && user ? (
+                      <div style={{ marginTop: 12 }}>
+                        <ImageUpload
+                          multiSelect
+                          initialSelectedUrls={carouselImages.map((i) => i.url)}
+                          onSelectMultiple={(images) => {
+                            setCarouselImages(images || []);
+                            setCurrentIndex(0);
+                          }}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
