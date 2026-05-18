@@ -96,6 +96,7 @@ const createTeamMember = async ({
     pastorImageURL,
     pastorGallery,
     churchGallery,
+    videos: Array.isArray(videos) ? videos : [],
     phoneNumber,
     photoURL: photoURL || "",
     role: "team-member",

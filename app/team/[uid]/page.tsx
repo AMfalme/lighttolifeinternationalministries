@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import Navbar from "@/app/components/Navbar/Navbar";
 import { db, hasFirebaseClientConfig } from "@/app/lib/firebase/config";
@@ -25,6 +26,9 @@ type TeamBranchDetail = {
 };
 
 type BranchDocumentData = {
+  branchKey?: string;
+  branchLocation?: string;
+  branchAddress?: string;
   branchDescription?: string;
   pastorDescription?: string;
   pastorImageURL?: string;
@@ -46,7 +50,9 @@ const toBranchKey = (value: string) =>
     .replace(/-(branch|church|location|site|center|centre)$/g, "")
     .replace(/-(branch|church|location|site|center|centre)-/g, "-");
 
-export default function TeamMemberBranchPage({ params }: { params: { uid: string } }) {
+export default function TeamMemberBranchPage() {
+  const routeParams = useParams<{ uid?: string | string[] }>();
+  const routeUid = Array.isArray(routeParams?.uid) ? routeParams.uid[0] : routeParams?.uid || "";
   const [member, setMember] = useState<TeamBranchDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [relatedBlogs, setRelatedBlogs] = useState<Array<{ id: string; title?: string }>>([]);
@@ -62,61 +68,132 @@ export default function TeamMemberBranchPage({ params }: { params: { uid: string
       }
 
       try {
-        const teamSnapshot = await getDocs(query(collection(db, "users"), where("role", "==", "team-member")));
-        const normalizedParams = toBranchKey(params.uid);
-        const matchedDoc = teamSnapshot.docs.find((document) => {
-          const data = document.data();
-          const branchKey = toBranchKey(String(data.branchLocation || ""));
-          return document.id === params.uid || branchKey === normalizedParams || branchKey.includes(normalizedParams) || normalizedParams.includes(branchKey);
-        });
+        const normalizedParams = toBranchKey(routeUid);
+        const branchCandidates = [routeUid, normalizedParams].filter(Boolean);
+        let branchSnapshot = null as Awaited<ReturnType<typeof getDoc>> | null;
+        let resolvedBranchName = "";
 
-        if (!matchedDoc) {
-          setMember(null);
-          setRelatedBlogs([]);
-          return;
-        }
-
-        const data = matchedDoc.data();
-        const base = {
-          uid: matchedDoc.id,
-          displayName: data.displayName || "Branch Leader",
-          branchLocation: data.branchLocation || "Church Branch",
-          branchAddress: data.branchAddress || "",
-          branchDescription:
-            data.branchDescription ||
-            "A vibrant church community with worship, teaching, and ministry designed to serve every family.",
-          pastorDescription: data.pastorDescription || "",
-          pastorImageURL: data.pastorImageURL || "",
-          pastorGallery: Array.isArray(data.pastorGallery) ? data.pastorGallery : [],
-          churchGallery: Array.isArray(data.churchGallery) ? data.churchGallery : [],
-          phoneNumber: data.phoneNumber || "",
-          email: data.email || "",
-          photoURL: data.photoURL || "",
-        } as TeamBranchDetail;
-
-        try {
-          const slug = toBranchKey(String(base.branchLocation));
-          const branchRef = doc(db, "branches", slug);
-          const branchSnap = await getDoc(branchRef);
-          if (branchSnap.exists()) {
-            const branchData = branchSnap.data() as BranchDocumentData;
-            base.branchDescription = branchData.branchDescription || base.branchDescription;
-            base.pastorDescription = branchData.pastorDescription || base.pastorDescription;
-            base.pastorImageURL = branchData.pastorImageURL || base.pastorImageURL;
-            base.pastorGallery = Array.isArray(branchData.pastorGallery) ? branchData.pastorGallery : base.pastorGallery;
-            base.churchGallery = Array.isArray(branchData.gallery) ? branchData.gallery : base.churchGallery;
-            base.photoURL = branchData.mainImage || base.photoURL;
-            base.videos = Array.isArray(branchData.videos) ? branchData.videos : [];
+        for (const candidate of branchCandidates) {
+          const currentSnapshot = await getDoc(doc(db, "branches", candidate));
+          if (currentSnapshot.exists()) {
+            branchSnapshot = currentSnapshot;
+            break;
           }
-        } catch (error) {
-          console.error("Error loading branch doc:", error);
         }
 
-        setMember(base);
+        if (!branchSnapshot) {
+          const teamSnapshot = await getDocs(query(collection(db, "users"), where("role", "==", "team-member")));
+          const matchedDoc = teamSnapshot.docs.find((document) => {
+            const data = document.data();
+            const storedBranchKey = toBranchKey(String(data.branchKey || ""));
+            const branchKey = toBranchKey(String(data.branchLocation || ""));
+            return (
+              document.id === routeUid ||
+              storedBranchKey === normalizedParams ||
+              branchKey === normalizedParams ||
+              branchKey.includes(normalizedParams) ||
+              normalizedParams.includes(branchKey)
+            );
+          });
+
+          if (!matchedDoc) {
+            setMember(null);
+            setRelatedBlogs([]);
+            return;
+          }
+
+          const data = matchedDoc.data();
+          const base = {
+            uid: matchedDoc.id,
+            displayName: data.displayName || "Branch Leader",
+            branchLocation: data.branchLocation || "Church Branch",
+            branchAddress: data.branchAddress || "",
+            branchDescription:
+              data.branchDescription ||
+              "A vibrant church community with worship, teaching, and ministry designed to serve every family.",
+            pastorDescription: data.pastorDescription || "",
+            pastorImageURL: data.pastorImageURL || "",
+            pastorGallery: Array.isArray(data.pastorGallery) ? data.pastorGallery : [],
+            churchGallery: Array.isArray(data.churchGallery) ? data.churchGallery : [],
+            phoneNumber: data.phoneNumber || "",
+            email: data.email || "",
+            photoURL: data.photoURL || "",
+          } as TeamBranchDetail;
+
+          try {
+            const slug = toBranchKey(String(base.branchLocation));
+            const branchRef = doc(db, "branches", slug);
+            const branchSnap = await getDoc(branchRef);
+            if (branchSnap.exists()) {
+              const branchData = branchSnap.data() as BranchDocumentData;
+              base.branchDescription = branchData.branchDescription || base.branchDescription;
+              base.pastorDescription = branchData.pastorDescription || base.pastorDescription;
+              base.pastorImageURL = branchData.pastorImageURL || base.pastorImageURL;
+              base.pastorGallery = Array.isArray(branchData.pastorGallery) ? branchData.pastorGallery : base.pastorGallery;
+              base.churchGallery = Array.isArray(branchData.gallery) ? branchData.gallery : base.churchGallery;
+              base.photoURL = branchData.mainImage || base.photoURL;
+              base.videos = Array.isArray(branchData.videos) ? branchData.videos : [];
+            }
+          } catch (error) {
+            console.error("Error loading branch doc:", error);
+          }
+
+          resolvedBranchName = base.branchLocation;
+          setMember(base);
+        } else {
+          const branchData = branchSnapshot.data() as BranchDocumentData;
+          const base = {
+            uid: branchData.branchKey || normalizedParams || routeUid,
+            displayName: branchData.branchLocation || "Branch Leader",
+            branchLocation: branchData.branchLocation || "Church Branch",
+            branchAddress: branchData.branchAddress || "",
+            branchDescription:
+              branchData.branchDescription ||
+              "A vibrant church community with worship, teaching, and ministry designed to serve every family.",
+            pastorDescription: branchData.pastorDescription || "",
+            pastorImageURL: branchData.pastorImageURL || "",
+            pastorGallery: Array.isArray(branchData.pastorGallery) ? branchData.pastorGallery : [],
+            churchGallery: Array.isArray(branchData.gallery) ? branchData.gallery : [],
+            phoneNumber: "",
+            email: "",
+            photoURL: branchData.mainImage || "",
+            videos: Array.isArray(branchData.videos) ? branchData.videos : [],
+          } as TeamBranchDetail;
+
+          const teamSnapshot = await getDocs(query(collection(db, "users"), where("role", "==", "team-member")));
+          const matchedUser = teamSnapshot.docs.find((document) => {
+            const data = document.data();
+            const storedBranchKey = toBranchKey(String(data.branchKey || ""));
+            const branchKey = toBranchKey(String(data.branchLocation || ""));
+            return (
+              storedBranchKey === normalizedParams ||
+              branchKey === normalizedParams ||
+              branchKey.includes(normalizedParams) ||
+              normalizedParams.includes(branchKey)
+            );
+          });
+
+          if (matchedUser) {
+            const data = matchedUser.data();
+            base.uid = matchedUser.id;
+            base.displayName = data.displayName || base.displayName;
+            base.branchAddress = data.branchAddress || base.branchAddress;
+            base.branchDescription = data.branchDescription || base.branchDescription;
+            base.pastorDescription = data.pastorDescription || base.pastorDescription;
+            base.pastorImageURL = data.pastorImageURL || base.pastorImageURL;
+            base.pastorGallery = Array.isArray(data.pastorGallery) ? data.pastorGallery : base.pastorGallery;
+            base.churchGallery = Array.isArray(data.churchGallery) ? data.churchGallery : base.churchGallery;
+            base.phoneNumber = data.phoneNumber || base.phoneNumber;
+            base.email = data.email || base.email;
+            base.photoURL = data.photoURL || base.photoURL;
+          }
+
+          resolvedBranchName = base.branchLocation;
+          setMember(base);
+        }
 
         try {
-          const branchName = base.branchLocation;
-          const blogsQuery = query(collection(db, "blogs"), where("branch", "==", branchName));
+          const blogsQuery = query(collection(db, "blogs"), where("branch", "==", resolvedBranchName));
           const qSnap = await getDocs(blogsQuery);
           const posts = qSnap.docs.map((d) => ({ id: d.id, title: d.data().title }));
           setRelatedBlogs(posts);
@@ -133,7 +210,7 @@ export default function TeamMemberBranchPage({ params }: { params: { uid: string
     };
 
     void loadMember();
-  }, [params.uid]);
+  }, [routeUid]);
 
   if (loading || !member) {
     return (

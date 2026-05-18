@@ -36,14 +36,14 @@ const requireAdmin = async (request: NextRequest) => {
   return { uid: decoded.uid };
 };
 
-export async function PATCH(request: NextRequest, { params }: { params: { uid: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ uid: string }> }) {
   try {
     const authCheck = await requireAdmin(request);
     if ("error" in authCheck) {
       return authCheck.error;
     }
 
-    const { uid } = params;
+    const { uid } = await params;
     const body = await request.json();
     const displayName = String(body.displayName || "").trim();
     const email = String(body.email || "").trim();
@@ -78,11 +78,18 @@ export async function PATCH(request: NextRequest, { params }: { params: { uid: s
       return NextResponse.json({ error: "Missing required team member fields." }, { status: 400 });
     }
 
-    await adminAuth().updateUser(uid, {
-      displayName,
-      email,
-      photoURL: photoURL || undefined,
-    });
+    let authUpdateWarning = "";
+
+    try {
+      await adminAuth().updateUser(uid, {
+        displayName,
+        email,
+        photoURL: photoURL || undefined,
+      });
+    } catch (authError) {
+      authUpdateWarning = authError instanceof Error ? authError.message : "Unable to sync Firebase Auth user.";
+      console.warn("Team member auth update warning:", authUpdateWarning);
+    }
 
     await adminDb().collection("users").doc(uid).set(
       {
@@ -129,21 +136,29 @@ export async function PATCH(request: NextRequest, { params }: { params: { uid: s
       console.error("Failed to update branch document:", e);
     }
 
-    return NextResponse.json({ uid, displayName, email, branchLocation, phoneNumber, photoURL: photoURL || "" });
+    return NextResponse.json({
+      uid,
+      displayName,
+      email,
+      branchLocation,
+      phoneNumber,
+      photoURL: photoURL || "",
+      warning: authUpdateWarning || undefined,
+    });
   } catch (error) {
     console.error("Team member update error:", error);
     return NextResponse.json({ error: "Failed to update team member." }, { status: 500 });
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { uid: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ uid: string }> }) {
   try {
     const authCheck = await requireAdmin(request);
     if ("error" in authCheck) {
       return authCheck.error;
     }
 
-    const { uid } = params;
+    const { uid } = await params;
     await adminAuth().deleteUser(uid);
     await adminDb().collection("users").doc(uid).delete();
 

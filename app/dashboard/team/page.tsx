@@ -77,6 +77,7 @@ export default function DashboardTeamPage() {
   const { user, loading } = useFastAuth("/login");
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [saving, setSaving] = useState(false);
+  const [creatingMember, setCreatingMember] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [formData, setFormData] = useState<TeamMemberForm>(emptyForm());
   const editorRef = useRef<HTMLDivElement | null>(null);
@@ -123,6 +124,7 @@ export default function DashboardTeamPage() {
           pastorImageURL: data.pastorImageURL || "",
           pastorGallery: Array.isArray(data.pastorGallery) ? data.pastorGallery : [],
           churchGallery: Array.isArray(data.churchGallery) ? data.churchGallery : [],
+          videos: Array.isArray(data.videos) ? data.videos : [],
           phoneNumber: data.phoneNumber || "",
           photoURL: data.photoURL || "",
           createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt || "",
@@ -137,6 +139,7 @@ export default function DashboardTeamPage() {
   };
 
   const openEditForm = (member: TeamMember) => {
+    setCreatingMember(false);
     setEditingMember(member);
     setFormData({
       displayName: member.displayName,
@@ -148,7 +151,7 @@ export default function DashboardTeamPage() {
       pastorImageURL: member.pastorImageURL || "",
       pastorGallery: (member.pastorGallery || []).join(", "),
       churchGallery: (member.churchGallery || []).join(", "),
-      videos: (member as any).videos ? (member as any).videos.join(", ") : "",
+      videos: (member.videos || []).join(", "),
       phoneNumber: member.phoneNumber || "",
       photoURL: member.photoURL || "",
       password: "",
@@ -159,8 +162,18 @@ export default function DashboardTeamPage() {
   };
 
   const closeEditor = () => {
+    setCreatingMember(false);
     setEditingMember(null);
     setFormData(emptyForm());
+  };
+
+  const openCreateForm = () => {
+    setCreatingMember(true);
+    setEditingMember(null);
+    setFormData(emptyForm());
+    requestAnimationFrame(() => {
+      editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const getAuthToken = async () => {
@@ -210,8 +223,8 @@ export default function DashboardTeamPage() {
   }, []);
 
   const handleSubmit = async () => {
-    if (!editingMember) {
-      alert("Select a team member to edit.");
+    if (!editingMember && !creatingMember) {
+      alert("Select a team member to edit or create a new one.");
       return;
     }
 
@@ -220,14 +233,19 @@ export default function DashboardTeamPage() {
       return;
     }
 
+    if (creatingMember && !formData.password) {
+      alert("Password is required when creating a new team member.");
+      return;
+    }
+
     setSaving(true);
 
     try {
       const token = await getAuthToken();
-      const url = `/api/admin/team/${editingMember.uid}`;
+      const url = creatingMember ? "/api/admin/team" : `/api/admin/team/${editingMember?.uid}`;
 
       const response = await fetch(url, {
-        method: "PATCH",
+        method: creatingMember ? "POST" : "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -256,7 +274,7 @@ export default function DashboardTeamPage() {
 
       await refreshMembers();
       closeEditor();
-      alert(editingMember ? "Team member updated successfully!" : "Team member created successfully!");
+      alert(creatingMember ? "Team member created successfully!" : "Team member updated successfully!");
     } catch (error) {
       console.error("Team member save error:", error);
       alert(error instanceof Error ? error.message : "Failed to save team member.");
@@ -319,15 +337,18 @@ export default function DashboardTeamPage() {
                 <h1>Branch Administrator Accounts</h1>
                 <p className={styles.description}>Review the current branch leaders. Click Edit on a member to open the form in a separate section.</p>
               </div>
+              <button type="button" className={styles.addButton} onClick={openCreateForm}>
+                + Add Team Member
+              </button>
             </div>
 
-            {editingMember ? (
+            {editingMember || creatingMember ? (
               <section ref={editorRef} className={`${styles.editorSection} ${styles.editorActive}`}>
                 <div className={styles.editorHeader}>
                   <div>
-                    <p className={styles.kicker}>Edit Administrator</p>
-                    <h2>{editingMember.displayName}</h2>
-                    <p className={styles.description}>Update branch details and profile information for this member.</p>
+                    <p className={styles.kicker}>{creatingMember ? "Create Administrator" : "Edit Administrator"}</p>
+                    <h2>{creatingMember ? "Add a new team member" : editingMember?.displayName}</h2>
+                    <p className={styles.description}>{creatingMember ? "Create a team member and save it directly to Firestore." : "Update branch details and profile information for this member."}</p>
                   </div>
                   <div className={styles.editorActions}>
                     <button type="button" className={styles.cancelBtn} onClick={closeEditor}>
@@ -350,7 +371,7 @@ export default function DashboardTeamPage() {
                     </div>
                     <div className={styles.formGroup}>
                       <label htmlFor="email">Email</label>
-                      <input id="email" type="email" value={formData.email} onChange={(event) => setFormData({ ...formData, email: event.target.value })} placeholder="Enter email address" disabled />
+                      <input id="email" type="email" value={formData.email} onChange={(event) => setFormData({ ...formData, email: event.target.value })} placeholder="Enter email address" disabled={!creatingMember} />
                     </div>
                     <div className={styles.formGroup}>
                       <label htmlFor="branchLocation">Branch Location</label>
@@ -409,11 +430,11 @@ export default function DashboardTeamPage() {
                     </div>
                     <div className={styles.formGroupWide}>
                       <label htmlFor="password">Password</label>
-                      <input id="password" type="password" value={formData.password} onChange={(event) => setFormData({ ...formData, password: event.target.value })} placeholder="Leave blank to keep current password" />
+                      <input id="password" type="password" value={formData.password} onChange={(event) => setFormData({ ...formData, password: event.target.value })} placeholder={creatingMember ? "Required for new team member" : "Leave blank to keep current password"} />
                     </div>
                     <div className={styles.formActions}>
                       <button type="button" className={styles.cancelBtn} onClick={closeEditor}>Cancel</button>
-                      <button type="submit" className={styles.saveBtn} disabled={saving}>{saving ? "Saving..." : "Update Team Member"}</button>
+                      <button type="submit" className={styles.saveBtn} disabled={saving}>{saving ? "Saving..." : creatingMember ? "Create Team Member" : "Update Team Member"}</button>
                     </div>
                   </form>
                 </div>

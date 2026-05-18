@@ -8,6 +8,7 @@ import pageStyles from "@/app/page.module.css";
 
 type TeamMemberRecord = {
   uid: string;
+  branchKey?: string;
   displayName?: string;
   email?: string;
   branchLocation?: string;
@@ -135,7 +136,7 @@ export default function TeamSection() {
         </>
       ) : teamMembers.length ? (
         teamMembers.map((member) => (
-          <a key={member.uid} href={`/team/${toBranchKey(member.branchLocation || member.uid)}`} className={pageStyles.leaderCard}>
+          <a key={member.uid} href={`/team/${member.branchKey || toBranchKey(member.branchLocation || member.uid)}`} className={pageStyles.leaderCard}>
             <div className={pageStyles.leaderImageBox}>
               {member.photoURL ? (
                 <Image

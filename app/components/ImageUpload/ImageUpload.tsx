@@ -36,7 +36,7 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const initialUrlsRef = useRef<string[] | null>(null);
+  const initialSelectionKeyRef = useRef<string>("");
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim() || "";
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim() || "";
@@ -78,13 +78,47 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
   }, []);
 
   useEffect(() => {
-    if (multiSelect) {
-      const selected = images.filter((img) => selectedIds.has(img.id));
-      onSelectMultiple?.(selected);
-    } else {
+    if (!multiSelect) {
       onSelectImage?.(selectedImage);
     }
-  }, [onSelectImage, selectedImage, onSelectMultiple, images, selectedIds, multiSelect]);
+  }, [onSelectImage, selectedImage, multiSelect]);
+
+  useEffect(() => {
+    if (!multiSelect) {
+      return;
+    }
+
+    const normalizedSelectionKey = (initialSelectedUrls || []).slice().sort().join("|");
+    if (initialSelectionKeyRef.current === normalizedSelectionKey) {
+      return;
+    }
+
+    initialSelectionKeyRef.current = normalizedSelectionKey;
+
+    if (!normalizedSelectionKey) {
+      setSelectedIds(new Set());
+      return;
+    }
+
+    const ids = new Set<string>();
+    (initialSelectedUrls || []).forEach((url) => {
+      const matchedImage = images.find((image) => image.url === url);
+      if (matchedImage) {
+        ids.add(matchedImage.id);
+      }
+    });
+
+    setSelectedIds(ids);
+  }, [images, initialSelectedUrls, multiSelect]);
+
+  useEffect(() => {
+    if (!multiSelect) {
+      return;
+    }
+
+    const selected = images.filter((img) => selectedIds.has(img.id));
+    onSelectMultiple?.(selected);
+  }, [images, onSelectMultiple, selectedIds, multiSelect]);
 
   useEffect(() => {
     if (!images.length) return;
@@ -97,26 +131,20 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
     }
 
     if (initialSelectedUrls && initialSelectedUrls.length) {
-      const previous = initialUrlsRef.current || [];
-      const next = [...initialSelectedUrls].sort();
-      const previousSorted = [...previous].sort();
-      const urlsChanged = previousSorted.length !== next.length || next.some((url, index) => url !== previousSorted[index]);
-
-      if (urlsChanged) {
-        initialUrlsRef.current = next;
+      const next = [...initialSelectedUrls].sort().join("|");
+      if (initialSelectionKeyRef.current !== next) {
+        initialSelectionKeyRef.current = next;
         const ids = new Set<string>();
         initialSelectedUrls.forEach((u) => {
-          const m = images.find((image) => image.url === u);
-          if (m) ids.add(m.id);
+          const matchedImage = images.find((image) => image.url === u);
+          if (matchedImage) {
+            ids.add(matchedImage.id);
+          }
         });
-        const currentIds = [...selectedIds].sort().join(";");
-        const nextIds = [...ids].sort().join(";");
-        if (currentIds !== nextIds) {
-          setSelectedIds(ids);
-        }
+        setSelectedIds(ids);
       }
     }
-  }, [images, initialSelectedUrl, initialSelectedUrls, selectedIds, selectedImageId]);
+  }, [images, initialSelectedUrl, initialSelectedUrls, selectedImageId, multiSelect]);
 
   const uploadToCloudinary = async (file: File) => {
     const formData = new FormData();
@@ -207,6 +235,7 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
       else next.add(image.id);
       setSelectedIds(next);
       setStatusMessage(`${next.size} image${next.size === 1 ? "" : "s"} selected.`);
+      onSelectMultiple?.(images.filter((currentImage) => next.has(currentImage.id)));
     } else {
       setSelectedImageId(image.id || null);
       setStatusMessage(`Selected ${image.fileName}.`);

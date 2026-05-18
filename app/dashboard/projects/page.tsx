@@ -13,7 +13,7 @@ import {
   getAllProjects,
   updateProject,
 } from "@/app/lib/firebase/firestore";
-import styles from "@/app/admin/projects/projects.module.css";
+import styles from "@/app/projects/projects.module.css";
 import dashStyles from "@/app/dashboard/dashboard.module.css";
 import { useFastAuth } from "@/app/lib/firebase/useFastAuth";
 
