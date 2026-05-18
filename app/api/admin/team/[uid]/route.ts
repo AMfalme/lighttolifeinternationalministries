@@ -118,6 +118,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       await adminDb().collection("branches").doc(branchKey).set(
         {
           branchKey,
+          displayName,
           branchLocation,
           branchAddress,
           branchDescription,

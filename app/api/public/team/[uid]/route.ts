@@ -3,6 +3,7 @@ import { adminDb } from "@/app/lib/firebase/admin";
 
 type BranchDocumentData = {
   branchKey?: string;
+  displayName?: string;
   branchLocation?: string;
   branchAddress?: string;
   branchDescription?: string;
@@ -174,36 +175,40 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
       ? {
           uid: member.uid,
           branchKey: member.branchKey || branchData?.branchKey || normalizedParams || member.uid,
-          displayName: member.displayName || branchData?.branchLocation || "Branch Leader",
-          branchLocation: member.branchLocation || branchData?.branchLocation || "Church Branch",
-          branchAddress: member.branchAddress || branchData?.branchAddress || "",
+          displayName: member.displayName || branchData?.displayName || branchData?.branchLocation || "Branch Leader",
+          branchLocation: branchData?.branchLocation || member.branchLocation || "Church Branch",
+          branchAddress: branchData?.branchAddress || member.branchAddress || "",
           branchDescription:
-            member.branchDescription ||
             branchData?.branchDescription ||
+            member.branchDescription ||
             "A vibrant church community with worship, teaching, and ministry designed to serve every family.",
-          pastorDescription: member.pastorDescription || branchData?.pastorDescription || "",
-          pastorImageURL: member.pastorImageURL || branchData?.pastorImageURL || "",
+          pastorDescription: branchData?.pastorDescription || member.pastorDescription || "",
+          pastorImageURL: branchData?.pastorImageURL || member.pastorImageURL || "",
           pastorGallery:
-            Array.isArray(member.pastorGallery) && member.pastorGallery.length
+            Array.isArray(branchData?.pastorGallery) && branchData.pastorGallery.length
+              ? branchData.pastorGallery
+              : Array.isArray(member.pastorGallery) && member.pastorGallery.length
               ? member.pastorGallery
               : Array.isArray(branchData?.pastorGallery)
               ? branchData.pastorGallery
               : [],
           churchGallery:
-            Array.isArray(member.churchGallery) && member.churchGallery.length
+            Array.isArray(branchData?.gallery) && branchData.gallery.length
+              ? branchData.gallery
+              : Array.isArray(member.churchGallery) && member.churchGallery.length
               ? member.churchGallery
               : Array.isArray(branchData?.gallery)
               ? branchData.gallery
               : [],
           phoneNumber: member.phoneNumber || "",
           email: member.email || "",
-          photoURL: member.photoURL || branchData?.mainImage || "",
+          photoURL: branchData?.mainImage || member.photoURL || "",
           videos: Array.isArray(branchData?.videos) ? branchData.videos : [],
         }
       : {
           uid: branchData?.branchKey || normalizedParams || routeUid,
           branchKey: branchData?.branchKey || normalizedParams || routeUid,
-          displayName: branchData?.branchLocation || "Branch Leader",
+          displayName: branchData?.displayName || branchData?.branchLocation || "Branch Leader",
           branchLocation: branchData?.branchLocation || "Church Branch",
           branchAddress: branchData?.branchAddress || "",
           branchDescription:

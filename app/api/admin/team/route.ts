@@ -109,6 +109,7 @@ const createTeamMember = async ({
     await adminDb().collection("branches").doc(branchKey).set(
       {
         branchKey,
+          displayName,
         branchLocation,
         branchAddress,
         branchDescription,
