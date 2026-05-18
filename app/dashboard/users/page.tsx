@@ -42,7 +42,7 @@ export default function UsersPage() {
   };
 
   const loadUsers = async () => {
-    if (currentUserRole !== "admin" && currentUserRole !== "team-member") return;
+    if (currentUserRole !== "admin" && currentUserRole !== "leadership") return;
 
     setLoadingUsers(true);
     try {
@@ -109,19 +109,19 @@ export default function UsersPage() {
   }, [user]);
 
   useEffect(() => {
-    if (roleChecked && user && (currentUserRole === "admin" || currentUserRole === "team-member") && usersList.length === 0) {
+    if (roleChecked && user && (currentUserRole === "admin" || currentUserRole === "leadership") && usersList.length === 0) {
       void loadUsers();
     }
   }, [currentUserRole, roleChecked, user, usersList.length]);
 
   useEffect(() => {
-    if (roleChecked && user && currentUserRole !== "admin" && currentUserRole !== "team-member") {
+    if (roleChecked && user && currentUserRole !== "admin" && currentUserRole !== "leadership") {
       router.replace("/dashboard");
     }
   }, [currentUserRole, roleChecked, router, user]);
 
   const saveUser = async (u: ManagedUser) => {
-    if (currentUserRole !== "admin" && currentUserRole !== "team-member") return;
+    if (currentUserRole !== "admin" && currentUserRole !== "leadership") return;
 
     try {
       const token = await getAuthToken();
@@ -168,7 +168,7 @@ export default function UsersPage() {
   if (loading) return <DashboardLoading />;
   if (!user) return null;
 
-  if (roleChecked && currentUserRole !== "admin" && currentUserRole !== "team-member") {
+  if (roleChecked && currentUserRole !== "admin" && currentUserRole !== "leadership") {
     return (
       <div className={styles.page}>
         <div className={styles.dashboard}>
@@ -176,7 +176,7 @@ export default function UsersPage() {
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
                 <h1>Access denied</h1>
-                <p className={styles.sectionSubtitle}>Only administrators can manage users.</p>
+                <p className={styles.sectionSubtitle}>Only admins or leadership can manage users.</p>
               </div>
             </div>
           </main>
@@ -224,7 +224,7 @@ export default function UsersPage() {
               <div style={{ marginBottom: 24, padding: 20, borderRadius: 12, background: "rgba(255,255,255,0.75)", border: "1px solid rgba(148,163,184,0.2)" }}>
                 <div className={styles.sectionHeader} style={{ marginBottom: 18 }}>
                   <h2>Promote or Edit User</h2>
-                  <p className={styles.sectionSubtitle}>Pick an authenticated user, promote them to administrator or admin, and update safe profile fields.</p>
+                  <p className={styles.sectionSubtitle}>Pick an authenticated user, promote them to leadership or admin, and update safe profile fields.</p>
                 </div>
 
                 <div className={styles.form}>
@@ -254,7 +254,7 @@ export default function UsersPage() {
                       }
                     >
                       <option value="user">user</option>
-                      <option value="team-member">administrator</option>
+                      <option value="leadership">leadership</option>
                       <option value="admin">admin</option>
                     </select>
                   </div>
@@ -286,13 +286,13 @@ export default function UsersPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        setUsersList((prev) =>
-                          prev.map((item) => (item.id === selectedUser.id ? { ...item, role: "team-member" } : item)),
-                        )
-                      }
+                          setUsersList((prev) =>
+                            prev.map((item) => (item.id === selectedUser.id ? { ...item, role: "leadership" } : item)),
+                          )
+                        }
                       className={styles.submitBtn}
                     >
-                      Promote to administrator
+                      Promote to Leadership
                     </button>
                     <button type="button" onClick={() => void saveUser(selectedUser)} className={styles.submitBtn}>
                       {savingUserId === selectedUser.id ? "Saving..." : "Save User"}
@@ -326,7 +326,7 @@ export default function UsersPage() {
                         <td>{u.email}</td>
                         <td>{u.displayName || "—"}</td>
                         <td>
-                          {currentUserRole === "admin" || currentUserRole === "team-member" ? (
+                          {currentUserRole === "admin" || currentUserRole === "leadership" ? (
                             <select
                               value={u.role || "user"}
                               onChange={(event) =>
@@ -336,7 +336,7 @@ export default function UsersPage() {
                               }
                             >
                               <option value="user">user</option>
-                              <option value="team-member">administrator</option>
+                              <option value="leadership">leadership</option>
                               <option value="admin">admin</option>
                             </select>
                           ) : (
@@ -346,7 +346,7 @@ export default function UsersPage() {
                         <td>{u.branchLocation || "—"}</td>
                         <td>{u.phoneNumber || "—"}</td>
                         <td>
-                          {currentUserRole === "admin" || currentUserRole === "team-member" ? (
+                          {currentUserRole === "admin" || currentUserRole === "leadership" ? (
                             <button onClick={() => void saveUser(u)} className={styles.submitBtn}>
                               {savingUserId === u.id ? "Saving..." : "Save"}
                             </button>

@@ -19,7 +19,7 @@ export default function ProfilePage() {
   const [photoURL, setPhotoURL] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const branches = ["Main Branch", "North Location", "South Location"];
+  const branches = ["Mosocho (Main church headquarters)", "Nyanchwa", "Omogwa"];
 
   useEffect(() => {
     if (!user) {
@@ -126,7 +126,7 @@ export default function ProfilePage() {
                 <label>Profile Image</label>
                 {photoURL ? (
                   <div style={{ marginBottom: 16, position: "relative", width: 120, height: 120, borderRadius: 999, overflow: "hidden" }}>
-                    <Image src={photoURL} alt={displayName || "Team member"} fill style={{ objectFit: "cover" }} />
+                    <Image src={photoURL} alt={displayName || "Leadership"} fill style={{ objectFit: "cover" }} />
                   </div>
                 ) : null}
                 <input

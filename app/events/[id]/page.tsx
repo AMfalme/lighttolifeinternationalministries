@@ -69,7 +69,7 @@ export default function EventDetailPage() {
     void loadEvent();
   }, [eventId]);
 
-  const isPrivilegedUser = currentRole === "admin" || currentRole === "team-member";
+  const isPrivilegedUser = currentRole === "admin" || currentRole === "leadership";
   const isRegistered = useMemo(
     () => Boolean(currentUser && registrations.some((registration) => registration.userId === currentUser.uid)),
     [currentUser, registrations],

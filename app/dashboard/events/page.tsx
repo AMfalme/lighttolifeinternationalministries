@@ -129,7 +129,7 @@ export default function DashboardEventsPage() {
 
   if (loading || pageLoading) return <DashboardLoading />;
   if (!user) return null;
-  if (currentRole !== "admin" && currentRole !== "team-member") {
+  if (currentRole !== "admin" && currentRole !== "leadership") {
     return (
       <div className={dashStyles.page}>
         <div className={dashStyles.dashboard}>
@@ -138,7 +138,7 @@ export default function DashboardEventsPage() {
               <div className={styles.header}>
                 <h1>📅 Manage Events</h1>
               </div>
-              <p className={styles.empty}>Only administrators can manage events.</p>
+              <p className={styles.empty}>Only admins or leadership can manage events.</p>
             </div>
           </main>
         </div>

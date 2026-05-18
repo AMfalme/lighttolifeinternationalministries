@@ -81,7 +81,7 @@ export default function TeamMemberBranchPage() {
           relatedBlogs?: Array<{ id: string; title?: string }>;
           error?: string;
         };
-        console.log("API response for team member details:", payload);
+        console.log("API response for leadership details:", payload);
 
         if (!response.ok || !payload.member) {
           console.error("Error loading branch details:", payload.error || response.statusText);
@@ -108,7 +108,7 @@ export default function TeamMemberBranchPage() {
     return (
       <main className={styles.page}>
         <Navbar />
-        <div className={styles.loading}>{loading ? "Loading branch details…" : "Team member not found."}</div>
+        <div className={styles.loading}>{loading ? "Loading branch details…" : "Leadership not found."}</div>
       </main>
     );
   }

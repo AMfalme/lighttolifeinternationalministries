@@ -34,12 +34,12 @@ export default function TeamSection() {
         const payload = (await response.json()) as { members?: TeamMemberRecord[]; error?: string };
 
         if (!response.ok) {
-          throw new Error(payload.error || "Failed to load team members.");
+          throw new Error(payload.error || "Failed to load leadership.");
         }
 
         setTeamMembers(payload.members || []);
       } catch (error) {
-        console.error("Error loading team members:", error);
+        console.error("Error loading leadership:", error);
         setTeamMembers([]);
       } finally {
         setLoading(false);

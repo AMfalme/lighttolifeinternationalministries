@@ -12,15 +12,15 @@ const requireAdmin = async (request: NextRequest) => {
 
   const decoded = await adminAuth().verifyIdToken(token);
   const hasAdminClaim = decoded.role === "admin" || decoded.role === "super-admin";
-  const hasTeamMemberClaim = decoded.role === "team-member";
-  if (hasAdminClaim || hasTeamMemberClaim) {
+  const hasLeadershipClaim = decoded.role === "leadership";
+  if (hasAdminClaim || hasLeadershipClaim) {
     return { uid: decoded.uid };
   }
 
   const userDoc = await adminDb().collection("users").doc(decoded.uid).get();
   const role = userDoc.data()?.role;
 
-  if (role !== "admin" && role !== "super-admin" && role !== "team-member") {
+  if (role !== "admin" && role !== "super-admin" && role !== "leadership") {
     return { error: NextResponse.json({ error: "Admin access required." }, { status: 403 }) };
   }
 

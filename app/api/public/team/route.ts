@@ -43,7 +43,7 @@ const toBranchKey = (value: string) =>
 
 export async function GET() {
   try {
-    const usersSnap = await adminDb().collection("users").where("role", "==", "team-member").get();
+    const usersSnap = await adminDb().collection("users").where("role", "==", "leadership").get();
     const members = usersSnap.docs.map((document) => ({
       uid: document.id,
       ...(document.data() as TeamMemberDocumentData),
@@ -96,6 +96,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Public team list lookup failed:", error);
-    return NextResponse.json({ error: "Failed to load team members." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to load leadership." }, { status: 500 });
   }
 }

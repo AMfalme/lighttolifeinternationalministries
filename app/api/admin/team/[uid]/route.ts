@@ -21,15 +21,15 @@ const requireAdmin = async (request: NextRequest) => {
 
   const decoded = await adminAuth().verifyIdToken(token);
   const hasAdminClaim = decoded.role === "admin" || decoded.role === "super-admin";
-  const hasTeamMemberClaim = decoded.role === "team-member";
-  if (hasAdminClaim || hasTeamMemberClaim) {
+  const hasLeadershipClaim = decoded.role === "leadership";
+  if (hasAdminClaim || hasLeadershipClaim) {
     return { uid: decoded.uid };
   }
 
   const userDoc = await adminDb().collection("users").doc(decoded.uid).get();
   const role = userDoc.data()?.role;
 
-  if (role !== "admin" && role !== "super-admin" && role !== "team-member") {
+  if (role !== "admin" && role !== "super-admin" && role !== "leadership") {
     return { error: NextResponse.json({ error: "Admin access required." }, { status: 403 }) };
   }
 
@@ -75,7 +75,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const branchKey = toBranchKey(branchLocation || uid);
 
     if (!displayName || !email || !branchLocation) {
-      return NextResponse.json({ error: "Missing required team member fields." }, { status: 400 });
+      return NextResponse.json({ error: "Missing required leadership fields." }, { status: 400 });
     }
 
     let authUpdateWarning = "";
@@ -88,14 +88,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       });
     } catch (authError) {
       authUpdateWarning = authError instanceof Error ? authError.message : "Unable to sync Firebase Auth user.";
-      console.warn("Team member auth update warning:", authUpdateWarning);
+      console.warn("Leadership auth update warning:", authUpdateWarning);
     }
 
     await adminDb().collection("users").doc(uid).set(
       {
         displayName,
         email,
-        role: "team-member",
+        role: "leadership",
         branchLocation,
         branchKey,
         branchAddress,
@@ -146,8 +146,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       warning: authUpdateWarning || undefined,
     });
   } catch (error) {
-    console.error("Team member update error:", error);
-    return NextResponse.json({ error: "Failed to update team member." }, { status: 500 });
+    console.error("Leadership update error:", error);
+    return NextResponse.json({ error: "Failed to update leadership." }, { status: 500 });
   }
 }
 
@@ -164,7 +164,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     return NextResponse.json({ uid });
   } catch (error) {
-    console.error("Team member delete error:", error);
-    return NextResponse.json({ error: "Failed to delete team member." }, { status: 500 });
+    console.error("Leadership delete error:", error);
+    return NextResponse.json({ error: "Failed to delete leadership." }, { status: 500 });
   }
 }

@@ -89,7 +89,7 @@ export default function EventsPage() {
     }, {});
   }, [registrations]);
 
-  const isPrivilegedUser = currentRole === "admin" || currentRole === "team-member";
+  const isPrivilegedUser = currentRole === "admin" || currentRole === "leadership";
 
   const handleRegisterToggle = async (eventId: string) => {
     if (!currentUser) {
@@ -205,7 +205,7 @@ export default function EventsPage() {
                                   <span className={styles.attendeeMeta}>No registrations yet.</span>
                                 )}
                               </div>
-                              <p className={styles.attendeeMeta}>Administrators can review the attendee list above.</p>
+                              <p className={styles.attendeeMeta}>Admins and leadership can review the attendee list above.</p>
                             </div>
                           ) : isRegistered ? (
                             <div className={styles.attendeeSection}>

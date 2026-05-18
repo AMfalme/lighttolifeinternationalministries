@@ -21,15 +21,15 @@ const requireAdmin = async (request: NextRequest) => {
 
   const decoded = await adminAuth().verifyIdToken(token);
   const hasAdminClaim = decoded.role === "admin" || decoded.role === "super-admin";
-  const hasTeamMemberClaim = decoded.role === "team-member";
-  if (hasAdminClaim || hasTeamMemberClaim) {
+  const hasLeadershipClaim = decoded.role === "leadership";
+  if (hasAdminClaim || hasLeadershipClaim) {
     return { uid: decoded.uid };
   }
 
   const userDoc = await adminDb().collection("users").doc(decoded.uid).get();
   const role = userDoc.data()?.role;
 
-  if (role !== "admin" && role !== "super-admin" && role !== "team-member") {
+  if (role !== "admin" && role !== "super-admin" && role !== "leadership") {
     return { error: NextResponse.json({ error: "Admin access required." }, { status: 403 }) };
   }
 
@@ -82,7 +82,7 @@ const createTeamMember = async ({
 
   const branchKey = toBranchKey(branchLocation || authUser.uid);
 
-  await adminAuth().setCustomUserClaims(authUser.uid, { role: "team-member" });
+  await adminAuth().setCustomUserClaims(authUser.uid, { role: "leadership" });
 
   await adminDb().collection("users").doc(authUser.uid).set({
     uid: authUser.uid,
@@ -99,7 +99,7 @@ const createTeamMember = async ({
     videos: Array.isArray(videos) ? videos : [],
     phoneNumber,
     photoURL: photoURL || "",
-    role: "team-member",
+    role: "leadership",
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   });
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
     const photoURL = String(body.photoURL || "").trim();
 
     if ((!existingUid && (!email || !password)) || !displayName || !branchLocation) {
-      return NextResponse.json({ error: "Missing required team member fields." }, { status: 400 });
+      return NextResponse.json({ error: "Missing required leadership fields." }, { status: 400 });
     }
 
     const authUser = await createTeamMember({
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("Team member create error:", error);
-    return NextResponse.json({ error: "Failed to create team member." }, { status: 500 });
+    console.error("Leadership create error:", error);
+    return NextResponse.json({ error: "Failed to create leadership." }, { status: 500 });
   }
 }

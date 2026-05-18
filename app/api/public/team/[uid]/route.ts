@@ -80,7 +80,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
     }
 
     if (!member) {
-      const userSnap = await adminDb().collection("users").where("role", "==", "team-member").get();
+      const userSnap = await adminDb().collection("users").where("role", "==", "leadership").get();
       const found = userSnap.docs.find((document) => {
         const data = document.data() as TeamMemberDocumentData;
         const storedBranchKey = normalize(String(data.branchKey || ""));
@@ -143,7 +143,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
     }
 
     if (!member && branchData) {
-      const usersSnap = await adminDb().collection("users").where("role", "==", "team-member").get();
+      const usersSnap = await adminDb().collection("users").where("role", "==", "leadership").get();
       const matchedUser = usersSnap.docs.find((document) => {
         const data = document.data() as TeamMemberDocumentData;
         const dataBranchKey = normalize(String(data.branchKey || ""));
@@ -167,7 +167,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
     }
 
     if (!member && !branchData) {
-      return NextResponse.json({ error: "Team member not found." }, { status: 404 });
+      return NextResponse.json({ error: "Leadership not found." }, { status: 404 });
     }
 
     const mergedMember = member
@@ -225,7 +225,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
       relatedBlogs: blogsSnap.docs.map((document) => ({ id: document.id, title: document.data().title })),
     });
   } catch (error) {
-    console.error("Public team lookup failed:", error);
-    return NextResponse.json({ error: "Failed to load team member." }, { status: 500 });
+    console.error("Public leadership lookup failed:", error);
+    return NextResponse.json({ error: "Failed to load leadership." }, { status: 500 });
   }
 }

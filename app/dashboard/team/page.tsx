@@ -70,7 +70,7 @@ const emptyForm = (): TeamMemberForm => ({
   password: "",
 });
 
-const branches = ["Mosocho", "Omogwa", "Nyanchwa"];
+const branches = ["Mosocho (Main church headquarters)", "Nyanchwa", "Omogwa"];
 
 export default function DashboardTeamPage() {
   const router = useRouter();
@@ -90,7 +90,7 @@ export default function DashboardTeamPage() {
     (async () => {
       try {
         const userSnap = await getDoc(doc(db, "users", user.uid));
-        if (userSnap.exists() && (userSnap.data().role === "admin" || userSnap.data().role === "team-member")) {
+            if (userSnap.exists() && (userSnap.data().role === "admin" || userSnap.data().role === "leadership")) {
           await loadTeamMembers();
         } else {
           router.push("/dashboard/profile");
@@ -108,7 +108,7 @@ export default function DashboardTeamPage() {
     }
 
     try {
-      const membersQuery = query(collection(db, "users"), where("role", "==", "team-member"));
+          const membersQuery = query(collection(db, "users"), where("role", "==", "leadership"));
       const snapshot = await getDocs(membersQuery);
 
       const members = snapshot.docs.map((document) => {
@@ -133,7 +133,7 @@ export default function DashboardTeamPage() {
 
       setTeamMembers(members);
     } catch (error) {
-      console.error("Error fetching team members:", error);
+      console.error("Error fetching leadership:", error);
       setTeamMembers([]);
     }
   };
@@ -180,7 +180,7 @@ export default function DashboardTeamPage() {
     const firebaseAuth = await import("firebase/auth");
     const auth = firebaseAuth.getAuth();
     if (!auth.currentUser) {
-      throw new Error("You must be signed in to manage administrators.");
+      throw new Error("You must be signed in to manage leadership.");
     }
 
     return auth.currentUser.getIdToken();
@@ -224,7 +224,7 @@ export default function DashboardTeamPage() {
 
   const handleSubmit = async () => {
     if (!editingMember && !creatingMember) {
-      alert("Select a team member to edit or create a new one.");
+      alert("Select a leadership account to edit or create a new one.");
       return;
     }
 
@@ -234,7 +234,7 @@ export default function DashboardTeamPage() {
     }
 
     if (creatingMember && !formData.password) {
-      alert("Password is required when creating a new team member.");
+          alert("Password is required when creating a new leadership account.");
       return;
     }
 
@@ -269,15 +269,15 @@ export default function DashboardTeamPage() {
 
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload?.error || "Unable to save team member.");
+            throw new Error(payload?.error || "Unable to save leadership.");
       }
 
       await refreshMembers();
       closeEditor();
-      alert(creatingMember ? "Team member created successfully!" : "Team member updated successfully!");
+          alert(creatingMember ? "Leadership created successfully!" : "Leadership updated successfully!");
     } catch (error) {
-      console.error("Team member save error:", error);
-      alert(error instanceof Error ? error.message : "Failed to save team member.");
+      console.error("Leadership save error:", error);
+      alert(error instanceof Error ? error.message : "Failed to save leadership.");
     } finally {
       setSaving(false);
     }
@@ -299,13 +299,13 @@ export default function DashboardTeamPage() {
 
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload?.error || "Unable to delete team member.");
+            throw new Error(payload?.error || "Unable to delete leadership.");
       }
 
       await refreshMembers();
     } catch (error) {
-      console.error("Team member delete error:", error);
-      alert(error instanceof Error ? error.message : "Failed to delete team member.");
+      console.error("Leadership delete error:", error);
+      alert(error instanceof Error ? error.message : "Failed to delete leadership.");
     }
   };
 
@@ -333,12 +333,12 @@ export default function DashboardTeamPage() {
           <div className={styles.container}>
             <div className={styles.header}>
               <div>
-                <p className={styles.kicker}>Dashboard / Administrators</p>
-                <h1>Branch Administrator Accounts</h1>
+                <p className={styles.kicker}>Dashboard / Leadership</p>
+                <h1>Leadership Accounts</h1>
                 <p className={styles.description}>Review the current branch leaders. Click Edit on a member to open the form in a separate section.</p>
               </div>
-              <button type="button" className={styles.addButton} onClick={openCreateForm}>
-                + Add Team Member
+                  <button type="button" className={styles.addButton} onClick={openCreateForm}>
+                    + Add Leadership
               </button>
             </div>
 
@@ -346,9 +346,9 @@ export default function DashboardTeamPage() {
               <section ref={editorRef} className={`${styles.editorSection} ${styles.editorActive}`}>
                 <div className={styles.editorHeader}>
                   <div>
-                    <p className={styles.kicker}>{creatingMember ? "Create Administrator" : "Edit Administrator"}</p>
-                    <h2>{creatingMember ? "Add a new team member" : editingMember?.displayName}</h2>
-                    <p className={styles.description}>{creatingMember ? "Create a team member and save it directly to Firestore." : "Update branch details and profile information for this member."}</p>
+                    <p className={styles.kicker}>{creatingMember ? "Create Leadership" : "Edit Leadership"}</p>
+                      <h2>{creatingMember ? "Add a new leadership" : editingMember?.displayName}</h2>
+                    <p className={styles.description}>{creatingMember ? "Create a leadership account and save it directly to Firestore." : "Update branch details and profile information for this member."}</p>
                   </div>
                   <div className={styles.editorActions}>
                     <button type="button" className={styles.cancelBtn} onClick={closeEditor}>
@@ -430,11 +430,11 @@ export default function DashboardTeamPage() {
                     </div>
                     <div className={styles.formGroupWide}>
                       <label htmlFor="password">Password</label>
-                      <input id="password" type="password" value={formData.password} onChange={(event) => setFormData({ ...formData, password: event.target.value })} placeholder={creatingMember ? "Required for new team member" : "Leave blank to keep current password"} />
+                      <input id="password" type="password" value={formData.password} onChange={(event) => setFormData({ ...formData, password: event.target.value })} placeholder={creatingMember ? "Required for new leadership" : "Leave blank to keep current password"} />
                     </div>
                     <div className={styles.formActions}>
                       <button type="button" className={styles.cancelBtn} onClick={closeEditor}>Cancel</button>
-                      <button type="submit" className={styles.saveBtn} disabled={saving}>{saving ? "Saving..." : creatingMember ? "Create Team Member" : "Update Team Member"}</button>
+                      <button type="submit" className={styles.saveBtn} disabled={saving}>{saving ? "Saving..." : creatingMember ? "Create Leadership" : "Update Leadership"}</button>
                     </div>
                   </form>
                 </div>
@@ -443,7 +443,7 @@ export default function DashboardTeamPage() {
 
             {teamMembers.length === 0 ? (
               <div className={styles.emptyState}>
-                <h2>No Administrators Yet</h2>
+                <h2>No Leadership Accounts Yet</h2>
                 <p>Add the first branch leader account to get started.</p>
               </div>
             ) : (

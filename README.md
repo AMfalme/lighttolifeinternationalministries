@@ -49,4 +49,4 @@ Set these variables in production:
 - `FIREBASE_CLIENT_EMAIL` or `NEXT_PUBLIC_FIREBASE_CLIENT_EMAIL`
 - `FIREBASE_PRIVATE_KEY` or `NEXT_PUBLIC_FIREBASE_PRIVATE_KEY`
 
-If the Admin SDK credentials are missing in production, the domain deployment will not be able to load team member data even if it works locally.
+If the Admin SDK credentials are missing in production, the domain deployment will not be able to load leadership data even if it works locally.
