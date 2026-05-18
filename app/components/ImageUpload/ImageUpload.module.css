@@ -85,10 +85,10 @@
 }
 
 .selectedCard {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 12px;
-  align-items: stretch;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
   padding: 12px;
   border-radius: 16px;
   background: rgba(226, 232, 240, 0.18);
@@ -103,6 +103,23 @@
   background: #e9eef6;
   border-radius: 14px;
   min-height: 140px;
+}
+
+.selectedThumbList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.selectedThumb {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #e9eef6;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  flex: 0 0 auto;
 }
 
 .selectedPreview {
@@ -330,7 +347,6 @@
 @media (max-width: 768px) {
   .uploadToolbar,
   .selectedCard {
-    grid-template-columns: 1fr;
     flex-direction: column;
   }
 

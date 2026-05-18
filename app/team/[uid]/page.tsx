@@ -114,6 +114,14 @@ export default function TeamMemberBranchPage() {
     );
   }
 
+  const pastorGalleryImages = Array.from(
+    new Set([member.pastorImageURL, ...(member.pastorGallery || [])].filter((image): image is string => Boolean(image))),
+  );
+  const churchGalleryImages = Array.from(
+    new Set((member.churchGallery || []).filter((image): image is string => Boolean(image))),
+  );
+  const pastorPrimaryImage = member.pastorImageURL || member.photoURL || pastorGalleryImages[0] || "";
+
   return (
     <>
       <Navbar />
@@ -147,8 +155,8 @@ export default function TeamMemberBranchPage() {
           </div>
         </div>
         <div className={styles.heroImage}>
-          {member.photoURL || member.pastorImageURL ? (
-            <Image src={member.photoURL || member.pastorImageURL || ""} alt={member.displayName} fill style={{ objectFit: "cover" }} />
+          {pastorPrimaryImage ? (
+            <Image src={pastorPrimaryImage} alt={member.displayName} fill style={{ objectFit: "cover" }} />
           ) : (
             <div className={styles.loading}>No profile image available.</div>
           )}
@@ -162,9 +170,9 @@ export default function TeamMemberBranchPage() {
               <p className={styles.roleLabel}>Branch Pastor</p>
               <h2>{member.displayName}</h2>
             </div>
-            {member.pastorImageURL || member.pastorGallery?.length ? (
+            {pastorPrimaryImage || pastorGalleryImages.length ? (
               <div className={styles.profileImage}>
-                <Image src={member.pastorImageURL || member.pastorGallery?.[0] || ""} alt={member.displayName} fill style={{ objectFit: "cover" }} />
+                <Image src={pastorPrimaryImage || pastorGalleryImages[0] || ""} alt={member.displayName} fill style={{ objectFit: "cover" }} />
                 <button className={styles.viewImagesBtn} onClick={() => setShowPastorModal(true)}>View pastor images</button>
               </div>
             ) : null}
@@ -207,11 +215,11 @@ export default function TeamMemberBranchPage() {
 
         <article className={styles.galleryCard}>
           <h3>Church Gallery</h3>
-          {member.churchGallery?.length ? (
+          {churchGalleryImages.length ? (
             <>
               <button className={styles.viewImagesBtn} onClick={() => setShowChurchModal(true)}>View church images</button>
               <div className={styles.galleryGrid}>
-                {member.churchGallery.slice(0, 4).map((src, index) => (
+                {churchGalleryImages.map((src, index) => (
                   <div key={index} className={styles.galleryItem}>
                     <Image src={src} alt={`Branch image ${index + 1}`} fill style={{ objectFit: "cover" }} />
                   </div>
@@ -277,12 +285,12 @@ export default function TeamMemberBranchPage() {
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <h3>Pastor Images</h3>
             <div className={styles.modalGrid}>
-              {(member.pastorGallery && member.pastorGallery.length ? member.pastorGallery : member.pastorImageURL ? [member.pastorImageURL] : []).map((src, idx) => (
+              {pastorGalleryImages.map((src, idx) => (
                   <div key={idx} className={styles.modalItem}>
                     <Image src={src} alt={`Pastor image ${idx + 1}`} fill style={{ objectFit: "cover" }} />
                   </div>
                 ))}
-              {!member.pastorGallery?.length && !member.pastorImageURL ? (
+              {!pastorGalleryImages.length ? (
                 <p className={styles.emptyState}>No pastor images have been uploaded yet.</p>
               ) : null}
             </div>
@@ -298,12 +306,12 @@ export default function TeamMemberBranchPage() {
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <h3>Church Images</h3>
             <div className={styles.modalGrid}>
-              {(member.churchGallery && member.churchGallery.length ? member.churchGallery : []).map((src, idx) => (
+              {churchGalleryImages.map((src, idx) => (
                   <div key={idx} className={styles.modalItem}>
                     <Image src={src} alt={`Church image ${idx + 1}`} fill style={{ objectFit: "cover" }} />
                   </div>
                 ))}
-              {!member.churchGallery?.length ? <p className={styles.emptyState}>No church images have been uploaded yet.</p> : null}
+              {!churchGalleryImages.length ? <p className={styles.emptyState}>No church images have been uploaded yet.</p> : null}
             </div>
             <div className={styles.modalActions}>
               <button onClick={() => setShowChurchModal(false)}>Close</button>

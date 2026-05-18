@@ -37,6 +37,7 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const initialSelectionKeyRef = useRef<string>("");
+  const lastAppliedSingleSelectionRef = useRef<string>("");
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim() || "";
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim() || "";
@@ -44,6 +45,13 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
 
   const configReady = useMemo(() => Boolean(cloudName && uploadPreset), [cloudName, uploadPreset]);
   const selectedImage = images.find((image) => image.id === selectedImageId) ?? null;
+  const selectedImages = useMemo(() => {
+    if (multiSelect) {
+      return images.filter((image) => selectedIds.has(image.id));
+    }
+
+    return selectedImage ? [selectedImage] : [];
+  }, [images, multiSelect, selectedIds, selectedImage]);
 
   const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
 
@@ -76,12 +84,6 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
 
     loadImages();
   }, []);
-
-  useEffect(() => {
-    if (!multiSelect) {
-      onSelectImage?.(selectedImage);
-    }
-  }, [onSelectImage, selectedImage, multiSelect]);
 
   useEffect(() => {
     if (!multiSelect) {
@@ -121,30 +123,23 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
   }, [images, onSelectMultiple, selectedIds, multiSelect]);
 
   useEffect(() => {
-    if (!images.length) return;
+    if (!images.length || multiSelect) return;
 
-    if (initialSelectedUrl) {
-      const matchedImage = images.find((image) => image.url === initialSelectedUrl);
-      if (matchedImage && matchedImage.id !== selectedImageId) {
-        setSelectedImageId(matchedImage.id || null);
-      }
+    const nextInitialSelection = initialSelectedUrl || "";
+    if (lastAppliedSingleSelectionRef.current === nextInitialSelection) {
+      return;
     }
 
-    if (initialSelectedUrls && initialSelectedUrls.length) {
-      const next = [...initialSelectedUrls].sort().join("|");
-      if (initialSelectionKeyRef.current !== next) {
-        initialSelectionKeyRef.current = next;
-        const ids = new Set<string>();
-        initialSelectedUrls.forEach((u) => {
-          const matchedImage = images.find((image) => image.url === u);
-          if (matchedImage) {
-            ids.add(matchedImage.id);
-          }
-        });
-        setSelectedIds(ids);
-      }
+    lastAppliedSingleSelectionRef.current = nextInitialSelection;
+
+    if (!nextInitialSelection) {
+      setSelectedImageId(null);
+      return;
     }
-  }, [images, initialSelectedUrl, initialSelectedUrls, selectedImageId, multiSelect]);
+
+    const matchedImage = images.find((image) => image.url === nextInitialSelection);
+    setSelectedImageId(matchedImage?.id || null);
+  }, [images, initialSelectedUrl, multiSelect]);
 
   const uploadToCloudinary = async (file: File) => {
     const formData = new FormData();
@@ -216,7 +211,9 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
         uploadedImages.forEach((i) => ids.add(i.id));
         setSelectedIds(ids);
       } else {
-        setSelectedImageId(uploadedImages[0]?.id ?? null);
+        const uploadedImage = uploadedImages[0] ?? null;
+        setSelectedImageId(uploadedImage?.id ?? null);
+        onSelectImage?.(uploadedImage);
       }
       setStatusMessage(`${uploadedImages.length} image${uploadedImages.length > 1 ? "s" : ""} uploaded successfully.`);
     } catch (uploadError) {
@@ -235,10 +232,11 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
       else next.add(image.id);
       setSelectedIds(next);
       setStatusMessage(`${next.size} image${next.size === 1 ? "" : "s"} selected.`);
-      onSelectMultiple?.(images.filter((currentImage) => next.has(currentImage.id)));
     } else {
-      setSelectedImageId(image.id || null);
-      setStatusMessage(`Selected ${image.fileName}.`);
+      const nextSelectedId = selectedImageId === image.id ? null : image.id;
+      setSelectedImageId(nextSelectedId);
+      onSelectImage?.(nextSelectedId ? image : null);
+      setStatusMessage(nextSelectedId ? `Selected ${image.fileName}.` : "Selection cleared.");
     }
   };
 
@@ -255,6 +253,7 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
 
       if (selectedImageId === image.id) {
         setSelectedImageId(null);
+        onSelectImage?.(null);
       }
 
       setStatusMessage(`${image.fileName} deleted.`);
@@ -309,15 +308,27 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
       {error ? <div className={styles.error}>{error}</div> : null}
       {statusMessage ? <div className={styles.success}>{statusMessage}</div> : null}
 
-      {selectedImage ? (
+      {selectedImages.length ? (
         <div className={styles.selectedCard}>
-          <div className={styles.selectedPreview}>
-            <Image src={getTransformedUrl(selectedImage.url, 480, 320)} alt={selectedImage.fileName} fill sizes="(max-width: 768px) 100vw, 320px" />
+          <div className={styles.selectedThumbList}>
+            {selectedImages.map((image) => (
+              <div key={image.id} className={styles.selectedThumb}>
+                <Image src={getTransformedUrl(image.url, 120, 120)} alt={image.fileName} fill sizes="64px" />
+              </div>
+            ))}
           </div>
           <div className={styles.selectedMeta}>
-            <span>Selected image</span>
-            <strong>{selectedImage.fileName}</strong>
-            <p>{selectedImage.url}</p>
+            <span>{multiSelect ? `${selectedImages.length} images selected` : "Selected image"}</span>
+            <strong>{selectedImages[0].fileName}</strong>
+            <p>
+              {multiSelect
+                ? selectedImages
+                    .slice(0, 3)
+                    .map((image) => image.fileName)
+                    .join(", ")
+                : `Image ID: ${selectedImages[0].id}`}
+              {multiSelect && selectedImages.length > 3 ? ` +${selectedImages.length - 3} more` : ""}
+            </p>
             <div className={styles.actionRow}>
               <button type="button" className={styles.secondaryButton} onClick={handleCopyImageUrl}>
                 Copy URL

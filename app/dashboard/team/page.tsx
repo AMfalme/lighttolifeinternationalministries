@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import DashboardSidebar from "@/app/components/DashboardSidebar/DashboardSidebar";
@@ -190,23 +190,25 @@ export default function DashboardTeamPage() {
     await loadTeamMembers();
   };
 
-  const handleSelectImage = useCallback((image: { url: string } | null) => {
-    setFormData((current) => {
-      const nextPhotoURL = image?.url || "";
-      return current.photoURL === nextPhotoURL ? current : { ...current, photoURL: nextPhotoURL };
-    });
-  }, []);
-
   const handleSelectPastorImage = useCallback((image: { url: string } | null) => {
     setFormData((current) => {
       const next = image?.url || "";
-      return current.pastorImageURL === next ? current : { ...current, pastorImageURL: next };
+      if (current.pastorImageURL === next && current.photoURL === (current.photoURL || next)) {
+        return current;
+      }
+      return { ...current, pastorImageURL: next, photoURL: next || current.photoURL };
     });
   }, []);
 
-  const initialPastorGalleryUrls = formData.pastorGallery.split(",").map((item) => item.trim()).filter(Boolean);
+  const initialPastorGalleryUrls = useMemo(
+    () => formData.pastorGallery.split(",").map((item) => item.trim()).filter(Boolean),
+    [formData.pastorGallery],
+  );
 
-  const initialGalleryUrls = formData.churchGallery.split(",").map((item) => item.trim()).filter(Boolean);
+  const initialGalleryUrls = useMemo(
+    () => formData.churchGallery.split(",").map((item) => item.trim()).filter(Boolean),
+    [formData.churchGallery],
+  );
 
   const handleSelectPastorGalleryImages = useCallback((images: { url: string }[]) => {
     const nextGallery = images.map((image) => image.url).join(", ");
@@ -252,6 +254,7 @@ export default function DashboardTeamPage() {
         },
         body: JSON.stringify({
           ...formData,
+          photoURL: formData.pastorImageURL || formData.photoURL,
           pastorGallery: formData.pastorGallery
             .split(",")
             .map((item) => item.trim())
@@ -423,10 +426,6 @@ export default function DashboardTeamPage() {
                     <div className={styles.formGroup}>
                       <label htmlFor="phoneNumber">Phone Number</label>
                       <input id="phoneNumber" type="tel" value={formData.phoneNumber} onChange={(event) => setFormData({ ...formData, phoneNumber: event.target.value })} placeholder="Enter phone number" />
-                    </div>
-                    <div className={styles.formGroupWide}>
-                      <label>Profile Image</label>
-                      <ImageUpload onSelectImage={handleSelectImage} initialSelectedUrl={formData.photoURL || undefined} />
                     </div>
                     <div className={styles.formGroupWide}>
                       <label htmlFor="password">Password</label>
