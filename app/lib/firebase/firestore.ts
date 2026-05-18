@@ -316,6 +316,72 @@ export const getEventById = async (id: string) => {
   }
 };
 
+export interface EventRegistration {
+  id?: string;
+  eventId: string;
+  userId: string;
+  email: string;
+  displayName?: string;
+  role?: string;
+  branchLocation?: string;
+  registeredAt?: any;
+}
+
+const EVENT_REGISTRATIONS_KEY = "mock_event_registrations";
+
+export const registerUserForEvent = async (registration: Omit<EventRegistration, "id" | "registeredAt">) => {
+  const payload: EventRegistration = {
+    ...registration,
+    registeredAt: new Date(),
+  };
+
+  if (useMock) {
+    const id = `${registration.eventId}_${registration.userId}`;
+    const items = readMock(EVENT_REGISTRATIONS_KEY);
+    const nextItems = items.filter((item: any) => item.id !== id);
+    const next = { id, ...payload };
+    nextItems.unshift(next);
+    writeMock(EVENT_REGISTRATIONS_KEY, nextItems);
+    return next as EventRegistration & { id: string };
+  }
+
+  const id = `${registration.eventId}_${registration.userId}`;
+  await setDoc(doc(db, "eventRegistrations", id), payload, { merge: true });
+  return { id, ...payload } as EventRegistration & { id: string };
+};
+
+export const unregisterUserFromEvent = async (eventId: string, userId: string) => {
+  const id = `${eventId}_${userId}`;
+
+  if (useMock) {
+    return deleteMock(EVENT_REGISTRATIONS_KEY, id);
+  }
+
+  await deleteDoc(doc(db, "eventRegistrations", id));
+  return id;
+};
+
+export const getAllEventRegistrations = async () => {
+  if (useMock) return getAllMock(EVENT_REGISTRATIONS_KEY) as (EventRegistration & { id: string })[];
+
+  try {
+    const querySnapshot = await getDocs(collection(db, "eventRegistrations"));
+    return querySnapshot.docs.map((document) => ({
+      id: document.id,
+      ...document.data(),
+    })) as (EventRegistration & { id: string })[];
+  } catch (error) {
+    console.error("Error fetching event registrations:", error);
+    if (typeof window !== "undefined") return getAllMock(EVENT_REGISTRATIONS_KEY) as (EventRegistration & { id: string })[];
+    return [];
+  }
+};
+
+export const getEventRegistrations = async (eventId: string) => {
+  const registrations = await getAllEventRegistrations();
+  return registrations.filter((registration) => registration.eventId === eventId);
+};
+
 // PROJECTS
 export const createProject = async (project: Project) => {
   if (useMock) return createMock("mock_projects", project) as Project & { id: string };

@@ -496,6 +496,101 @@
   color: var(--text-muted);
 }
 
+.registerPanel {
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.registerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.registerBtn,
+.unregisterBtn {
+  border: none;
+  border-radius: 999px;
+  padding: 11px 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.registerBtn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+}
+
+.unregisterBtn {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+.registerBtn:hover,
+.unregisterBtn:hover {
+  transform: translateY(-1px);
+}
+
+.registrationStatus {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.attendeeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.attendeeHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.attendeeList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.attendeeChip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.attendeeMeta {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.pageDescription a,
+.sectionDescription a,
+.attendeeMeta a {
+  color: var(--accent-blue);
+  font-weight: 700;
+}
+
 .page[data-theme="dark"] .eventDescription {
   color: #bcdcff;
 }
@@ -728,6 +823,10 @@
 
   .eventTitle {
     font-size: 1rem;
+  }
+
+  .registerActions {
+    align-items: flex-start;
   }
 
   .upcomingCard {

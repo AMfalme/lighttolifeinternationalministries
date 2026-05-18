@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db, hasFirebaseClientConfig } from "@/app/lib/firebase/config";
 import pageStyles from "@/app/page.module.css";
@@ -20,65 +20,15 @@ type TeamMemberRecord = {
   photoURL?: string;
 };
 
-const DEFAULT_MEMBERS: TeamMemberRecord[] = [
-  {
-    uid: "default-main",
-    displayName: "Pastor Lydia A.",
-    email: "mosocho@church.org",
-    branchLocation: "Mosocho",
-    branchAddress: "Mosocho, Kisii County",
-    branchDescription:
-      "The main church in Mosocho, Kisii County. This branch serves as the regional hub for worship, outreach, and spiritual growth in the area.",
-    pastorDescription:
-      "Pastor Lydia leads the Mosocho congregation with pastoral care, teaching, and community outreach. She has a heart for families and local transformation.",
-    pastorImageURL: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80",
-    churchGallery: [
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
-      "https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80",
-    ],
-    photoURL: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    uid: "default-north",
-    displayName: "Pastor Emmanuel T.",
-    email: "omogwa@church.org",
-    branchLocation: "Omogwa",
-    branchAddress: "Omogwa, Kisii County",
-    branchDescription:
-      "The Omogwa branch serves local families with vibrant worship, community care, and discipleship grounded in Kisii County culture.",
-    pastorDescription:
-      "Pastor Emmanuel heads the Omogwa branch, focusing on practical discipleship and community programs for all ages.",
-    pastorImageURL: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=800&q=80",
-    churchGallery: [
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80",
-      "https://images.unsplash.com/photo-1470145318693-9c182fde2a2d?auto=format&fit=crop&w=900&q=80",
-    ],
-    photoURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    uid: "default-south",
-    displayName: "Pastor Mercy N.",
-    email: "nyanchwa@church.org",
-    branchLocation: "Nyanchwa",
-    branchAddress: "Nyanchwa, Kisii County",
-    branchDescription:
-      "The Nyanchwa branch is a soulful church community in Kisii County, focused on discipleship, hospitality, and local transformation.",
-    pastorDescription:
-      "Pastor Mercy leads with an emphasis on hospitality and deep discipleship, helping communities grow in faith and service.",
-    pastorImageURL: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80",
-    churchGallery: [
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
-      "https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80",
-    ],
-    photoURL: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80",
-  },
-];
-
 export default function TeamSection() {
   const [teamMembers, setTeamMembers] = useState<TeamMemberRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
     const loadTeamMembers = async () => {
       if (!hasFirebaseClientConfig || !db) {
         setTeamMembers([]);
@@ -90,15 +40,10 @@ export default function TeamSection() {
         const teamQuery = query(collection(db, "users"), where("role", "==", "team-member"));
         const snapshot = await getDocs(teamQuery);
         const members = snapshot.docs.map((document) => ({
+          ...(document.data() as Omit<TeamMemberRecord, "uid">),
           uid: document.id,
-          ...(document.data() as TeamMemberRecord),
         }));
-        const displayMembers = members.slice(0, 3);
-        if (displayMembers.length < 3) {
-          setTeamMembers([...displayMembers, ...DEFAULT_MEMBERS.slice(displayMembers.length, 3)]);
-        } else {
-          setTeamMembers(displayMembers);
-        }
+        setTeamMembers(members.slice(0, 3));
       } catch (error) {
         console.error("Error loading team members:", error);
         setTeamMembers([]);
@@ -110,23 +55,92 @@ export default function TeamSection() {
     void loadTeamMembers();
   }, []);
 
+  const toLocationSlug = (value: string) =>
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+  const toBranchKey = (value: string) =>
+    toLocationSlug(value)
+      .replace(/-(branch|church|location|site|center|centre)$/g, "")
+      .replace(/-(branch|church|location|site|center|centre)-/g, "-");
+
   return (
     <div className={pageStyles.leadershipGrid}>
       {loading ? (
-        <div className={pageStyles.leaderCard}>
-          <div className={pageStyles.leaderInfo}>
-            <h3 className={pageStyles.leaderName}>Loading team members...</h3>
-            <p className={pageStyles.leaderBio}>Pulling the latest branch leaders from the dashboard.</p>
-          </div>
-        </div>
+        <>
+          {[1, 2, 3].map((index) => (
+            <div key={`skeleton-${index}`} className={pageStyles.leaderCard}>
+              <div className={pageStyles.leaderImageBox}>
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    backgroundColor: "#e0e0e0",
+                    borderRadius: "8px",
+                    animation: "pulse 1.5s infinite",
+                  }}
+                />
+              </div>
+              <div className={pageStyles.leaderInfo}>
+                <div
+                  style={{
+                    height: "24px",
+                    backgroundColor: "#e0e0e0",
+                    borderRadius: "4px",
+                    marginBottom: "8px",
+                    animation: "pulse 1.5s infinite",
+                    width: "60%",
+                  }}
+                />
+                <div
+                  style={{
+                    height: "16px",
+                    backgroundColor: "#e0e0e0",
+                    borderRadius: "4px",
+                    marginBottom: "12px",
+                    animation: "pulse 1.5s infinite",
+                    width: "40%",
+                  }}
+                />
+                <div
+                  style={{
+                    height: "16px",
+                    backgroundColor: "#e0e0e0",
+                    borderRadius: "4px",
+                    marginBottom: "6px",
+                    animation: "pulse 1.5s infinite",
+                  }}
+                />
+                <div
+                  style={{
+                    height: "16px",
+                    backgroundColor: "#e0e0e0",
+                    borderRadius: "4px",
+                    animation: "pulse 1.5s infinite",
+                    width: "85%",
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+          <style>{`
+            @keyframes pulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.5; }
+            }
+          `}</style>
+        </>
       ) : teamMembers.length ? (
         teamMembers.map((member) => (
-          <a key={member.uid} href={`/team/${member.uid}`} className={pageStyles.leaderCard}>
+          <a key={member.uid} href={`/team/${toBranchKey(member.branchLocation || member.uid)}`} className={pageStyles.leaderCard}>
             <div className={pageStyles.leaderImageBox}>
               {member.photoURL ? (
                 <Image
                   src={member.photoURL}
-                  alt={member.displayName || "Team member"}
+                  alt={member.displayName || "Branch leader"}
                   fill
                   className={pageStyles.leaderImage}
                 />
@@ -138,7 +152,7 @@ export default function TeamSection() {
             </div>
 
             <div className={pageStyles.leaderInfo}>
-              <h3 className={pageStyles.leaderName}>{member.displayName || "Team Member"}</h3>
+              <h3 className={pageStyles.leaderName}>{member.displayName || "Branch Leader"}</h3>
               <p className={pageStyles.leaderRole}>{member.branchLocation || "Branch Leader"}</p>
               <p className={pageStyles.leaderBio}>
                 {member.pastorDescription
@@ -153,7 +167,7 @@ export default function TeamSection() {
       ) : (
         <div className={pageStyles.leaderCard}>
           <div className={pageStyles.leaderInfo}>
-            <h3 className={pageStyles.leaderName}>No team members published yet</h3>
+            <h3 className={pageStyles.leaderName}>No leaders published yet</h3>
             <p className={pageStyles.leaderBio}>Add branch leaders in the dashboard and their profiles will appear here.</p>
           </div>
         </div>

@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/app/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 
+const toBranchKey = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-(branch|church|location|site|center|centre)$/g, "")
+    .replace(/-(branch|church|location|site|center|centre)-/g, "-");
+
 const requireAdmin = async (request: NextRequest) => {
   const header = request.headers.get("authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
@@ -12,14 +21,15 @@ const requireAdmin = async (request: NextRequest) => {
 
   const decoded = await adminAuth().verifyIdToken(token);
   const hasAdminClaim = decoded.role === "admin" || decoded.role === "super-admin";
-  if (hasAdminClaim) {
+  const hasTeamMemberClaim = decoded.role === "team-member";
+  if (hasAdminClaim || hasTeamMemberClaim) {
     return { uid: decoded.uid };
   }
 
   const userDoc = await adminDb().collection("users").doc(decoded.uid).get();
   const role = userDoc.data()?.role;
 
-  if (role !== "admin" && role !== "super-admin") {
+  if (role !== "admin" && role !== "super-admin" && role !== "team-member") {
     return { error: NextResponse.json({ error: "Admin access required." }, { status: 403 }) };
   }
 
@@ -42,6 +52,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { uid: s
     const branchDescription = String(body.branchDescription || "").trim();
     const pastorDescription = String(body.pastorDescription || "").trim();
     const pastorImageURL = String(body.pastorImageURL || "").trim();
+    const pastorGallery = Array.isArray(body.pastorGallery)
+      ? body.pastorGallery.map((item: string) => String(item).trim()).filter(Boolean)
+      : String(body.pastorGallery || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
     const churchGallery = Array.isArray(body.churchGallery)
       ? body.churchGallery.map((item: string) => String(item).trim()).filter(Boolean)
       : String(body.churchGallery || "")
@@ -56,6 +72,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { uid: s
           .filter(Boolean);
     const phoneNumber = String(body.phoneNumber || "").trim();
     const photoURL = String(body.photoURL || "").trim();
+    const branchKey = toBranchKey(branchLocation || uid);
 
     if (!displayName || !email || !branchLocation) {
       return NextResponse.json({ error: "Missing required team member fields." }, { status: 400 });
@@ -71,11 +88,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { uid: s
       {
         displayName,
         email,
+        role: "team-member",
         branchLocation,
+        branchKey,
         branchAddress,
         branchDescription,
         pastorDescription,
         pastorImageURL,
+        pastorGallery,
         churchGallery,
         // include videos at user-level for convenience
         videos: videos,
@@ -88,15 +108,15 @@ export async function PATCH(request: NextRequest, { params }: { params: { uid: s
 
     // Also update or create a branches doc for this branch
     try {
-      const slug = branchLocation.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-      // Use the team member UID as the branch doc id
-      await adminDb().collection("branches").doc(uid).set(
+      await adminDb().collection("branches").doc(branchKey).set(
         {
+          branchKey,
           branchLocation,
           branchAddress,
           branchDescription,
           pastorDescription,
           pastorImageURL,
+          pastorGallery,
           gallery: churchGallery,
           videos: videos,
           // keep existing videos if any; merging will preserve

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import DashboardSidebar from "@/app/components/DashboardSidebar/DashboardSidebar";
@@ -22,12 +22,21 @@ interface TeamMember {
   branchDescription?: string;
   pastorDescription?: string;
   pastorImageURL?: string;
+  pastorGallery?: string[];
   churchGallery?: string[];
   videos?: string[];
   phoneNumber?: string;
   photoURL?: string;
   createdAt?: string;
 }
+
+type UserOption = {
+  id: string;
+  email: string;
+  displayName?: string;
+  role?: string;
+  branchLocation?: string;
+};
 
 type TeamMemberForm = {
   displayName: string;
@@ -37,6 +46,7 @@ type TeamMemberForm = {
   branchDescription: string;
   pastorDescription: string;
   pastorImageURL: string;
+  pastorGallery: string;
   churchGallery: string;
   videos: string;
   phoneNumber: string;
@@ -52,6 +62,7 @@ const emptyForm = (): TeamMemberForm => ({
   branchDescription: "",
   pastorDescription: "",
   pastorImageURL: "",
+  pastorGallery: "",
   churchGallery: "",
   videos: "",
   phoneNumber: "",
@@ -66,9 +77,9 @@ export default function DashboardTeamPage() {
   const { user, loading } = useFastAuth("/login");
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [saving, setSaving] = useState(false);
-  const [showModal, setShowModal] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [formData, setFormData] = useState<TeamMemberForm>(emptyForm());
+  const editorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!user || !hasFirebaseClientConfig || !db) {
@@ -78,7 +89,7 @@ export default function DashboardTeamPage() {
     (async () => {
       try {
         const userSnap = await getDoc(doc(db, "users", user.uid));
-        if (userSnap.exists() && userSnap.data().role === "admin") {
+        if (userSnap.exists() && (userSnap.data().role === "admin" || userSnap.data().role === "team-member")) {
           await loadTeamMembers();
         } else {
           router.push("/dashboard/profile");
@@ -107,9 +118,10 @@ export default function DashboardTeamPage() {
           email: data.email || "",
           branchLocation: data.branchLocation || "",
           branchAddress: data.branchAddress || "",
-              branchDescription: data.branchDescription || "",
-              pastorDescription: data.pastorDescription || "",
+          branchDescription: data.branchDescription || "",
+          pastorDescription: data.pastorDescription || "",
           pastorImageURL: data.pastorImageURL || "",
+          pastorGallery: Array.isArray(data.pastorGallery) ? data.pastorGallery : [],
           churchGallery: Array.isArray(data.churchGallery) ? data.churchGallery : [],
           phoneNumber: data.phoneNumber || "",
           photoURL: data.photoURL || "",
@@ -124,12 +136,6 @@ export default function DashboardTeamPage() {
     }
   };
 
-  const openCreateForm = () => {
-    setEditingMember(null);
-    setFormData(emptyForm());
-    setShowModal(true);
-  };
-
   const openEditForm = (member: TeamMember) => {
     setEditingMember(member);
     setFormData({
@@ -140,20 +146,28 @@ export default function DashboardTeamPage() {
       branchDescription: member.branchDescription || "",
       pastorDescription: member.pastorDescription || "",
       pastorImageURL: member.pastorImageURL || "",
+      pastorGallery: (member.pastorGallery || []).join(", "),
       churchGallery: (member.churchGallery || []).join(", "),
       videos: (member as any).videos ? (member as any).videos.join(", ") : "",
       phoneNumber: member.phoneNumber || "",
       photoURL: member.photoURL || "",
       password: "",
     });
-    setShowModal(true);
+    requestAnimationFrame(() => {
+      editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const closeEditor = () => {
+    setEditingMember(null);
+    setFormData(emptyForm());
   };
 
   const getAuthToken = async () => {
     const firebaseAuth = await import("firebase/auth");
     const auth = firebaseAuth.getAuth();
     if (!auth.currentUser) {
-      throw new Error("You must be signed in to manage team members.");
+      throw new Error("You must be signed in to manage administrators.");
     }
 
     return auth.currentUser.getIdToken();
@@ -177,10 +191,16 @@ export default function DashboardTeamPage() {
     });
   }, []);
 
-  const initialGalleryUrls = useMemo(
-    () => formData.churchGallery.split(",").map((item) => item.trim()).filter(Boolean),
-    [formData.churchGallery],
-  );
+  const initialPastorGalleryUrls = formData.pastorGallery.split(",").map((item) => item.trim()).filter(Boolean);
+
+  const initialGalleryUrls = formData.churchGallery.split(",").map((item) => item.trim()).filter(Boolean);
+
+  const handleSelectPastorGalleryImages = useCallback((images: { url: string }[]) => {
+    const nextGallery = images.map((image) => image.url).join(", ");
+    setFormData((current) => {
+      return current.pastorGallery === nextGallery ? current : { ...current, pastorGallery: nextGallery };
+    });
+  }, []);
 
   const handleSelectGalleryImages = useCallback((images: { url: string }[]) => {
     const nextGallery = images.map((image) => image.url).join(", ");
@@ -190,13 +210,13 @@ export default function DashboardTeamPage() {
   }, []);
 
   const handleSubmit = async () => {
-    if (!formData.displayName || !formData.email || !formData.branchLocation) {
-      alert("Please fill in all required fields.");
+    if (!editingMember) {
+      alert("Select a team member to edit.");
       return;
     }
 
-    if (!editingMember && !formData.password) {
-      alert("Password is required for new accounts.");
+    if (!formData.displayName || !formData.email || !formData.branchLocation) {
+      alert("Please fill in all required fields.");
       return;
     }
 
@@ -204,17 +224,20 @@ export default function DashboardTeamPage() {
 
     try {
       const token = await getAuthToken();
-      const url = editingMember ? `/api/admin/team/${editingMember.uid}` : "/api/admin/team";
-      const method = editingMember ? "PATCH" : "POST";
+      const url = `/api/admin/team/${editingMember.uid}`;
 
       const response = await fetch(url, {
-        method,
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           ...formData,
+          pastorGallery: formData.pastorGallery
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
           churchGallery: formData.churchGallery
             .split(",")
             .map((item) => item.trim())
@@ -232,9 +255,7 @@ export default function DashboardTeamPage() {
       }
 
       await refreshMembers();
-      setShowModal(false);
-      setEditingMember(null);
-      setFormData(emptyForm());
+      closeEditor();
       alert(editingMember ? "Team member updated successfully!" : "Team member created successfully!");
     } catch (error) {
       console.error("Team member save error:", error);
@@ -294,29 +315,114 @@ export default function DashboardTeamPage() {
           <div className={styles.container}>
             <div className={styles.header}>
               <div>
-                <p className={styles.kicker}>Dashboard / Team Members</p>
-                <h1>Branch Team Accounts</h1>
-                <p className={styles.description}>Create logins, assign branch locations, and attach a profile image for each leader.</p>
+                <p className={styles.kicker}>Dashboard / Administrators</p>
+                <h1>Branch Administrator Accounts</h1>
+                <p className={styles.description}>Review the current branch leaders. Click Edit on a member to open the form in a separate section.</p>
               </div>
-              <button className={styles.addButton} onClick={openCreateForm}>
-                + Add Team Member
-              </button>
             </div>
 
-            <div className={styles.summaryRow}>
-              <div className={styles.summaryCard}>
-                <span>Total team members</span>
-                <strong>{teamMembers.length}</strong>
-              </div>
-              <div className={styles.summaryCard}>
-                <span>Branches in use</span>
-                <strong>{new Set(teamMembers.map((member) => member.branchLocation)).size || 0}</strong>
-              </div>
-            </div>
+            {editingMember ? (
+              <section ref={editorRef} className={`${styles.editorSection} ${styles.editorActive}`}>
+                <div className={styles.editorHeader}>
+                  <div>
+                    <p className={styles.kicker}>Edit Administrator</p>
+                    <h2>{editingMember.displayName}</h2>
+                    <p className={styles.description}>Update branch details and profile information for this member.</p>
+                  </div>
+                  <div className={styles.editorActions}>
+                    <button type="button" className={styles.cancelBtn} onClick={closeEditor}>
+                      Close editor
+                    </button>
+                  </div>
+                </div>
+
+                <div className={styles.editorCard}>
+                  <form
+                    className={styles.formGrid}
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void handleSubmit();
+                    }}
+                  >
+                    <div className={styles.formGroup}>
+                      <label htmlFor="displayName">Full Name</label>
+                      <input id="displayName" type="text" value={formData.displayName} onChange={(event) => setFormData({ ...formData, displayName: event.target.value })} placeholder="Enter full name" />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label htmlFor="email">Email</label>
+                      <input id="email" type="email" value={formData.email} onChange={(event) => setFormData({ ...formData, email: event.target.value })} placeholder="Enter email address" disabled />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label htmlFor="branchLocation">Branch Location</label>
+                      <select id="branchLocation" value={formData.branchLocation} onChange={(event) => setFormData({ ...formData, branchLocation: event.target.value })}>
+                        <option value="">Select branch</option>
+                        {branches.map((branch) => (
+                          <option key={branch} value={branch}>{branch}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label htmlFor="branchAddress">Branch Address</label>
+                      <input id="branchAddress" type="text" value={formData.branchAddress} onChange={(event) => setFormData({ ...formData, branchAddress: event.target.value })} placeholder="Enter branch address" />
+                    </div>
+                    <div className={styles.formGroupWide}>
+                      <label htmlFor="branchDescription">Branch Description</label>
+                      <textarea id="branchDescription" value={formData.branchDescription} onChange={(event) => setFormData({ ...formData, branchDescription: event.target.value })} placeholder="Describe the branch, worship style, values, and community." rows={5} />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label>Upload Pastor Image</label>
+                      <ImageUpload onSelectImage={handleSelectPastorImage} initialSelectedUrl={formData.pastorImageURL || undefined} />
+                    </div>
+                    <div className={styles.formGroupWide}>
+                      <label>Pastor Gallery</label>
+                      <ImageUpload
+                        multiSelect
+                        initialSelectedUrls={initialPastorGalleryUrls}
+                        onSelectMultiple={handleSelectPastorGalleryImages}
+                      />
+                      <div className={styles.hint}>Select one or more saved images for the pastor gallery.</div>
+                    </div>
+                    <div className={styles.formGroupWide}>
+                      <label htmlFor="pastorDescription">Pastor Description</label>
+                      <textarea id="pastorDescription" value={formData.pastorDescription} onChange={(event) => setFormData({ ...formData, pastorDescription: event.target.value })} placeholder="Short bio or description of the pastor." rows={3} />
+                    </div>
+                    <div className={styles.formGroupWide}>
+                      <label>Church Gallery</label>
+                      <ImageUpload
+                        multiSelect
+                        initialSelectedUrls={initialGalleryUrls}
+                        onSelectMultiple={handleSelectGalleryImages}
+                      />
+                      <div className={styles.hint}>Click images to toggle selection; selected images will be saved to the branch gallery.</div>
+                    </div>
+                    <div className={styles.formGroupWide}>
+                      <label htmlFor="videos">Branch Videos (YouTube links, one per line or comma separated)</label>
+                      <textarea id="videos" value={formData.videos} onChange={(event) => setFormData({ ...formData, videos: event.target.value })} placeholder="Paste video URLs (YouTube or other)" rows={3} />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label htmlFor="phoneNumber">Phone Number</label>
+                      <input id="phoneNumber" type="tel" value={formData.phoneNumber} onChange={(event) => setFormData({ ...formData, phoneNumber: event.target.value })} placeholder="Enter phone number" />
+                    </div>
+                    <div className={styles.formGroupWide}>
+                      <label>Profile Image</label>
+                      <ImageUpload onSelectImage={handleSelectImage} initialSelectedUrl={formData.photoURL || undefined} />
+                    </div>
+                    <div className={styles.formGroupWide}>
+                      <label htmlFor="password">Password</label>
+                      <input id="password" type="password" value={formData.password} onChange={(event) => setFormData({ ...formData, password: event.target.value })} placeholder="Leave blank to keep current password" />
+                    </div>
+                    <div className={styles.formActions}>
+                      <button type="button" className={styles.cancelBtn} onClick={closeEditor}>Cancel</button>
+                      <button type="submit" className={styles.saveBtn} disabled={saving}>{saving ? "Saving..." : "Update Team Member"}</button>
+                    </div>
+                  </form>
+                </div>
+              </section>
+            ) : null}
 
             {teamMembers.length === 0 ? (
               <div className={styles.emptyState}>
-                <h2>No Team Members Yet</h2>
+                <h2>No Administrators Yet</h2>
                 <p>Add the first branch leader account to get started.</p>
               </div>
             ) : (
@@ -354,81 +460,6 @@ export default function DashboardTeamPage() {
               </div>
             )}
 
-            <div className={`${styles.modal} ${showModal ? styles.active : ""}`}>
-              <div className={styles.modalContent}>
-                <h2>{editingMember ? "Edit Team Member" : "Add Team Member"}</h2>
-                <form
-                  className={styles.formGrid}
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void handleSubmit();
-                  }}
-                >
-                  <div className={styles.formGroup}>
-                    <label htmlFor="displayName">Full Name</label>
-                    <input id="displayName" type="text" value={formData.displayName} onChange={(event) => setFormData({ ...formData, displayName: event.target.value })} placeholder="Enter full name" />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="email">Email</label>
-                    <input id="email" type="email" value={formData.email} onChange={(event) => setFormData({ ...formData, email: event.target.value })} placeholder="Enter email address" disabled={!!editingMember} />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="branchLocation">Branch Location</label>
-                    <select id="branchLocation" value={formData.branchLocation} onChange={(event) => setFormData({ ...formData, branchLocation: event.target.value })}>
-                      <option value="">Select branch</option>
-                      {branches.map((branch) => (
-                        <option key={branch} value={branch}>{branch}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="branchAddress">Branch Address</label>
-                    <input id="branchAddress" type="text" value={formData.branchAddress} onChange={(event) => setFormData({ ...formData, branchAddress: event.target.value })} placeholder="Enter branch address" />
-                  </div>
-                  <div className={styles.formGroupWide}>
-                    <label htmlFor="branchDescription">Branch Description</label>
-                    <textarea id="branchDescription" value={formData.branchDescription} onChange={(event) => setFormData({ ...formData, branchDescription: event.target.value })} placeholder="Describe the branch, worship style, values, and community." rows={5} />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label>Upload Pastor Image</label>
-                    <ImageUpload onSelectImage={handleSelectPastorImage} initialSelectedUrl={formData.pastorImageURL || undefined} />
-                  </div>
-                  <div className={styles.formGroupWide}>
-                    <label htmlFor="pastorDescription">Pastor Description</label>
-                    <textarea id="pastorDescription" value={formData.pastorDescription} onChange={(event) => setFormData({ ...formData, pastorDescription: event.target.value })} placeholder="Short bio or description of the pastor." rows={3} />
-                  </div>
-                  <div className={styles.formGroupWide}>
-                    <label>Church Gallery</label>
-                    <ImageUpload
-                      multiSelect
-                      initialSelectedUrls={initialGalleryUrls}
-                      onSelectMultiple={handleSelectGalleryImages}
-                    />
-                    <div className={styles.hint}>Click images to toggle selection; selected images will be saved to the branch gallery.</div>
-                  </div>
-                  <div className={styles.formGroupWide}>
-                    <label htmlFor="videos">Branch Videos (YouTube links, one per line or comma separated)</label>
-                    <textarea id="videos" value={formData.videos} onChange={(event) => setFormData({ ...formData, videos: event.target.value })} placeholder="Paste video URLs (YouTube or other)" rows={3} />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label htmlFor="phoneNumber">Phone Number</label>
-                    <input id="phoneNumber" type="tel" value={formData.phoneNumber} onChange={(event) => setFormData({ ...formData, phoneNumber: event.target.value })} placeholder="Enter phone number" />
-                  </div>
-                  <div className={styles.formGroupWide}>
-                    <label>Profile Image</label>
-                    <ImageUpload onSelectImage={handleSelectImage} initialSelectedUrl={formData.photoURL || undefined} />
-                  </div>
-                  <div className={styles.formGroupWide}>
-                    <label htmlFor="password">Password {editingMember ? "(leave blank to keep current)" : ""}</label>
-                    <input id="password" type="password" value={formData.password} onChange={(event) => setFormData({ ...formData, password: event.target.value })} placeholder="Enter a secure password" />
-                  </div>
-                  <div className={styles.formActions}>
-                    <button type="button" className={styles.cancelBtn} onClick={() => setShowModal(false)}>Cancel</button>
-                    <button type="submit" className={styles.saveBtn} disabled={saving}>{saving ? "Saving..." : editingMember ? "Update Team Member" : "Create Team Member"}</button>
-                  </div>
-                </form>
-              </div>
-            </div>
           </div>
         </main>
       </div>

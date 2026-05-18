@@ -1,11 +1,127 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import Navbar from "../components/Navbar/Navbar";
+import { auth, db, hasFirebaseClientConfig } from "@/app/lib/firebase/config";
+import {
+  Event,
+  EventRegistration,
+  getAllEvents,
+  getAllEventRegistrations,
+  registerUserForEvent,
+  unregisterUserFromEvent,
+} from "@/app/lib/firebase/firestore";
 import styles from "./events.module.css";
 
+type EventWithId = Event & { id: string };
+
+const formatDateParts = (dateValue: string) => {
+  const parsedDate = new Date(dateValue);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return { month: dateValue.slice(0, 3).toUpperCase() || "EVT", day: dateValue.slice(-2) || "--" };
+  }
+
+  return {
+    month: parsedDate.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
+    day: parsedDate.toLocaleDateString("en-US", { day: "2-digit" }),
+  };
+};
+
 export default function EventsPage() {
+  const [events, setEvents] = useState<EventWithId[]>([]);
+  const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [savingEventId, setSavingEventId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
+      setCurrentUser(nextUser);
+
+      if (!nextUser || !db) {
+        setCurrentRole(null);
+        return;
+      }
+
+      try {
+        const snapshot = await getDoc(doc(db, "users", nextUser.uid));
+        setCurrentRole(snapshot.exists() ? snapshot.data().role || null : null);
+      } catch (error) {
+        console.error("Error loading current user role:", error);
+        setCurrentRole(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const [fetchedEvents, fetchedRegistrations] = await Promise.all([getAllEvents(), getAllEventRegistrations()]);
+        setEvents(fetchedEvents);
+        setRegistrations(fetchedRegistrations);
+      } catch (error) {
+        console.error("Error loading public events:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (hasFirebaseClientConfig) {
+      void loadEvents();
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const registrationsByEvent = useMemo(() => {
+    return registrations.reduce<Record<string, EventRegistration[]>>((accumulator, registration) => {
+      if (!accumulator[registration.eventId]) {
+        accumulator[registration.eventId] = [];
+      }
+      accumulator[registration.eventId].push(registration);
+      return accumulator;
+    }, {});
+  }, [registrations]);
+
+  const isPrivilegedUser = currentRole === "admin" || currentRole === "team-member";
+
+  const handleRegisterToggle = async (eventId: string) => {
+    if (!currentUser) {
+      alert("Please sign in to register for an event.");
+      return;
+    }
+
+    const alreadyRegistered = registrations.some((registration) => registration.eventId === eventId && registration.userId === currentUser.uid);
+    setSavingEventId(eventId);
+
+    try {
+      if (alreadyRegistered) {
+        await unregisterUserFromEvent(eventId, currentUser.uid);
+      } else {
+        await registerUserForEvent({
+          eventId,
+          userId: currentUser.uid,
+          email: currentUser.email || "",
+          displayName: currentUser.displayName || currentUser.email || "Registered user",
+          role: currentRole || "user",
+        });
+      }
+
+      const nextRegistrations = await getAllEventRegistrations();
+      setRegistrations(nextRegistrations);
+    } catch (error) {
+      console.error("Error updating event registration:", error);
+      alert("Could not update your registration.");
+    } finally {
+      setSavingEventId(null);
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -16,8 +132,7 @@ export default function EventsPage() {
           <div className={styles.sectionContainer}>
             <h1 className={styles.pageTitle}>Events & Calendar</h1>
             <p className={styles.pageDescription}>
-              Join us for worship, fellowship, and community service. Check our
-              calendar for upcoming events and gatherings.
+              Join us for worship, fellowship, and community service. Register for an event and see who is attending.
             </p>
           </div>
         </section>
@@ -29,179 +144,119 @@ export default function EventsPage() {
               <h2 className={styles.sectionHeading}>Upcoming Events</h2>
             </div>
 
-            <div className={styles.eventsList}>
-              <div className={styles.eventCard}>
-                <div className={styles.eventDate}>
-                  <span className={styles.eventMonth}>MAY</span>
-                  <span className={styles.eventDay}>12</span>
-                </div>
-                <div className={styles.eventContent}>
-                  <h3 className={styles.eventTitle}>Sunday Worship Service</h3>
-                  <p className={styles.eventTime}>10:00 AM - 12:30 PM</p>
-                  <p className={styles.eventDescription}>
-                    Join us for our weekly worship service with prayer, praise,
-                    and teaching from God's Word.
-                  </p>
-                </div>
-              </div>
+            {loading ? (
+              <p className={styles.sectionDescription}>Loading events...</p>
+            ) : events.length === 0 ? (
+              <p className={styles.sectionDescription}>No events have been published yet.</p>
+            ) : (
+              <div className={styles.eventsList}>
+                {events.map((event) => {
+                  const eventRegistrations = registrationsByEvent[event.id] || [];
+                  const isRegistered = Boolean(currentUser && eventRegistrations.some((registration) => registration.userId === currentUser.uid));
+                  const { month, day } = formatDateParts(event.date);
 
-              <div className={styles.eventCard}>
-                <div className={styles.eventDate}>
-                  <span className={styles.eventMonth}>MAY</span>
-                  <span className={styles.eventDay}>18</span>
-                </div>
-                <div className={styles.eventContent}>
-                  <h3 className={styles.eventTitle}>
-                    Youth Retreat & Fellowship
-                  </h3>
-                  <p className={styles.eventTime}>3:00 PM - 8:00 PM</p>
-                  <p className={styles.eventDescription}>
-                    A special gathering for young adults featuring games,
-                    discussions, and spiritual growth activities.
-                  </p>
-                </div>
-              </div>
+                  return (
+                    <div key={event.id} className={styles.eventCard}>
+                      <div className={styles.eventDate}>
+                        <span className={styles.eventMonth}>{month}</span>
+                        <span className={styles.eventDay}>{day}</span>
+                      </div>
+                      <div className={styles.eventContent}>
+                        <h3 className={styles.eventTitle}>
+                          <Link href={`/events/${event.id}`}>{event.title}</Link>
+                        </h3>
+                        <p className={styles.eventTime}>⏰ {event.time}</p>
+                        <p className={styles.eventDescription}>{event.description}</p>
+                        <p className={styles.eventDescription}>📍 {event.location}</p>
 
-              <div className={styles.eventCard}>
-                <div className={styles.eventDate}>
-                  <span className={styles.eventMonth}>MAY</span>
-                  <span className={styles.eventDay}>25</span>
-                </div>
-                <div className={styles.eventContent}>
-                  <h3 className={styles.eventTitle}>
-                    Women's Ministry Conference
-                  </h3>
-                  <p className={styles.eventTime}>9:00 AM - 4:00 PM</p>
-                  <p className={styles.eventDescription}>
-                    An empowering day of teaching, networking, and encouragement
-                    for women of all ages.
-                  </p>
-                </div>
-              </div>
+                        <div className={styles.registerPanel}>
+                          <div className={styles.registerActions}>
+                            <button
+                              type="button"
+                              className={isRegistered ? styles.unregisterBtn : styles.registerBtn}
+                              onClick={() => void handleRegisterToggle(event.id)}
+                              disabled={savingEventId === event.id}
+                            >
+                              {savingEventId === event.id
+                                ? "Updating..."
+                                : isRegistered
+                                ? "Unregister"
+                                : currentUser
+                                ? "Register"
+                                : "Sign in to register"}
+                            </button>
+                            {isRegistered ? <span className={styles.registrationStatus}>You are registered</span> : null}
+                          </div>
 
-              <div className={styles.eventCard}>
-                <div className={styles.eventDate}>
-                  <span className={styles.eventMonth}>JUN</span>
-                  <span className={styles.eventDay}>02</span>
-                </div>
-                <div className={styles.eventContent}>
-                  <h3 className={styles.eventTitle}>
-                    Community Outreach Day
-                  </h3>
-                  <p className={styles.eventTime}>8:00 AM - 2:00 PM</p>
-                  <p className={styles.eventDescription}>
-                    Serve alongside us as we reach out to families in need with
-                    food, supplies, and the Gospel.
-                  </p>
-                </div>
+                          {isPrivilegedUser ? (
+                            <div className={styles.attendeeSection}>
+                              <div className={styles.attendeeHeader}>
+                                <strong>Registered Users</strong>
+                                <span className={styles.attendeeMeta}>{eventRegistrations.length} registered</span>
+                              </div>
+                              <div className={styles.attendeeList}>
+                                {eventRegistrations.length ? (
+                                  eventRegistrations.map((registration) => (
+                                    <span key={registration.id} className={styles.attendeeChip} title={registration.email}>
+                                      {registration.displayName || registration.email}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className={styles.attendeeMeta}>No registrations yet.</span>
+                                )}
+                              </div>
+                              <p className={styles.attendeeMeta}>Administrators can review the attendee list above.</p>
+                            </div>
+                          ) : isRegistered ? (
+                            <div className={styles.attendeeSection}>
+                              <span className={styles.attendeeMeta}>Only your registration is shown on this page.</span>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-
-              <div className={styles.eventCard}>
-                <div className={styles.eventDate}>
-                  <span className={styles.eventMonth}>JUN</span>
-                  <span className={styles.eventDay}>09</span>
-                </div>
-                <div className={styles.eventContent}>
-                  <h3 className={styles.eventTitle}>
-                    Prayer & Fasting Week
-                  </h3>
-                  <p className={styles.eventTime}>Various Times</p>
-                  <p className={styles.eventDescription}>
-                    Join us in a week-long prayer initiative seeking God's
-                    direction and provision for our ministry.
-                  </p>
-                </div>
-              </div>
-
-              <div className={styles.eventCard}>
-                <div className={styles.eventDate}>
-                  <span className={styles.eventMonth}>JUN</span>
-                  <span className={styles.eventDay}>16</span>
-                </div>
-                <div className={styles.eventContent}>
-                  <h3 className={styles.eventTitle}>
-                    Summer Camp for Children
-                  </h3>
-                  <p className={styles.eventTime}>9:00 AM - 5:00 PM</p>
-                  <p className={styles.eventDescription}>
-                    Fun, education, and faith-building activities for children
-                    ages 5-12. Register by May 30.
-                  </p>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </section>
 
         <section className={styles.upcomingSection} id="upcoming">
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeader}>
-              <span className={styles.sectionLabel}>SPECIAL EVENTS</span>
-              <h2 className={styles.sectionHeading}>Mark Your Calendars</h2>
+              <span className={styles.sectionLabel}>YOUR REGISTRATIONS</span>
+              <h2 className={styles.sectionHeading}>Events You Registered For</h2>
+              <p className={styles.sectionDescription}>Quick reference to the events you have already joined.</p>
+            </div>
+
+            {currentUser ? (
+              <div className={styles.upcomingGrid}>
+                {registrations
+                  .filter((registration) => registration.userId === currentUser.uid)
+                  .map((registration) => {
+                    const event = events.find((item) => item.id === registration.eventId);
+                    if (!event) return null;
+
+                    return (
+                      <div key={registration.id} className={styles.upcomingCard}>
+                        <div className={styles.upcomingContent}>
+                          <h3>{event.title}</h3>
+                          <p className={styles.upcomingDate}>{event.date}</p>
+                          <p>{event.location}</p>
+                          <button type="button" className={styles.unregisterBtn} onClick={() => void handleRegisterToggle(event.id)}>
+                            Unregister
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : (
               <p className={styles.sectionDescription}>
-                Be part of these special occasions and celebrations at Light to
-                Life International Ministries.
+                Sign in to register for events and keep track of the events you have joined.
               </p>
-            </div>
-
-            <div className={styles.upcomingGrid}>
-              <div className={styles.upcomingCard}>
-                <div className={styles.upcomingImage}>
-                  <div className={styles.imagePlaceholder}>
-                    Church Anniversary Image
-                  </div>
-                </div>
-                <div className={styles.upcomingContent}>
-                  <h3>Church Anniversary Celebration</h3>
-                  <p className={styles.upcomingDate}>July 15, 2024</p>
-                  <p>
-                    Join us for a special celebration marking 20 years of
-                    ministry, faith, and community service with testimonies and
-                    thanksgiving.
-                  </p>
-                  <a href="#" className={styles.eventLink}>
-                    Learn More →
-                  </a>
-                </div>
-              </div>
-
-              <div className={styles.upcomingCard}>
-                <div className={styles.upcomingImage}>
-                  <div className={styles.imagePlaceholder}>
-                    Mission Trip Image
-                  </div>
-                </div>
-                <div className={styles.upcomingContent}>
-                  <h3>International Mission Trip</h3>
-                  <p className={styles.upcomingDate}>August 1-15, 2024</p>
-                  <p>
-                    Travel with us as we serve communities in West Africa
-                    through education, healthcare, and spiritual ministry
-                    programs.
-                  </p>
-                  <a href="#" className={styles.eventLink}>
-                    Learn More →
-                  </a>
-                </div>
-              </div>
-
-              <div className={styles.upcomingCard}>
-                <div className={styles.upcomingImage}>
-                  <div className={styles.imagePlaceholder}>Concert Image</div>
-                </div>
-                <div className={styles.upcomingContent}>
-                  <h3>Gospel Music Concert</h3>
-                  <p className={styles.upcomingDate}>September 10, 2024</p>
-                  <p>
-                    Experience inspirational gospel music from renowned artists
-                    with proceeds supporting our education program.
-                  </p>
-                  <a href="#" className={styles.eventLink}>
-                    Learn More →
-                  </a>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </section>
       </main>

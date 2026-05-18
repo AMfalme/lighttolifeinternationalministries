@@ -308,9 +308,13 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
       ) : images.length ? (
         <div className={styles.galleryGrid}>
           {images.map((image) => (
+            (() => {
+              const isSelected = multiSelect ? selectedIds.has(image.id) : selectedImageId === image.id;
+
+              return (
             <div
               key={image.id}
-              className={`${styles.galleryCard} ${selectedImageId === image.id ? styles.galleryCardActive : ""}`}
+              className={`${styles.galleryCard} ${isSelected ? styles.galleryCardActive : ""}`}
               onClick={() => handleSelectImage(image)}
               role="button"
               tabIndex={0}
@@ -321,9 +325,9 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
                 }
               }}
             >
-              {selectedImageId === image.id ? (
-                <span className={styles.selectedBadge} aria-hidden>✓</span>
-              ) : null}
+              <span className={`${styles.selectionBox} ${isSelected ? styles.selectionBoxActive : ""}`} aria-hidden>
+                {isSelected ? <span className={styles.selectionCheck}>✓</span> : null}
+              </span>
               <span
                 className={styles.galleryDeleteButton}
                 role="button"
@@ -358,6 +362,8 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
                 <span>{image.format || "image"}</span>
               </div>
             </div>
+              );
+            })()
           ))}
         </div>
       ) : (

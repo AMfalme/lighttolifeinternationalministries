@@ -87,6 +87,60 @@
   color: var(--text-main);
 }
 
+/* EDITOR */
+
+.editorSection {
+  margin-top: 10px;
+  padding: 24px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+}
+
+.editorHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.editorHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-main);
+}
+
+.editorActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.memberSelect {
+  min-width: 260px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: #ffffff;
+  padding: 12px 14px;
+  color: var(--text-main);
+}
+
+.editorCard {
+  border-radius: 24px;
+  padding: 20px;
+  background: linear-gradient(180deg, #ffffff, #f8fbff);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.editorActive {
+  outline: 2px solid rgba(37, 99, 235, 0.08);
+  outline-offset: 2px;
+}
+
 /* EMPTY STATE */
 
 .emptyState {
@@ -405,6 +459,15 @@
 
   .teamGrid {
     grid-template-columns: 1fr;
+  }
+
+  .editorSection,
+  .editorCard {
+    padding: 18px;
+  }
+
+  .memberSelect {
+    min-width: 100%;
   }
 
   .formGrid {

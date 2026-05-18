@@ -1,20 +1,81 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardSidebar from "@/app/components/DashboardSidebar/DashboardSidebar";
 import { DashboardLoading } from "../loading";
 import { useFastAuth } from "@/app/lib/firebase/useFastAuth";
 import styles from "../dashboard.module.css";
 
+type ManagedUser = {
+  id: string;
+  email: string;
+  displayName?: string;
+  role?: string;
+  branchLocation?: string;
+  phoneNumber?: string;
+};
+
 export default function UsersPage() {
   const router = useRouter();
   const { user, loading } = useFastAuth("/login");
-  const [usersList, setUsersList] = useState<any[]>([]);
+  const [usersList, setUsersList] = useState<ManagedUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [roleChecked, setRoleChecked] = useState(false);
-  const [editBranchById, setEditBranchById] = useState<Record<string, string>>({});
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [savingUserId, setSavingUserId] = useState<string | null>(null);
+
+  const selectedUser = useMemo(
+    () => usersList.find((item) => item.id === selectedUserId) || usersList[0] || null,
+    [selectedUserId, usersList],
+  );
+
+  const getAuthToken = async () => {
+    const firebaseAuth = await import("firebase/auth");
+    const auth = firebaseAuth.getAuth();
+    if (!auth.currentUser) {
+      throw new Error("You must be signed in to manage users.");
+    }
+
+    return auth.currentUser.getIdToken();
+  };
+
+  const loadUsers = async () => {
+    if (currentUserRole !== "admin" && currentUserRole !== "team-member") return;
+
+    setLoadingUsers(true);
+    try {
+      const fsConfig = await import("@/app/lib/firebase/config");
+      const db = fsConfig.db;
+      if (!db) {
+        setUsersList([]);
+        return;
+      }
+
+      const { collection, getDocs } = await import("firebase/firestore");
+      const snapshot = await getDocs(collection(db, "users"));
+      const nextUsers = snapshot.docs.map((document) => {
+        const data: any = document.data();
+        return {
+          id: document.id,
+          email: data.email || "",
+          displayName: data.displayName || "",
+          role: data.role || "user",
+          branchLocation: data.branchLocation || "",
+          phoneNumber: data.phoneNumber || "",
+        } as ManagedUser;
+      });
+
+      setUsersList(nextUsers);
+      setSelectedUserId((current) => current || nextUsers[0]?.id || "");
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      setUsersList([]);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
 
   useEffect(() => {
     if (!user) {
@@ -29,11 +90,12 @@ export default function UsersPage() {
           setCurrentUserRole("user");
           return;
         }
+
         const { getDoc, doc } = await import("firebase/firestore");
         const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc && userDoc.exists()) {
+        if (userDoc.exists()) {
           const data: any = userDoc.data();
-          setCurrentUserRole(data.role || null);
+          setCurrentUserRole(data.role || "user");
         } else {
           setCurrentUserRole("user");
         }
@@ -47,56 +109,53 @@ export default function UsersPage() {
   }, [user]);
 
   useEffect(() => {
-    if (roleChecked && user && currentUserRole !== "admin") {
+    if (roleChecked && user && (currentUserRole === "admin" || currentUserRole === "team-member") && usersList.length === 0) {
+      void loadUsers();
+    }
+  }, [currentUserRole, roleChecked, user, usersList.length]);
+
+  useEffect(() => {
+    if (roleChecked && user && currentUserRole !== "admin" && currentUserRole !== "team-member") {
       router.replace("/dashboard");
     }
   }, [currentUserRole, roleChecked, router, user]);
 
-  const loadUsers = async () => {
-    if (currentUserRole !== "admin") return;
-
-    setLoadingUsers(true);
-    try {
-      const fsConfig = await import("@/app/lib/firebase/config");
-      const db = fsConfig.db;
-      if (!db) {
-        setUsersList([]);
-        return;
-      }
-      const { collection, getDocs } = await import("firebase/firestore");
-      const qSnapshot = await getDocs(collection(db, "users"));
-      setUsersList(qSnapshot.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
-    } catch (e) {
-      console.error("Error fetching users:", e);
-      setUsersList([]);
-    } finally {
-      setLoadingUsers(false);
-    }
-  };
-
-  const saveRole = async (u: any) => {
-    if (currentUserRole !== "admin") return;
+  const saveUser = async (u: ManagedUser) => {
+    if (currentUserRole !== "admin" && currentUserRole !== "team-member") return;
 
     try {
-      const fsConfig = await import("@/app/lib/firebase/config");
-      const db = fsConfig.db;
-      if (!db) {
-        throw new Error("Firestore is not configured.");
-      }
-      const { doc, updateDoc } = await import("firebase/firestore");
-      const userRef = doc(db, "users", u.id);
-      await updateDoc(userRef, {
-        role: u.role || "user",
-        branchLocation: editBranchById[u.id] || u.branchLocation || "",
+      const token = await getAuthToken();
+      setSavingUserId(u.id);
+      const response = await fetch(`/api/admin/users/${u.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          role: u.role || "user",
+          displayName: u.displayName || "",
+          branchLocation: u.branchLocation || "",
+          phoneNumber: u.phoneNumber || "",
+        }),
       });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error || "Unable to update user.");
+      }
+
+      setUsersList((prev) => prev.map((item) => (item.id === u.id ? { ...item, ...payload } : item)));
     } catch (error) {
       console.error("Error updating user:", error);
+      alert(error instanceof Error ? error.message : "Failed to update user.");
+    } finally {
+      setSavingUserId(null);
     }
   };
 
   const handleLogout = async () => {
     try {
-      await import("@/app/lib/firebase/config");
       const firebaseAuth = await import("firebase/auth");
       const auth = firebaseAuth.getAuth();
       await firebaseAuth.signOut(auth);
@@ -108,7 +167,8 @@ export default function UsersPage() {
 
   if (loading) return <DashboardLoading />;
   if (!user) return null;
-  if (roleChecked && currentUserRole !== "admin") {
+
+  if (roleChecked && currentUserRole !== "admin" && currentUserRole !== "team-member") {
     return (
       <div className={styles.page}>
         <div className={styles.dashboard}>
@@ -116,7 +176,7 @@ export default function UsersPage() {
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
                 <h1>Access denied</h1>
-                <p className={styles.sectionSubtitle}>Only admins can manage users.</p>
+                <p className={styles.sectionSubtitle}>Only administrators can manage users.</p>
               </div>
             </div>
           </main>
@@ -141,14 +201,112 @@ export default function UsersPage() {
             <div className={styles.sectionHeader}>
               <h2>Users</h2>
             </div>
-            <div style={{ marginBottom: 12 }}>
-              <button onClick={loadUsers} className={styles.submitBtn}>
-                {loadingUsers ? "Loading..." : "Load Users"}
+
+            <div style={{ marginBottom: 12, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+              <button onClick={() => void loadUsers()} className={styles.submitBtn}>
+                {loadingUsers ? "Loading..." : "Refresh Users"}
               </button>
+              <select
+                value={selectedUserId}
+                onChange={(event) => setSelectedUserId(event.target.value)}
+                style={{ minWidth: 260, padding: "12px 14px", borderRadius: 8, border: "1px solid rgba(148,163,184,0.3)" }}
+              >
+                {usersList.length === 0 ? <option value="">No users loaded yet</option> : null}
+                {usersList.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.displayName || item.email} {item.role ? `(${item.role})` : ""}
+                  </option>
+                ))}
+              </select>
             </div>
 
+            {selectedUser ? (
+              <div style={{ marginBottom: 24, padding: 20, borderRadius: 12, background: "rgba(255,255,255,0.75)", border: "1px solid rgba(148,163,184,0.2)" }}>
+                <div className={styles.sectionHeader} style={{ marginBottom: 18 }}>
+                  <h2>Promote or Edit User</h2>
+                  <p className={styles.sectionSubtitle}>Pick an authenticated user, promote them to administrator or admin, and update safe profile fields.</p>
+                </div>
+
+                <div className={styles.form}>
+                  <div className={styles.formGroup}>
+                    <label>Email</label>
+                    <input type="email" value={selectedUser.email} disabled />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Display Name</label>
+                    <input
+                      type="text"
+                      value={selectedUser.displayName || ""}
+                      onChange={(event) =>
+                        setUsersList((prev) =>
+                          prev.map((item) => (item.id === selectedUser.id ? { ...item, displayName: event.target.value } : item)),
+                        )
+                      }
+                      placeholder="Full name"
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Role</label>
+                    <select
+                      value={selectedUser.role || "user"}
+                      onChange={(event) =>
+                        setUsersList((prev) => prev.map((item) => (item.id === selectedUser.id ? { ...item, role: event.target.value } : item)))
+                      }
+                    >
+                      <option value="user">user</option>
+                      <option value="team-member">administrator</option>
+                      <option value="admin">admin</option>
+                    </select>
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Branch Location</label>
+                    <input
+                      type="text"
+                      value={selectedUser.branchLocation || ""}
+                      onChange={(event) =>
+                        setUsersList((prev) =>
+                          prev.map((item) => (item.id === selectedUser.id ? { ...item, branchLocation: event.target.value } : item)),
+                        )
+                      }
+                      placeholder="Branch location"
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Phone Number</label>
+                    <input
+                      type="tel"
+                      value={selectedUser.phoneNumber || ""}
+                      onChange={(event) =>
+                        setUsersList((prev) => prev.map((item) => (item.id === selectedUser.id ? { ...item, phoneNumber: event.target.value } : item)))
+                      }
+                      placeholder="Phone number"
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setUsersList((prev) =>
+                          prev.map((item) => (item.id === selectedUser.id ? { ...item, role: "team-member" } : item)),
+                        )
+                      }
+                      className={styles.submitBtn}
+                    >
+                      Promote to administrator
+                    </button>
+                    <button type="button" onClick={() => void saveUser(selectedUser)} className={styles.submitBtn}>
+                      {savingUserId === selectedUser.id ? "Saving..." : "Save User"}
+                    </button>
+                    <button type="button" onClick={() => setSelectedUserId("")} className={styles.submitBtn}>
+                      Clear Selection
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {usersList.length === 0 ? (
-              <p>No users loaded. Click "Load Users" to fetch.</p>
+              <p>No users loaded yet. Refresh to fetch users from Firestore.</p>
             ) : (
               <div>
                 <table className={styles.usersTable}>
@@ -158,6 +316,7 @@ export default function UsersPage() {
                       <th>Name</th>
                       <th>Role</th>
                       <th>Branch Location</th>
+                      <th>Phone</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -167,7 +326,7 @@ export default function UsersPage() {
                         <td>{u.email}</td>
                         <td>{u.displayName || "—"}</td>
                         <td>
-                          {currentUserRole === "admin" ? (
+                          {currentUserRole === "admin" || currentUserRole === "team-member" ? (
                             <select
                               value={u.role || "user"}
                               onChange={(event) =>
@@ -177,28 +336,19 @@ export default function UsersPage() {
                               }
                             >
                               <option value="user">user</option>
+                              <option value="team-member">administrator</option>
                               <option value="admin">admin</option>
                             </select>
                           ) : (
                             u.role || "user"
                           )}
                         </td>
+                        <td>{u.branchLocation || "—"}</td>
+                        <td>{u.phoneNumber || "—"}</td>
                         <td>
-                          {currentUserRole === "admin" ? (
-                            <input
-                              type="text"
-                              value={editBranchById[u.id] ?? u.branchLocation ?? ""}
-                              onChange={(event) => setEditBranchById((prev) => ({ ...prev, [u.id]: event.target.value }))}
-                              placeholder="Branch location"
-                            />
-                          ) : (
-                            u.branchLocation || "—"
-                          )}
-                        </td>
-                        <td>
-                          {currentUserRole === "admin" ? (
-                            <button onClick={() => saveRole(u)} className={styles.submitBtn}>
-                              Save
+                          {currentUserRole === "admin" || currentUserRole === "team-member" ? (
+                            <button onClick={() => void saveUser(u)} className={styles.submitBtn}>
+                              {savingUserId === u.id ? "Saving..." : "Save"}
                             </button>
                           ) : (
                             <span>—</span>

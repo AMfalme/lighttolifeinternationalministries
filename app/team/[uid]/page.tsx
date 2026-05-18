@@ -24,72 +24,27 @@ type TeamBranchDetail = {
   photoURL?: string;
 };
 
-const DEFAULT_BRANCH_DETAILS: Record<string, TeamBranchDetail> = {
-  "default-main": {
-    uid: "default-main",
-    displayName: "Pastor Lydia A.",
-    branchLocation: "Mosocho",
-    branchAddress: "Mosocho, Kisii County",
-    branchDescription:
-      "Our main church location in Mosocho, Kisii County. This branch is a welcoming center for worship, community support, and spiritual growth across the region.",
-    pastorImageURL:
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80",
-    churchGallery: [
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1509099836639-18ba6f8fd346?auto=format&fit=crop&w=1200&q=80",
-    ],
-    phoneNumber: "+254 700 000 001",
-    email: "mosocho@church.org",
-    photoURL: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=900&q=80",
-    pastorDescription:
-      "Pastor Lydia leads the Mosocho congregation with a focus on pastoral care, family ministry, and community outreach.",
-  },
-  "default-north": {
-    uid: "default-north",
-    displayName: "Pastor Emmanuel T.",
-    branchLocation: "Omogwa",
-    branchAddress: "Omogwa, Kisii County",
-    branchDescription:
-      "The Omogwa branch serves families and local neighborhoods with heartfelt worship, strong teaching, and community outreach rooted in Kisii County.",
-    pastorImageURL:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=900&q=80",
-    churchGallery: [
-      "https://images.unsplash.com/photo-1470145318693-9c182fde2a2d?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1524253482453-3fed8d2fe12b?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1200&q=80",
-    ],
-    phoneNumber: "+254 700 000 002",
-    email: "omogwa@church.org",
-    photoURL: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80",
-    pastorDescription:
-      "Pastor Emmanuel guides the Omogwa branch with practical discipleship and community programs tailored for local families.",
-  },
-  "default-south": {
-    uid: "default-south",
-    displayName: "Pastor Mercy N.",
-    branchLocation: "Nyanchwa",
-    branchAddress: "Nyanchwa, Kisii County",
-    branchDescription:
-      "Nyanchwa is a close-knit church community with a focus on discipleship, hospitality, and local transformation for people across Kisii County.",
-    pastorImageURL:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80",
-    churchGallery: [
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1509099836639-18ba6f8fd346?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=1200&q=80",
-    ],
-    phoneNumber: "+254 700 000 003",
-    email: "nyanchwa@church.org",
-    photoURL: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80",
-    pastorDescription:
-      "Pastor Mercy emphasizes hospitality and discipleship at Nyanchwa, fostering growth through small groups and local outreach.",
-  },
+type BranchDocumentData = {
+  branchDescription?: string;
+  pastorDescription?: string;
+  pastorImageURL?: string;
+  pastorGallery?: string[];
+  gallery?: string[];
+  mainImage?: string;
+  videos?: string[];
 };
 
-const getFallbackDetails = (uid: string) => {
-  return DEFAULT_BRANCH_DETAILS[uid] || DEFAULT_BRANCH_DETAILS["default-main"];
-};
+const toLocationSlug = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const toBranchKey = (value: string) =>
+  toLocationSlug(value)
+    .replace(/-(branch|church|location|site|center|centre)$/g, "")
+    .replace(/-(branch|church|location|site|center|centre)-/g, "-");
 
 export default function TeamMemberBranchPage({ params }: { params: { uid: string } }) {
   const [member, setMember] = useState<TeamBranchDetail | null>(null);
@@ -101,71 +56,77 @@ export default function TeamMemberBranchPage({ params }: { params: { uid: string
   useEffect(() => {
     const loadMember = async () => {
       if (!hasFirebaseClientConfig || !db) {
-        setMember(getFallbackDetails(params.uid));
+        setMember(null);
         setLoading(false);
         return;
       }
 
       try {
-        const memberRef = doc(db, "users", params.uid);
-        const snapshot = await getDoc(memberRef);
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-          // base member from user doc
-          const base = {
-            uid: params.uid,
-            displayName: data.displayName || "Branch Leader",
-            branchLocation: data.branchLocation || "Church Branch",
-            branchAddress: data.branchAddress || "",
-            branchDescription:
-              data.branchDescription ||
-              "A vibrant church community with worship, teaching, and ministry designed to serve every family.",
-            pastorDescription: data.pastorDescription || "",
-            pastorImageURL: data.pastorImageURL || "",
-            churchGallery: Array.isArray(data.churchGallery) ? data.churchGallery : [],
-            phoneNumber: data.phoneNumber || "",
-            email: data.email || "",
-            photoURL: data.photoURL || "",
-          } as TeamBranchDetail;
+        const teamSnapshot = await getDocs(query(collection(db, "users"), where("role", "==", "team-member")));
+        const normalizedParams = toBranchKey(params.uid);
+        const matchedDoc = teamSnapshot.docs.find((document) => {
+          const data = document.data();
+          const branchKey = toBranchKey(String(data.branchLocation || ""));
+          return document.id === params.uid || branchKey === normalizedParams || branchKey.includes(normalizedParams) || normalizedParams.includes(branchKey);
+        });
 
-          // try loading branch-level document (branches/{slug}) and prefer that data when available
-          try {
-            const slug = String(base.branchLocation).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-            const branchRef = doc(db, "branches", slug);
-            const branchSnap = await getDoc(branchRef);
-            if (branchSnap.exists()) {
-              const branchData: any = branchSnap.data();
-              base.branchDescription = branchData.branchDescription || base.branchDescription;
-              base.pastorDescription = branchData.pastorDescription || base.pastorDescription;
-              base.pastorImageURL = branchData.pastorImageURL || base.pastorImageURL;
-              base.churchGallery = Array.isArray(branchData.gallery) ? branchData.gallery : base.churchGallery;
-              base.photoURL = branchData.mainImage || base.photoURL;
-              base.videos = Array.isArray(branchData.videos) ? branchData.videos : [];
-            }
-          } catch (e) {
-            console.error("Error loading branch doc:", e);
-          }
-
-          setMember(base);
-        } else {
-          setMember(getFallbackDetails(params.uid));
+        if (!matchedDoc) {
+          setMember(null);
+          setRelatedBlogs([]);
+          return;
         }
 
-        // fetch related blogs (by branch field) if db available
+        const data = matchedDoc.data();
+        const base = {
+          uid: matchedDoc.id,
+          displayName: data.displayName || "Branch Leader",
+          branchLocation: data.branchLocation || "Church Branch",
+          branchAddress: data.branchAddress || "",
+          branchDescription:
+            data.branchDescription ||
+            "A vibrant church community with worship, teaching, and ministry designed to serve every family.",
+          pastorDescription: data.pastorDescription || "",
+          pastorImageURL: data.pastorImageURL || "",
+          pastorGallery: Array.isArray(data.pastorGallery) ? data.pastorGallery : [],
+          churchGallery: Array.isArray(data.churchGallery) ? data.churchGallery : [],
+          phoneNumber: data.phoneNumber || "",
+          email: data.email || "",
+          photoURL: data.photoURL || "",
+        } as TeamBranchDetail;
+
         try {
-          const branchName = snapshot.exists() ? snapshot.data().branchLocation : params.uid;
-          if (branchName) {
-            const blogsQuery = query(collection(db, "blogs"), where("branch", "==", branchName));
-            const qSnap = await getDocs(blogsQuery);
-            const posts = qSnap.docs.map((d) => ({ id: d.id, title: d.data().title }));
-            setRelatedBlogs(posts);
+          const slug = toBranchKey(String(base.branchLocation));
+          const branchRef = doc(db, "branches", slug);
+          const branchSnap = await getDoc(branchRef);
+          if (branchSnap.exists()) {
+            const branchData = branchSnap.data() as BranchDocumentData;
+            base.branchDescription = branchData.branchDescription || base.branchDescription;
+            base.pastorDescription = branchData.pastorDescription || base.pastorDescription;
+            base.pastorImageURL = branchData.pastorImageURL || base.pastorImageURL;
+            base.pastorGallery = Array.isArray(branchData.pastorGallery) ? branchData.pastorGallery : base.pastorGallery;
+            base.churchGallery = Array.isArray(branchData.gallery) ? branchData.gallery : base.churchGallery;
+            base.photoURL = branchData.mainImage || base.photoURL;
+            base.videos = Array.isArray(branchData.videos) ? branchData.videos : [];
           }
-        } catch (e) {
+        } catch (error) {
+          console.error("Error loading branch doc:", error);
+        }
+
+        setMember(base);
+
+        try {
+          const branchName = base.branchLocation;
+          const blogsQuery = query(collection(db, "blogs"), where("branch", "==", branchName));
+          const qSnap = await getDocs(blogsQuery);
+          const posts = qSnap.docs.map((d) => ({ id: d.id, title: d.data().title }));
+          setRelatedBlogs(posts);
+        } catch {
           // ignore if blogs are not using branch field
         }
       } catch (error) {
         console.error("Error loading branch details:", error);
-        setMember(getFallbackDetails(params.uid));
+        setMember(null);
+        setRelatedBlogs([]);
       } finally {
         setLoading(false);
       }
@@ -178,7 +139,7 @@ export default function TeamMemberBranchPage({ params }: { params: { uid: string
     return (
       <main className={styles.page}>
         <Navbar />
-        <div className={styles.loading}>Loading branch details…</div>
+        <div className={styles.loading}>{loading ? "Loading branch details…" : "Team member not found."}</div>
       </main>
     );
   }
@@ -198,7 +159,11 @@ export default function TeamMemberBranchPage({ params }: { params: { uid: string
           </div>
         </div>
         <div className={styles.heroImage}>
-          <Image src={member.photoURL || member.pastorImageURL} alt={member.displayName} fill style={{ objectFit: "cover" }} />
+          {member.photoURL || member.pastorImageURL ? (
+            <Image src={member.photoURL || member.pastorImageURL || ""} alt={member.displayName} fill style={{ objectFit: "cover" }} />
+          ) : (
+            <div className={styles.loading}>No profile image available.</div>
+          )}
         </div>
       </section>
 
@@ -209,9 +174,9 @@ export default function TeamMemberBranchPage({ params }: { params: { uid: string
               <p className={styles.roleLabel}>Branch Pastor</p>
               <h2>{member.displayName}</h2>
             </div>
-            {member.pastorImageURL ? (
+            {member.pastorImageURL || member.pastorGallery?.length ? (
               <div className={styles.profileImage}>
-                <Image src={member.pastorImageURL} alt={member.displayName} fill style={{ objectFit: "cover" }} />
+                <Image src={member.pastorImageURL || member.pastorGallery?.[0] || ""} alt={member.displayName} fill style={{ objectFit: "cover" }} />
                 <button className={styles.viewImagesBtn} onClick={() => setShowPastorModal(true)}>View pastor images</button>
               </div>
             ) : null}
@@ -233,19 +198,20 @@ export default function TeamMemberBranchPage({ params }: { params: { uid: string
 
         <article className={styles.galleryCard}>
           <h3>Church Gallery</h3>
-          <button className={styles.viewImagesBtn} onClick={() => setShowChurchModal(true)}>View church images</button>
-          <div className={styles.galleryGrid}>
-            {(member.churchGallery?.length ? member.churchGallery : [
-              "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
-              "https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=900&q=80",
-            ])
-              .slice(0, 4)
-              .map((src, index) => (
-                <div key={index} className={styles.galleryItem}>
-                  <Image src={src} alt={`Branch image ${index + 1}`} fill style={{ objectFit: "cover" }} />
-                </div>
-              ))}
-          </div>
+          {member.churchGallery?.length ? (
+            <>
+              <button className={styles.viewImagesBtn} onClick={() => setShowChurchModal(true)}>View church images</button>
+              <div className={styles.galleryGrid}>
+                {member.churchGallery.slice(0, 4).map((src, index) => (
+                  <div key={index} className={styles.galleryItem}>
+                    <Image src={src} alt={`Branch image ${index + 1}`} fill style={{ objectFit: "cover" }} />
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className={styles.emptyState}>No church gallery images have been uploaded yet.</p>
+          )}
         </article>
 
         <article className={styles.videoCard}>
@@ -302,12 +268,14 @@ export default function TeamMemberBranchPage({ params }: { params: { uid: string
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <h3>Pastor Images</h3>
             <div className={styles.modalGrid}>
-              {(member.pastorGallery && member.pastorGallery.length ? member.pastorGallery : member.pastorImageURL ? [member.pastorImageURL] : [])
-                .map((src, idx) => (
+              {(member.pastorGallery && member.pastorGallery.length ? member.pastorGallery : member.pastorImageURL ? [member.pastorImageURL] : []).map((src, idx) => (
                   <div key={idx} className={styles.modalItem}>
                     <Image src={src} alt={`Pastor image ${idx + 1}`} fill style={{ objectFit: "cover" }} />
                   </div>
                 ))}
+              {!member.pastorGallery?.length && !member.pastorImageURL ? (
+                <p className={styles.emptyState}>No pastor images have been uploaded yet.</p>
+              ) : null}
             </div>
             <div className={styles.modalActions}>
               <button onClick={() => setShowPastorModal(false)}>Close</button>
@@ -321,12 +289,12 @@ export default function TeamMemberBranchPage({ params }: { params: { uid: string
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <h3>Church Images</h3>
             <div className={styles.modalGrid}>
-              {(member.churchGallery && member.churchGallery.length ? member.churchGallery : [])
-                .map((src, idx) => (
+              {(member.churchGallery && member.churchGallery.length ? member.churchGallery : []).map((src, idx) => (
                   <div key={idx} className={styles.modalItem}>
                     <Image src={src} alt={`Church image ${idx + 1}`} fill style={{ objectFit: "cover" }} />
                   </div>
                 ))}
+              {!member.churchGallery?.length ? <p className={styles.emptyState}>No church images have been uploaded yet.</p> : null}
             </div>
             <div className={styles.modalActions}>
               <button onClick={() => setShowChurchModal(false)}>Close</button>

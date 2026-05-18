@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/app/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 
+const toBranchKey = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-(branch|church|location|site|center|centre)$/g, "")
+    .replace(/-(branch|church|location|site|center|centre)-/g, "-");
+
 const requireAdmin = async (request: NextRequest) => {
   const header = request.headers.get("authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
@@ -12,14 +21,15 @@ const requireAdmin = async (request: NextRequest) => {
 
   const decoded = await adminAuth().verifyIdToken(token);
   const hasAdminClaim = decoded.role === "admin" || decoded.role === "super-admin";
-  if (hasAdminClaim) {
+  const hasTeamMemberClaim = decoded.role === "team-member";
+  if (hasAdminClaim || hasTeamMemberClaim) {
     return { uid: decoded.uid };
   }
 
   const userDoc = await adminDb().collection("users").doc(decoded.uid).get();
   const role = userDoc.data()?.role;
 
-  if (role !== "admin" && role !== "super-admin") {
+  if (role !== "admin" && role !== "super-admin" && role !== "team-member") {
     return { error: NextResponse.json({ error: "Admin access required." }, { status: 403 }) };
   }
 
@@ -27,6 +37,7 @@ const requireAdmin = async (request: NextRequest) => {
 };
 
 const createTeamMember = async ({
+  existingUid,
   email,
   password,
   displayName,
@@ -36,10 +47,12 @@ const createTeamMember = async ({
   branchDescription,
   pastorDescription,
   pastorImageURL,
+  pastorGallery,
   churchGallery,
   videos,
   phoneNumber,
 }: {
+  existingUid?: string;
   email: string;
   password: string;
   displayName: string;
@@ -49,16 +62,25 @@ const createTeamMember = async ({
   branchDescription: string;
   pastorDescription: string;
   pastorImageURL: string;
+  pastorGallery: string[];
   churchGallery: string[];
   videos: string[];
   phoneNumber: string;
 }) => {
-  const authUser = await adminAuth().createUser({
-    email,
-    password,
-    displayName,
-    photoURL: photoURL || undefined,
-  });
+  const authUser = existingUid
+    ? await adminAuth().updateUser(existingUid, {
+        email,
+        displayName,
+        photoURL: photoURL || undefined,
+      }).then(() => adminAuth().getUser(existingUid))
+    : await adminAuth().createUser({
+        email,
+        password,
+        displayName,
+        photoURL: photoURL || undefined,
+      });
+
+  const branchKey = toBranchKey(branchLocation || authUser.uid);
 
   await adminAuth().setCustomUserClaims(authUser.uid, { role: "team-member" });
 
@@ -67,10 +89,12 @@ const createTeamMember = async ({
     email,
     displayName,
     branchLocation,
+    branchKey,
     branchAddress,
     branchDescription,
     pastorDescription,
     pastorImageURL,
+    pastorGallery,
     churchGallery,
     phoneNumber,
     photoURL: photoURL || "",
@@ -81,15 +105,15 @@ const createTeamMember = async ({
 
   // Ensure a branches document exists for this branchLocation to store branch-specific media and metadata
   try {
-    // Use the auth user's UID as the branch document id to simplify associations
-    const branchId = authUser.uid;
-    await adminDb().collection("branches").doc(branchId).set(
+    await adminDb().collection("branches").doc(branchKey).set(
       {
+        branchKey,
         branchLocation,
         branchAddress,
         branchDescription,
         pastorDescription,
         pastorImageURL,
+        pastorGallery,
         gallery: churchGallery,
         videos: Array.isArray(videos) ? videos : [],
         mainImage: photoURL || pastorImageURL || "",
@@ -112,6 +136,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    const existingUid = String(body.existingUid || "").trim();
     const email = String(body.email || "").trim();
     const password = String(body.password || "");
     const displayName = String(body.displayName || "").trim();
@@ -120,6 +145,12 @@ export async function POST(request: NextRequest) {
     const branchDescription = String(body.branchDescription || "").trim();
     const pastorDescription = String(body.pastorDescription || "").trim();
     const pastorImageURL = String(body.pastorImageURL || "").trim();
+    const pastorGallery = Array.isArray(body.pastorGallery)
+      ? body.pastorGallery.map((item: string) => String(item).trim()).filter(Boolean)
+      : String(body.pastorGallery || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
     const videos = Array.isArray(body.videos)
       ? body.videos.map((v: string) => String(v).trim()).filter(Boolean)
       : String(body.videos || "")
@@ -135,7 +166,7 @@ export async function POST(request: NextRequest) {
     const phoneNumber = String(body.phoneNumber || "").trim();
     const photoURL = String(body.photoURL || "").trim();
 
-    if (!email || !password || !displayName || !branchLocation) {
+    if ((!existingUid && (!email || !password)) || !displayName || !branchLocation) {
       return NextResponse.json({ error: "Missing required team member fields." }, { status: 400 });
     }
 
@@ -149,9 +180,11 @@ export async function POST(request: NextRequest) {
       branchDescription,
       pastorDescription,
       pastorImageURL,
+      pastorGallery,
       churchGallery,
       videos,
       phoneNumber,
+      existingUid: existingUid || undefined,
     });
 
     return NextResponse.json(
@@ -161,6 +194,7 @@ export async function POST(request: NextRequest) {
         displayName,
         branchLocation,
         phoneNumber,
+        pastorGallery,
         photoURL: photoURL || "",
       },
       { status: 201 },

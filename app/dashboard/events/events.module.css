@@ -1,0 +1,200 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 28px;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.addBtn,
+.submitBtn,
+.editBtn,
+.deleteBtn,
+.registerBtn,
+.unregisterBtn {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+.addBtn,
+.submitBtn,
+.registerBtn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+}
+
+.deleteBtn,
+.unregisterBtn {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+.editBtn {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
+.addBtn:hover,
+.submitBtn:hover,
+.editBtn:hover,
+.deleteBtn:hover,
+.registerBtn:hover,
+.unregisterBtn:hover {
+  transform: translateY(-1px);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formGroup label {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.formGroup input,
+.formGroup textarea {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff;
+  color: var(--text-main);
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.eventsList {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.eventCard {
+  padding: 22px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+}
+
+.eventInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.eventInfo h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--text-main);
+}
+
+.eventMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.empty {
+  padding: 24px;
+  border-radius: 18px;
+  background: rgba(226, 232, 240, 0.36);
+  color: var(--text-muted);
+}
+
+.attendeeSection {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.attendeeHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.attendeeList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.attendeeChip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.attendeeMeta {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 18px;
+  }
+
+  .header h1 {
+    font-size: 1.6rem;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}

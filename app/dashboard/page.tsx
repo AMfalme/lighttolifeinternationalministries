@@ -91,7 +91,7 @@ export default function DashboardPage() {
                   <span className={styles.linkIcon}>👥</span>
                   <div>
                     <h4>Team</h4>
-                    <p>Manage team members</p>
+                    <p>Manage administrators</p>
                   </div>
                 </a>
                 <a href="/dashboard/events" className={styles.contentLink}>

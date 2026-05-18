@@ -11,19 +11,24 @@ import {
   createEvent,
   deleteEvent,
   getAllEvents,
+  getAllEventRegistrations,
   updateEvent,
 } from "@/app/lib/firebase/firestore";
-import styles from "@/app/admin/events/events.module.css";
+import styles from "./events.module.css";
 import dashStyles from "@/app/dashboard/dashboard.module.css";
 import { useFastAuth } from "@/app/lib/firebase/useFastAuth";
+import { db } from "@/app/lib/firebase/config";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function DashboardEventsPage() {
   const router = useRouter();
   const { user, loading } = useFastAuth("/login");
   const [events, setEvents] = useState<(Event & { id: string })[]>([]);
+  const [registrations, setRegistrations] = useState<any[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
   const [formData, setFormData] = useState<Event>({
     title: "",
     description: "",
@@ -35,8 +40,9 @@ export default function DashboardEventsPage() {
 
   const fetchEvents = async () => {
     try {
-      const fetched = await getAllEvents();
-      setEvents(fetched);
+      const [fetchedEvents, fetchedRegistrations] = await Promise.all([getAllEvents(), getAllEventRegistrations()]);
+      setEvents(fetchedEvents);
+      setRegistrations(fetchedRegistrations);
     } catch (error) {
       console.error("Error fetching events:", error);
     } finally {
@@ -45,7 +51,16 @@ export default function DashboardEventsPage() {
   };
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && db) {
+      (async () => {
+        try {
+          const snapshot = await getDoc(doc(db, "users", user.uid));
+          setCurrentRole(snapshot.exists() ? snapshot.data().role || null : null);
+        } catch (error) {
+          console.error("Error loading role for events page:", error);
+          setCurrentRole(null);
+        }
+      })();
       void fetchEvents();
     }
   }, [loading, user]);
@@ -114,6 +129,22 @@ export default function DashboardEventsPage() {
 
   if (loading || pageLoading) return <DashboardLoading />;
   if (!user) return null;
+  if (currentRole !== "admin" && currentRole !== "team-member") {
+    return (
+      <div className={dashStyles.page}>
+        <div className={dashStyles.dashboard}>
+          <main className={dashStyles.main}>
+            <div className={styles.container}>
+              <div className={styles.header}>
+                <h1>📅 Manage Events</h1>
+              </div>
+              <p className={styles.empty}>Only administrators can manage events.</p>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={dashStyles.page}>
@@ -175,6 +206,25 @@ export default function DashboardEventsPage() {
                     <h3>{ev.title}</h3>
                     <p>{ev.description}</p>
                     <div className={styles.eventMeta}><span>📅 {ev.date}</span><span>⏰ {ev.time}</span><span>📍 {ev.location}</span></div>
+                  </div>
+                  <div className={styles.attendeeSection}>
+                    <div className={styles.attendeeHeader}>
+                      <strong>Registered Users</strong>
+                      <span className={styles.attendeeMeta}>{registrations.filter((registration) => registration.eventId === ev.id).length} registered</span>
+                    </div>
+                    <div className={styles.attendeeList}>
+                      {registrations.filter((registration) => registration.eventId === ev.id).length ? (
+                        registrations
+                          .filter((registration) => registration.eventId === ev.id)
+                          .map((registration) => (
+                            <span key={registration.id} className={styles.attendeeChip}>
+                              {registration.displayName || registration.email}
+                            </span>
+                          ))
+                      ) : (
+                        <span className={styles.attendeeMeta}>No registrations yet.</span>
+                      )}
+                    </div>
                   </div>
                   <div className={styles.actions}><button className={styles.editBtn} onClick={() => handleEdit(ev)}>Edit</button><button className={styles.deleteBtn} onClick={() => handleDelete(ev.id!)}>Delete</button></div>
                 </div>

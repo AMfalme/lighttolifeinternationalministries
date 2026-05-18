@@ -19,7 +19,7 @@ export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
           <li><a href="/dashboard" className={styles.navLink}>🎛️ Dashboard</a></li>
           <li><a href="/dashboard/profile" className={styles.navLink}>👤 Profile</a></li>
           <li><a href="/dashboard/blogs" className={styles.navLink}>📝 Manage Blogs</a></li>
-          <li><a href="/dashboard/team" className={styles.navLink}>👥 Team Members</a></li>
+          <li><a href="/dashboard/team" className={styles.navLink}>👥 Administrators</a></li>
           <li><a href="/dashboard/events" className={styles.navLink}>📅 Manage Events</a></li>
           <li><a href="/dashboard/projects" className={styles.navLink}>🏗️ Manage Projects</a></li>
           <li><a href="/dashboard/users" className={styles.navLink}>🔐 Users</a></li>
