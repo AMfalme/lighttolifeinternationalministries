@@ -11,8 +11,7 @@ type BranchDocumentData = {
   pastorTitle?: string;
   pastorImageURL?: string;
   pastorGallery?: string[];
-  gallery?: string[];
-  mainImage?: string;
+  churchGallery?: string[];
   videos?: string[];
 };
 
@@ -29,7 +28,6 @@ type TeamMemberDocumentData = {
   churchGallery?: string[];
   phoneNumber?: string;
   email?: string;
-  photoURL?: string;
   role?: string;
 };
 
@@ -49,6 +47,9 @@ const normalize = (value: string) => toBranchKey(value || "");
 
 const snapshotExists = (snapshot: { exists?: boolean | (() => boolean) }) =>
   typeof snapshot.exists === "function" ? snapshot.exists() : Boolean(snapshot.exists);
+
+const pickNonEmptyGallery = (...candidates: Array<string[] | undefined>) =>
+  candidates.find((candidate) => Array.isArray(candidate) && candidate.length) || [];
 
 export async function GET(_request: NextRequest, context: { params: Promise<{ uid: string }> }) {
   try {
@@ -173,6 +174,9 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
       return NextResponse.json({ error: "Leadership not found." }, { status: 404 });
     }
 
+    const resolvedChurchGallery = pickNonEmptyGallery(branchData?.churchGallery, member.churchGallery);
+    const fallbackPastorGallery = pickNonEmptyGallery(branchData?.pastorGallery, member.pastorGallery);
+
     const mergedMember = member
       ? {
           uid: member.uid,
@@ -195,17 +199,9 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
               : Array.isArray(branchData?.pastorGallery)
               ? branchData.pastorGallery
               : [],
-          churchGallery:
-            Array.isArray(branchData?.gallery) && branchData.gallery.length
-              ? branchData.gallery
-              : Array.isArray(member.churchGallery) && member.churchGallery.length
-              ? member.churchGallery
-              : Array.isArray(branchData?.gallery)
-              ? branchData.gallery
-              : [],
+          churchGallery: resolvedChurchGallery.length ? resolvedChurchGallery : fallbackPastorGallery,
           phoneNumber: member.phoneNumber || "",
           email: member.email || "",
-          photoURL: branchData?.mainImage || member.photoURL || "",
           videos: Array.isArray(branchData?.videos) ? branchData.videos : [],
         }
       : {
@@ -221,10 +217,9 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
           pastorDescription: branchData?.pastorDescription || "",
           pastorImageURL: branchData?.pastorImageURL || "",
           pastorGallery: Array.isArray(branchData?.pastorGallery) ? branchData?.pastorGallery : [],
-          churchGallery: Array.isArray(branchData?.gallery) ? branchData?.gallery : [],
+          churchGallery: pickNonEmptyGallery(branchData?.churchGallery),
           phoneNumber: "",
           email: "",
-          photoURL: branchData?.mainImage || "",
           videos: Array.isArray(branchData?.videos) ? branchData?.videos : [],
         };
 

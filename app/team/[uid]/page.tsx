@@ -22,7 +22,6 @@ type TeamBranchDetail = {
   videos?: string[];
   phoneNumber?: string;
   email?: string;
-  photoURL?: string;
 };
 
 type BranchDocumentData = {
@@ -35,7 +34,6 @@ type BranchDocumentData = {
   pastorImageURL?: string;
   pastorGallery?: string[];
   gallery?: string[];
-  mainImage?: string;
   videos?: string[];
 };
 
@@ -52,7 +50,6 @@ type TeamMemberDocumentData = {
   churchGallery?: string[];
   phoneNumber?: string;
   email?: string;
-  photoURL?: string;
 };
 
 const toLocationSlug = (value: string) =>
@@ -133,7 +130,7 @@ function GalleryPager({ title, images, emptyLabel, pageSize = 6, actionLabel, on
           <div className={compact ? styles.modalGrid : styles.gallerySlideGrid}>
             {currentImages.map((src, index) => (
               <div key={`${src}-${startIndex + index}`} className={compact ? styles.modalItem : styles.gallerySlideItem}>
-                <Image src={src} alt={`${title} image ${startIndex + index + 1}`} fill style={{ objectFit: "cover" }} />
+                <Image unoptimized src={src} alt={`${title} image ${startIndex + index + 1}`} fill sizes="(max-width: 768px) 50vw, 240px" style={{ objectFit: "cover" }} />
               </div>
             ))}
           </div>
@@ -199,9 +196,12 @@ export default function TeamMemberBranchPage() {
     new Set([member.pastorImageURL, ...(member.pastorGallery || [])].filter((image): image is string => Boolean(image))),
   );
   const churchGalleryImages = Array.from(
-    new Set((member.churchGallery || []).filter((image): image is string => Boolean(image))),
+    new Set(
+      ((member.churchGallery && member.churchGallery.length ? member.churchGallery : member.pastorGallery) || [])
+        .filter((image): image is string => Boolean(image)),
+    ),
   );
-  const pastorPrimaryImage = member.pastorImageURL || member.photoURL || pastorGalleryImages[0] || "";
+  const pastorPrimaryImage = member.pastorImageURL || pastorGalleryImages[0] || "";
   const mapEmbedUrl = buildMapEmbedUrl(member.branchAddress);
 
   return (
@@ -214,7 +214,7 @@ export default function TeamMemberBranchPage() {
             <div className={styles.titleRow}>
               <div className={styles.profileIcon}>
                 {pastorPrimaryImage ? (
-                  <Image src={pastorPrimaryImage} alt={member.displayName} fill sizes="72px" style={{ objectFit: "cover" }} />
+                  <Image unoptimized src={pastorPrimaryImage} alt={member.displayName} fill sizes="72px" style={{ objectFit: "cover" }} />
                 ) : (
                   <span>{member.displayName?.[0]?.toUpperCase() || "B"}</span>
                 )}
@@ -260,7 +260,7 @@ export default function TeamMemberBranchPage() {
           </div>
           <div className={styles.heroImage}>
             {pastorPrimaryImage ? (
-              <Image src={pastorPrimaryImage} alt={member.displayName} fill sizes="(max-width: 768px) 100vw, 42vw" style={{ objectFit: "cover" }} />
+              <Image unoptimized src={pastorPrimaryImage} alt={member.displayName} fill sizes="(max-width: 768px) 100vw, 42vw" style={{ objectFit: "cover" }} />
             ) : (
               <div className={styles.loading}>No profile image available.</div>
             )}
@@ -276,7 +276,7 @@ export default function TeamMemberBranchPage() {
               </div>
               {pastorPrimaryImage || pastorGalleryImages.length ? (
                 <div className={styles.profileImage}>
-                  <Image src={pastorPrimaryImage || pastorGalleryImages[0] || ""} alt={member.displayName} fill sizes="180px" style={{ objectFit: "cover" }} />
+                  <Image unoptimized src={pastorPrimaryImage || pastorGalleryImages[0] || ""} alt={member.displayName} fill sizes="180px" style={{ objectFit: "cover" }} />
                   <button className={styles.viewImagesBtn} onClick={() => setShowPastorModal(true)}>View pastor images</button>
                 </div>
               ) : null}

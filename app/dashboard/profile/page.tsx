@@ -126,7 +126,7 @@ export default function ProfilePage() {
                 <label>Profile Image</label>
                 {photoURL ? (
                   <div style={{ marginBottom: 16, position: "relative", width: 120, height: 120, borderRadius: 999, overflow: "hidden" }}>
-                    <Image src={photoURL} alt={displayName || "Leadership"} fill style={{ objectFit: "cover" }} />
+                    <Image src={photoURL} alt={displayName || "Leadership"} fill sizes="120px" style={{ objectFit: "cover" }} />
                   </div>
                 ) : null}
                 <input

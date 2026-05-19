@@ -269,7 +269,7 @@ export default function Home() {
                       onTouchEnd={handleTouchEnd}
                       style={{ position: "relative", width: "100%", height: 320, borderRadius: 12, overflow: "hidden" }}
                     >
-                      <Image src={carouselImages[currentIndex].url} alt={carouselImages[currentIndex].fileName || "Church community"} fill style={{ objectFit: "cover" }} />
+                      <Image src={carouselImages[currentIndex].url} alt={carouselImages[currentIndex].fileName || "Church community"} fill sizes="(max-width: 768px) 100vw, 400px" style={{ objectFit: "cover" }} />
                     </div>
                   ) : (
                     <div className={styles.imagePlaceholder}>

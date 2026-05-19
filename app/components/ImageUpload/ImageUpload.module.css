@@ -107,10 +107,11 @@
 
 .selectedThumbList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
   gap: 10px;
-  flex: 1 1 320px;
-  min-width: min(100%, 320px);
+  flex: 1 1 420px;
+  min-width: min(100%, 420px);
+  width: 100%;
 }
 
 .selectedThumb {
@@ -122,6 +123,31 @@
   background: #e9eef6;
   border: 1px solid rgba(148, 163, 184, 0.2);
   flex: 0 0 auto;
+}
+
+.selectedThumb[role="button"] {
+  cursor: pointer;
+}
+
+.selectedThumb[role="button"]:hover .selectedOverlay {
+  opacity: 1;
+}
+
+.selectedOverlay {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: center;
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+  z-index: 2;
 }
 
 .selectedPreview {
@@ -199,6 +225,7 @@
   justify-content: center;
   gap: 10px;
   min-width: min(100%, 240px);
+  flex: 0 1 280px;
 }
 
 .selectedHint {
@@ -462,7 +489,7 @@
 
   .selectedThumbList {
     min-width: 100%;
-    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
   }
 
   .selectedPreview {

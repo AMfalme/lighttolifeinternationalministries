@@ -4,10 +4,8 @@
 import Image from "next/image";
 import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import DashboardSidebar from "@/app/components/DashboardSidebar/DashboardSidebar";
 import ImageUpload from "@/app/components/ImageUpload/ImageUpload";
-import { db, hasFirebaseClientConfig } from "@/app/lib/firebase/config";
 import { DashboardLoading } from "@/app/dashboard/loading";
 import { useFastAuth } from "@/app/lib/firebase/useFastAuth";
 import styles from "@/app/dashboard/team/team.module.css";
@@ -27,7 +25,6 @@ interface TeamMember {
   churchGallery?: string[];
   videos?: string[];
   phoneNumber?: string;
-  photoURL?: string;
   createdAt?: string;
 }
 
@@ -48,11 +45,10 @@ type TeamMemberForm = {
   branchDescription: string;
   pastorDescription: string;
   pastorImageURL: string;
-  pastorGallery: string;
-  churchGallery: string;
+  pastorGallery: string[];
+  churchGallery: string[];
   videos: string;
   phoneNumber: string;
-  photoURL: string;
   password: string;
 };
 
@@ -75,13 +71,30 @@ const emptyForm = (): TeamMemberForm => ({
   branchDescription: "",
   pastorDescription: "",
   pastorImageURL: "",
-  pastorGallery: "",
-  churchGallery: "",
+  pastorGallery: [],
+  churchGallery: [],
   videos: "",
   phoneNumber: "",
-  photoURL: "",
   password: "",
 });
+
+const resolvePrimaryImageUrl = (member: Pick<TeamMember, "pastorImageURL">) =>
+  member.pastorImageURL || "";
+
+const parseGalleryUrls = (value?: string[] | string | null) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(/\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
 
 const branches = ["Mosocho (Main church headquarters)", "Nyanchwa", "Omogwa"];
 
@@ -102,60 +115,56 @@ export default function DashboardTeamPage() {
   const configReady = useMemo(() => Boolean(cloudName && uploadPreset), [cloudName, uploadPreset]);
 
   useEffect(() => {
-    if (!user || !hasFirebaseClientConfig || !db) {
+    if (!user) {
       return;
     }
 
     (async () => {
       try {
-        const userSnap = await getDoc(doc(db, "users", user.uid));
-            if (userSnap.exists() && (userSnap.data().role === "admin" || userSnap.data().role === "leadership")) {
-          await loadTeamMembers();
-        } else {
+        const token = await getAuthToken();
+        const response = await fetch("/api/admin/team", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.status === 401 || response.status === 403) {
           router.push("/dashboard/profile");
+          return;
         }
+
+        const payload = (await response.json()) as { members?: TeamMember[]; error?: string };
+        if (!response.ok) {
+          throw new Error(payload.error || "Failed to load leadership.");
+        }
+
+        setTeamMembers(payload.members || []);
       } catch (error) {
         console.error("Team page init error:", error);
+        setTeamMembers([]);
       }
     })();
   }, [router, user]);
 
   const loadTeamMembers = async () => {
-    if (!db) {
-      setTeamMembers([]);
+    const token = await getAuthToken();
+    const response = await fetch("/api/admin/team", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      router.push("/dashboard/profile");
       return;
     }
 
-    try {
-      const membersQuery = query(collection(db, "users"), where("role", "==", "leadership"));
-      const snapshot = await getDocs(membersQuery);
-
-      const members = snapshot.docs.map((document) => {
-        const data = document.data();
-        return {
-          uid: document.id,
-          displayName: data.displayName || "",
-          pastorTitle: data.pastorTitle || "",
-          email: data.email || "",
-          branchLocation: data.branchLocation || "",
-          branchAddress: data.branchAddress || "",
-          branchDescription: data.branchDescription || "",
-          pastorDescription: data.pastorDescription || "",
-          pastorImageURL: data.pastorImageURL || "",
-          pastorGallery: Array.isArray(data.pastorGallery) ? data.pastorGallery : [],
-          churchGallery: Array.isArray(data.churchGallery) ? data.churchGallery : [],
-          videos: Array.isArray(data.videos) ? data.videos : [],
-          phoneNumber: data.phoneNumber || "",
-          photoURL: data.photoURL || "",
-          createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt || "",
-        } as TeamMember;
-      });
-
-      setTeamMembers(members);
-    } catch (error) {
-      console.error("Error fetching leadership:", error);
-      setTeamMembers([]);
+    const payload = (await response.json()) as { members?: TeamMember[]; error?: string };
+    if (!response.ok) {
+      throw new Error(payload.error || "Failed to load leadership.");
     }
+
+    setTeamMembers(payload.members || []);
   };
   const openEditForm = (member: TeamMember) => {
     setCreatingMember(false);
@@ -169,11 +178,10 @@ export default function DashboardTeamPage() {
       branchDescription: member.branchDescription || "",
       pastorDescription: member.pastorDescription || "",
       pastorImageURL: member.pastorImageURL || "",
-      pastorGallery: (member.pastorGallery || []).join(", "),
-      churchGallery: (member.churchGallery || []).join(", "),
-      videos: (member.videos || []).join(", "),
+      pastorGallery: parseGalleryUrls(member.pastorGallery),
+      churchGallery: parseGalleryUrls(member.churchGallery),
+      videos: parseGalleryUrls(member.videos).join(", "),
       phoneNumber: member.phoneNumber || "",
-      photoURL: member.photoURL || "",
       password: "",
     });
     requestAnimationFrame(() => {
@@ -213,20 +221,20 @@ export default function DashboardTeamPage() {
   const handleSelectPastorImage = useCallback((image: { url: string } | null) => {
     setFormData((current) => {
       const next = image?.url || "";
-      if (current.pastorImageURL === next && current.photoURL === (current.photoURL || next)) {
+      if (current.pastorImageURL === next) {
         return current;
       }
-      return { ...current, pastorImageURL: next, photoURL: next || current.photoURL };
+      return { ...current, pastorImageURL: next };
     });
   }, []);
 
   const initialPastorGalleryUrls = useMemo(
-    () => formData.pastorGallery.split(",").map((item) => item.trim()).filter(Boolean),
+    () => parseGalleryUrls(formData.pastorGallery),
     [formData.pastorGallery],
   );
 
   const initialGalleryUrls = useMemo(
-    () => formData.churchGallery.split(",").map((item) => item.trim()).filter(Boolean),
+    () => parseGalleryUrls(formData.churchGallery),
     [formData.churchGallery],
   );
 
@@ -334,17 +342,13 @@ export default function DashboardTeamPage() {
   };
 
   const handleSelectPastorGalleryImages = useCallback((images: { url: string }[]) => {
-    const nextGallery = images.map((image) => image.url).join(", ");
-    setFormData((current) => {
-      return current.pastorGallery === nextGallery ? current : { ...current, pastorGallery: nextGallery };
-    });
+    const nextGallery = images.map((image) => image.url).filter(Boolean);
+    setFormData((current) => ({ ...current, pastorGallery: nextGallery }));
   }, []);
 
   const handleSelectGalleryImages = useCallback((images: { url: string }[]) => {
-    const nextGallery = images.map((image) => image.url).join(", ");
-    setFormData((current) => {
-      return current.churchGallery === nextGallery ? current : { ...current, churchGallery: nextGallery };
-    });
+    const nextGallery = images.map((image) => image.url).filter(Boolean);
+    setFormData((current) => ({ ...current, churchGallery: nextGallery }));
   }, []);
 
   const handleSubmit = async () => {
@@ -363,11 +367,26 @@ export default function DashboardTeamPage() {
       return;
     }
 
+    if (creatingMember && formData.password.length < 6) {
+          alert("Password must be at least 6 characters long.");
+      return;
+    }
+
     setSaving(true);
 
     try {
       const token = await getAuthToken();
       const url = creatingMember ? "/api/admin/team" : `/api/admin/team/${editingMember?.uid}`;
+      const churchGalleryList = formData.churchGallery;
+      const pastorGalleryList = formData.pastorGallery;
+
+      console.log("Leadership submit payload:", {
+        method: creatingMember ? "POST" : "PATCH",
+        url,
+        branchLocation: formData.branchLocation,
+        rawChurchGallery: formData.churchGallery,
+        churchGalleryCount: churchGalleryList.length,
+      });
 
       const response = await fetch(url, {
         method: creatingMember ? "POST" : "PATCH",
@@ -378,15 +397,8 @@ export default function DashboardTeamPage() {
         body: JSON.stringify({
           ...formData,
           pastorTitle: formData.pastorTitle || "",
-          photoURL: formData.pastorImageURL || formData.photoURL,
-          pastorGallery: formData.pastorGallery
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean),
-          churchGallery: formData.churchGallery
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean),
+          pastorGallery: pastorGalleryList,
+          churchGallery: churchGalleryList,
           videos: formData.videos
             .split(/\n|,/)
             .map((item) => item.trim())
@@ -521,31 +533,85 @@ export default function DashboardTeamPage() {
                       <label htmlFor="branchDescription">Branch Description</label>
                       <textarea id="branchDescription" value={formData.branchDescription} onChange={(event) => setFormData({ ...formData, branchDescription: event.target.value })} placeholder="Describe the branch, worship style, values, and community." rows={5} />
                     </div>
-                    <div className={styles.formGroup}>
-                      <label>Upload Pastor Image</label>
-                      <ImageUpload onSelectImage={handleSelectPastorImage} initialSelectedUrl={formData.pastorImageURL || undefined} />
-                    </div>
-                    <div className={styles.formGroupWide}>
-                      <label>Pastor Gallery</label>
-                      <ImageUpload
-                        multiSelect
-                        initialSelectedUrls={initialPastorGalleryUrls}
-                        onSelectMultiple={handleSelectPastorGalleryImages}
-                      />
-                      <div className={styles.hint}>Select one or more saved images for the pastor gallery.</div>
-                    </div>
+                    <section className={styles.mediaSection}>
+                      <div className={styles.mediaSectionHeader}>
+                        <h3>Media</h3>
+                        <p>Choose the one primary pastor image first, then add the two galleries that support the branch page.</p>
+                      </div>
+
+                      <div className={`${styles.mediaStep} ${styles.mediaStepHighlight}`}>
+                        <div className={styles.mediaStepHeader}>
+                          <span className={styles.mediaStepBadge}>1</span>
+                          <div className={styles.mediaStepText}>
+                            <strong>Pastor profile image</strong>
+                            <span>This is the single image shown on the leadership card and public branch page. It syncs to the profile fields automatically.</span>
+                          </div>
+                        </div>
+                        <ImageUpload
+                          title="Pastor Profile Image"
+                          description="Upload or choose the single primary image shown for this pastor on the dashboard and public team pages."
+                          selectedLabel="Current profile image"
+                          selectedSummary="This is the one primary image used for the pastor profile on the dashboard and public pages."
+                          libraryTitle="Saved profile images"
+                          libraryDescription="Pick the exact image that should represent this pastor everywhere."
+                          uploadButtonLabel="Upload profile image"
+                          onSelectImage={handleSelectPastorImage}
+                          initialSelectedUrl={formData.pastorImageURL || undefined}
+                        />
+                      </div>
+
+                      <div className={styles.mediaGalleryPair}>
+                        <div className={styles.mediaStep}>
+                          <div className={styles.mediaStepHeader}>
+                            <span className={styles.mediaStepBadge}>2</span>
+                            <div className={styles.mediaStepText}>
+                              <strong>Pastor gallery</strong>
+                              <span>Select the saved images that belong in the pastor gallery on the branch detail page.</span>
+                            </div>
+                          </div>
+                          <ImageUpload
+                            multiSelect
+                            title="Pastor Gallery"
+                            description="Select one or more saved images for the pastor gallery shown on the branch detail page."
+                            selectedLabel="Saved pastor gallery images"
+                            selectedSummary="These images are already attached to the pastor gallery. The grid shows what is currently saved."
+                            libraryTitle="Saved gallery images"
+                            libraryDescription="Choose multiple images that belong in the pastor gallery."
+                            uploadButtonLabel="Upload gallery images"
+                            initialSelectedUrls={initialPastorGalleryUrls}
+                            onSelectMultiple={handleSelectPastorGalleryImages}
+                          />
+                        </div>
+
+                        <div className={styles.mediaStep}>
+                          <div className={styles.mediaStepHeader}>
+                            <span className={styles.mediaStepBadge}>3</span>
+                            <div className={styles.mediaStepText}>
+                              <strong>Church gallery</strong>
+                              <span>Select the branch photos that should appear in the church gallery on the public page.</span>
+                            </div>
+                          </div>
+                          <ImageUpload
+                            multiSelect
+                            title="Church Gallery"
+                            description="Select the images that should appear in the church gallery for this branch."
+                            selectedLabel="Saved church gallery images"
+                            selectedSummary="These images are already attached to the church gallery. The grid shows what is currently saved."
+                            libraryTitle="Saved church gallery images"
+                            libraryDescription="Choose multiple images that belong in the church gallery."
+                            uploadButtonLabel="Upload church gallery images"
+                            initialSelectedUrls={initialGalleryUrls}
+                            onSelectMultiple={handleSelectGalleryImages}
+                          />
+                        </div>
+                      </div>
+                    </section>
                     <div className={styles.formGroupWide}>
                       <label htmlFor="pastorDescription">Pastor Description</label>
                       <textarea id="pastorDescription" value={formData.pastorDescription} onChange={(event) => setFormData({ ...formData, pastorDescription: event.target.value })} placeholder="Short bio or description of the pastor." rows={3} />
                     </div>
                     <div className={styles.formGroupWide}>
-                      <label>Church Gallery</label>
-                      <ImageUpload
-                        multiSelect
-                        initialSelectedUrls={initialGalleryUrls}
-                        onSelectMultiple={handleSelectGalleryImages}
-                      />
-                      <div className={styles.hint}>Click images to toggle selection; selected images will be saved to the branch gallery.</div>
+                      <div className={styles.hint}>The media section above keeps the primary image separate from the gallery images so it is easier to review and update.</div>
                     </div>
                     <div className={styles.formGroupWide}>
                       <label>Branch Videos</label>
@@ -603,8 +669,8 @@ export default function DashboardTeamPage() {
                     <div className={styles.teamCardHeader}>
                       <div className={styles.memberIdentity}>
                         <div className={styles.avatarWrap}>
-                          {member.photoURL ? (
-                            <Image src={member.photoURL} alt={member.displayName} fill className={styles.avatarImage} />
+                          {member.pastorImageURL ? (
+                            <Image src={member.pastorImageURL} alt={member.displayName} fill sizes="62px" className={styles.avatarImage} />
                           ) : (
                             <span>{member.displayName?.[0]?.toUpperCase() || "T"}</span>
                           )}

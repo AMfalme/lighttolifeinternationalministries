@@ -10,8 +10,7 @@ type BranchDocumentData = {
   pastorTitle?: string;
   pastorImageURL?: string;
   pastorGallery?: string[];
-  gallery?: string[];
-  mainImage?: string;
+  churchGallery?: string[];
 };
 
 type TeamMemberDocumentData = {
@@ -27,9 +26,28 @@ type TeamMemberDocumentData = {
   churchGallery?: string[];
   phoneNumber?: string;
   email?: string;
-  photoURL?: string;
   role?: string;
 };
+
+const pickNonEmptyGallery = (...candidates: Array<string[] | undefined>) =>
+  candidates.find((candidate) => Array.isArray(candidate) && candidate.length) || [];
+
+const normalizeGalleryValue = (value: string[] | string | undefined | null) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(/\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+const pickChurchGallery = (branchData?: BranchDocumentData) => branchData?.churchGallery || [];
 
 const toLocationSlug = (value: string) =>
   value
@@ -86,11 +104,10 @@ export async function GET() {
           "A vibrant church community with worship, teaching, and ministry designed to serve every family.",
         pastorDescription: member.pastorDescription || branchData?.pastorDescription || "",
         pastorImageURL: member.pastorImageURL || branchData?.pastorImageURL || "",
-        pastorGallery: Array.isArray(member.pastorGallery) && member.pastorGallery.length ? member.pastorGallery : Array.isArray(branchData?.pastorGallery) ? branchData.pastorGallery : [],
-        churchGallery: Array.isArray(member.churchGallery) && member.churchGallery.length ? member.churchGallery : Array.isArray(branchData?.gallery) ? branchData.gallery : [],
+        pastorGallery: pickNonEmptyGallery(branchData?.pastorGallery, normalizeGalleryValue(member.pastorGallery)),
+        churchGallery: pickNonEmptyGallery(pickChurchGallery(branchData), normalizeGalleryValue(member.churchGallery)),
         phoneNumber: member.phoneNumber || "",
         email: member.email || "",
-        photoURL: member.photoURL || branchData?.mainImage || "",
       };
     });
 

@@ -17,7 +17,6 @@ type TeamMemberRecord = {
   pastorImageURL?: string;
   churchGallery?: string[];
   phoneNumber?: string;
-  photoURL?: string;
 };
 
 export default function TeamSection() {
@@ -136,11 +135,12 @@ export default function TeamSection() {
             className={pageStyles.leaderCard}
           >
             <div className={pageStyles.leaderImageBox}>
-              {member.photoURL ? (
+              {member.pastorImageURL ? (
                 <Image
-                  src={member.photoURL}
+                  src={member.pastorImageURL}
                   alt={member.displayName || "Branch leader"}
                   fill
+                  sizes="(max-width: 768px) 100vw, 310px"
                   className={pageStyles.leaderImage}
                 />
               ) : (
