@@ -96,6 +96,10 @@ export default function DashboardTeamPage() {
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [formData, setFormData] = useState<TeamMemberForm>(emptyForm());
   const editorRef = useRef<HTMLDivElement | null>(null);
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim() || "";
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim() || "";
+  const folder = process.env.NEXT_PUBLIC_CLOUDINARY_FOLDER?.trim() || "dashboard-images";
+  const configReady = useMemo(() => Boolean(cloudName && uploadPreset), [cloudName, uploadPreset]);
 
   useEffect(() => {
     if (!user || !hasFirebaseClientConfig || !db) {
@@ -123,7 +127,7 @@ export default function DashboardTeamPage() {
     }
 
     try {
-          const membersQuery = query(collection(db, "users"), where("role", "==", "leadership"));
+      const membersQuery = query(collection(db, "users"), where("role", "==", "leadership"));
       const snapshot = await getDocs(membersQuery);
 
       const members = snapshot.docs.map((document) => {
@@ -153,7 +157,6 @@ export default function DashboardTeamPage() {
       setTeamMembers([]);
     }
   };
-
   const openEditForm = (member: TeamMember) => {
     setCreatingMember(false);
     setEditingMember(member);
@@ -233,27 +236,39 @@ export default function DashboardTeamPage() {
   );
 
   const uploadToCloudinary = async (file: File) => {
+    if (!configReady) {
+      throw new Error("Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET to enable uploads.");
+    }
+
     const mediaFormData = new FormData();
     mediaFormData.append("file", file);
-    mediaFormData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim() || "");
-    mediaFormData.append("folder", `${process.env.NEXT_PUBLIC_CLOUDINARY_FOLDER?.trim() || "dashboard-images"}/videos`);
+    mediaFormData.append("upload_preset", uploadPreset);
+    mediaFormData.append("folder", `${folder}/videos`);
 
-    const response = await fetch(`https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim() || ""}/auto/upload`, {
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, {
       method: "POST",
       body: mediaFormData,
     });
 
+    const responseBody = await response.text();
+
     if (!response.ok) {
-      throw new Error("Video upload failed.");
+      throw new Error(responseBody || "Video upload failed.");
     }
 
-    return response.json() as Promise<MediaUploadResult>;
+    return JSON.parse(responseBody) as MediaUploadResult;
   };
 
   const handleVideoUpload = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
 
     if (!files.length || videoUploading) {
+      return;
+    }
+
+    if (!configReady) {
+      setVideoUploadError("Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET to enable uploads.");
+      event.target.value = "";
       return;
     }
 

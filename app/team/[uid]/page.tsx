@@ -260,7 +260,7 @@ export default function TeamMemberBranchPage() {
           </div>
           <div className={styles.heroImage}>
             {pastorPrimaryImage ? (
-              <Image src={pastorPrimaryImage} alt={member.displayName} fill style={{ objectFit: "cover" }} />
+              <Image src={pastorPrimaryImage} alt={member.displayName} fill sizes="(max-width: 768px) 100vw, 42vw" style={{ objectFit: "cover" }} />
             ) : (
               <div className={styles.loading}>No profile image available.</div>
             )}
@@ -276,7 +276,7 @@ export default function TeamMemberBranchPage() {
               </div>
               {pastorPrimaryImage || pastorGalleryImages.length ? (
                 <div className={styles.profileImage}>
-                  <Image src={pastorPrimaryImage || pastorGalleryImages[0] || ""} alt={member.displayName} fill style={{ objectFit: "cover" }} />
+                  <Image src={pastorPrimaryImage || pastorGalleryImages[0] || ""} alt={member.displayName} fill sizes="180px" style={{ objectFit: "cover" }} />
                   <button className={styles.viewImagesBtn} onClick={() => setShowPastorModal(true)}>View pastor images</button>
                 </div>
               ) : null}
