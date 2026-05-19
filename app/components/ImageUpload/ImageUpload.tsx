@@ -330,8 +330,8 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
             ))}
           </div>
           <div className={styles.selectedMeta}>
-            <span>{multiSelect ? `${selectedImages.length} images selected` : "Selected image"}</span>
-            <strong>{selectedImages[0].fileName}</strong>
+            <span>{multiSelect ? `${selectedImages.length} images already selected` : "Selected image"}</span>
+            <strong>{multiSelect ? "Already selected images" : selectedImages[0].fileName}</strong>
             <p>
               {multiSelect
                 ? selectedImages
@@ -341,11 +341,15 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
                 : `Image ID: ${selectedImages[0].id}`}
               {multiSelect && selectedImages.length > 3 ? ` +${selectedImages.length - 3} more` : ""}
             </p>
-            <div className={styles.actionRow}>
-              <button type="button" className={styles.secondaryButton} onClick={handleCopyImageUrl}>
-                Copy URL
-              </button>
-            </div>
+            {multiSelect ? (
+              <p className={styles.selectedHint}>These images are already attached to the member. The grid shows exactly what is currently saved.</p>
+            ) : (
+              <div className={styles.actionRow}>
+                <button type="button" className={styles.secondaryButton} onClick={handleCopyImageUrl}>
+                  Copy URL
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : null}

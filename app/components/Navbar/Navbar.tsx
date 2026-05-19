@@ -2,17 +2,69 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { applyTheme, getStoredTheme, type Theme } from "@/app/lib/theme";
 import styles from "./navbar.module.css";
+
+type NavItem = {
+  label: string;
+  href: string;
+  subItems: Array<{
+    label: string;
+    href: string;
+  }>;
+};
 
 export default function Navbar() {
   const router = useRouter();
   const [theme, setTheme] = useState<Theme>("light");
   const [isOpen, setIsOpen] = useState(false);
+  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+
+  const navItems = useMemo<NavItem[]>(
+    () => [
+      {
+        label: "About Us",
+        href: "/#about",
+        subItems: [
+          { label: "Mission", href: "/#features" },
+          { label: "About", href: "/#about" },
+          { label: "Team", href: "/#leadership" },
+        ],
+      },
+      {
+        label: "Events",
+        href: "/events",
+        subItems: [
+          { label: "Calendar", href: "/events#calendar" },
+          { label: "Upcoming", href: "/events#upcoming" },
+        ],
+      },
+      {
+        label: "Projects",
+        href: "/projects",
+        subItems: [
+          { label: "Ongoing", href: "/projects#ongoing" },
+          { label: "Partners", href: "/projects#partners" },
+        ],
+      },
+      {
+        label: "News",
+        href: "/news",
+        subItems: [
+          { label: "Blog", href: "/news#blog" },
+          { label: "Highlights", href: "/news#highlights" },
+          { label: "Gallery", href: "/news#gallery" },
+        ],
+      },
+    ],
+    [],
+  );
 
   useEffect(() => {
     let unsub: any = null;
@@ -43,6 +95,34 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+
+    const updateViewportState = () => {
+      setIsMobile(mediaQuery.matches);
+      if (!mediaQuery.matches) {
+        setActiveSubmenu(null);
+        setIsOpen(false);
+      }
+    };
+
+    updateViewportState();
+    mediaQuery.addEventListener("change", updateViewportState);
+
+    return () => mediaQuery.removeEventListener("change", updateViewportState);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 4);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
     const handleThemeChange = (event: Event) => {
       const nextTheme = (event as CustomEvent<Theme>).detail;
       if (nextTheme === "light" || nextTheme === "dark") {
@@ -65,8 +145,19 @@ export default function Navbar() {
     };
   }, [isOpen]);
 
+  const handleTopLevelClick = (item: NavItem, event: MouseEvent<HTMLAnchorElement>) => {
+    if (!item.subItems.length || !isMobile) {
+      setIsOpen(false);
+      setActiveSubmenu(null);
+      return;
+    }
+
+    event.preventDefault();
+    setActiveSubmenu((current) => (current === item.label ? null : item.label));
+  };
+
   return (
-    <header className={styles.navbar}>
+    <header className={`${styles.navbar} ${isScrolled ? styles.navbarScrolled : ""}`}>
       <Link className={styles.brand} href="/">
         <Image src="/logo.jpeg" alt="LightToLife" width={180} height={86} priority />
       </Link>
@@ -83,39 +174,25 @@ export default function Navbar() {
       </button>
 
       <nav className={`${styles.navLinks} ${isOpen ? styles.navLinksOpen : ""}`} aria-label="Primary navigation">
-        <div className={styles.navItem}>
-          <Link className={styles.navLink} href="/#about" onClick={() => setIsOpen(false)}>About Us</Link>
-          <ul className={styles.navSub} aria-label="About sub-menu">
-            <li><Link href="/#features" onClick={() => setIsOpen(false)}>Mission</Link></li>
-            <li><Link href="/#about" onClick={() => setIsOpen(false)}>About</Link></li>
-            <li><Link href="/#leadership" onClick={() => setIsOpen(false)}>Team</Link></li>
-          </ul>
-        </div>
-
-        <div className={styles.navItem}>
-          <Link className={styles.navLink} href="/events" onClick={() => setIsOpen(false)}>Events</Link>
-          <ul className={styles.navSub} aria-label="Events sub-menu">
-            <li><Link href="/events#calendar" onClick={() => setIsOpen(false)}>Calendar</Link></li>
-            <li><Link href="/events#upcoming" onClick={() => setIsOpen(false)}>Upcoming</Link></li>
-          </ul>
-        </div>
-
-        <div className={styles.navItem}>
-          <Link className={styles.navLink} href="/projects" onClick={() => setIsOpen(false)}>Projects</Link>
-          <ul className={styles.navSub} aria-label="Projects sub-menu">
-            <li><Link href="/projects#ongoing" onClick={() => setIsOpen(false)}>Ongoing</Link></li>
-            <li><Link href="/projects#partners" onClick={() => setIsOpen(false)}>Partners</Link></li>
-          </ul>
-        </div>
-
-        <div className={styles.navItem}>
-          <Link className={styles.navLink} href="/news" onClick={() => setIsOpen(false)}>News</Link>
-          <ul className={styles.navSub} aria-label="News sub-menu">
-            <li><Link href="/news#blog" onClick={() => setIsOpen(false)}>Blog</Link></li>
-            <li><Link href="/news#highlights" onClick={() => setIsOpen(false)}>Highlights</Link></li>
-            <li><Link href="/news#gallery" onClick={() => setIsOpen(false)}>Gallery</Link></li>
-          </ul>
-        </div>
+        {navItems.map((item) => (
+          <div key={item.label} className={styles.navItem}>
+            <Link className={styles.navLink} href={item.href} onClick={(event) => handleTopLevelClick(item, event)}>
+              {item.label}
+            </Link>
+            <ul className={`${styles.navSub} ${activeSubmenu === item.label ? styles.navSubOpen : ""}`} aria-label={`${item.label} sub-menu`}>
+              {item.subItems.map((subItem) => (
+                <li key={subItem.href}>
+                  <Link href={subItem.href} onClick={() => {
+                    setIsOpen(false);
+                    setActiveSubmenu(null);
+                  }}>
+                    {subItem.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
 
         <div className={styles.navMobileActions}>
           {!authLoading && !user ? (

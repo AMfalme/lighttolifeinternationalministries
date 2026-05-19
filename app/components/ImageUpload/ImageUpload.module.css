@@ -86,7 +86,7 @@
 
 .selectedCard {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   flex-wrap: wrap;
   padding: 12px;
@@ -106,15 +106,17 @@
 }
 
 .selectedThumbList {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
   gap: 10px;
+  flex: 1 1 320px;
+  min-width: min(100%, 320px);
 }
 
 .selectedThumb {
   position: relative;
-  width: 64px;
-  height: 64px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   border-radius: 14px;
   background: #e9eef6;
@@ -196,6 +198,14 @@
   flex-direction: column;
   justify-content: center;
   gap: 10px;
+  min-width: min(100%, 240px);
+}
+
+.selectedHint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
 }
 
 .selectedMeta span,
@@ -448,6 +458,11 @@
   .uploadToolbar,
   .selectedCard {
     flex-direction: column;
+  }
+
+  .selectedThumbList {
+    min-width: 100%;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
   }
 
   .selectedPreview {
