@@ -61,6 +61,17 @@ const toBranchKey = (value: string) =>
     .replace(/-(branch|church|location|site|center|centre)$/g, "")
     .replace(/-(branch|church|location|site|center|centre)-/g, "-");
 
+const getPriorityRank = (member: TeamMemberDocumentData) => {
+  const branchKey = toBranchKey(String(member.branchKey || ""));
+  const branchLocation = toBranchKey(String(member.branchLocation || ""));
+  const displayName = String(member.displayName || "").toLowerCase();
+  const isMosocho = branchKey.includes("mosocho") || branchLocation.includes("mosocho") || displayName.includes("bishop francis akaki");
+
+  if (isMosocho) return 0;
+  if (branchKey || branchLocation) return 1;
+  return 2;
+};
+
 export async function GET() {
   try {
     const usersSnap = await adminDb().collection("users").where("role", "==", "leadership").get();
@@ -68,6 +79,17 @@ export async function GET() {
       uid: document.id,
       ...(document.data() as TeamMemberDocumentData),
     }));
+
+    members.sort((left, right) => {
+      const rankDelta = getPriorityRank(left) - getPriorityRank(right);
+      if (rankDelta !== 0) {
+        return rankDelta;
+      }
+
+      const leftName = String(left.displayName || "").toLowerCase();
+      const rightName = String(right.displayName || "").toLowerCase();
+      return leftName.localeCompare(rightName);
+    });
 
     const branchKeys = Array.from(
       new Set(

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import React, { useEffect, useState, useRef } from "react";
 import Navbar from "./components/Navbar/Navbar";
 import TeamSection from "./components/TeamSection/TeamSection";
@@ -11,6 +12,20 @@ import { useFastAuth } from "./lib/firebase/useFastAuth";
 import { db } from "./lib/firebase/config";
 import { doc, getDoc } from "firebase/firestore";
 
+type PublicTeamMember = {
+  uid: string;
+  branchKey?: string;
+  displayName?: string;
+  pastorTitle?: string;
+  branchLocation?: string;
+  branchAddress?: string;
+  branchDescription?: string;
+  pastorDescription?: string;
+  pastorImageURL?: string;
+  phoneNumber?: string;
+  email?: string;
+};
+
 export default function Home() {
 
   const { user, loading: authLoading } = useFastAuth();
@@ -18,6 +33,7 @@ export default function Home() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showEditor, setShowEditor] = useState(false);
   const [role, setRole] = useState<string | null>(null);
+  const [featuredFounder, setFeaturedFounder] = useState<PublicTeamMember | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -58,6 +74,32 @@ export default function Home() {
       mounted = false;
     };
   }, [user]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const response = await fetch("/api/public/team");
+        const payload = (await response.json()) as { members?: PublicTeamMember[]; error?: string };
+
+        if (!response.ok) {
+          throw new Error(payload.error || "Failed to load leadership.");
+        }
+
+        if (!mounted) return;
+        const members = payload.members || [];
+        setFeaturedFounder(members[0] || null);
+      } catch (error) {
+        console.error("Error loading founder spotlight:", error);
+        if (mounted) setFeaturedFounder(null);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (carouselImages.length <= 1) return;
@@ -164,6 +206,70 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {featuredFounder ? (
+          <section className={styles.founderSection} id="founder">
+            <div className={styles.sectionContainer}>
+              <div className={styles.founderCard}>
+                <div className={styles.founderMedia}>
+                  <div className={styles.founderPortrait}>
+                    {featuredFounder.pastorImageURL ? (
+                      <Image
+                        src={featuredFounder.pastorImageURL}
+                        alt={featuredFounder.displayName || "Bishop Francis Akaki"}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 320px"
+                        className={styles.founderImage}
+                      />
+                    ) : (
+                      <span>{(featuredFounder.displayName || "B").slice(0, 1).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <div className={styles.founderBadge}>Founder</div>
+                </div>
+
+                <div className={styles.founderCopy}>
+                  <span className={styles.sectionLabel}>FOUNDATION</span>
+                  <h2 className={styles.founderTitle}>
+                    {featuredFounder.displayName || "Bishop Francis Akaki"}
+                  </h2>
+                  <p className={styles.founderRole}>
+                    {featuredFounder.pastorTitle || featuredFounder.branchLocation || "Mosocho Main Headquarters"}
+                  </p>
+                  <p className={styles.founderDescription}>
+                    {featuredFounder.pastorDescription || featuredFounder.branchDescription || "The founding voice behind the Mosocho main headquarters and the ministry's leadership heartbeat."}
+                  </p>
+
+                  <div className={styles.founderLinks}>
+                    {featuredFounder.phoneNumber ? (
+                      <a className={styles.founderLink} href={`tel:${featuredFounder.phoneNumber.replace(/\s+/g, "")}`}>
+                        Call {featuredFounder.phoneNumber}
+                      </a>
+                    ) : null}
+                    {featuredFounder.email ? (
+                      <a className={styles.founderLink} href={`mailto:${featuredFounder.email}`}>
+                        Email {featuredFounder.email}
+                      </a>
+                    ) : null}
+                    {featuredFounder.branchAddress ? (
+                      <a
+                        className={styles.founderLink}
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(featuredFounder.branchAddress)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        View location
+                      </a>
+                    ) : null}
+                    <Link className={styles.founderLink} href={`/team/${featuredFounder.branchKey || featuredFounder.uid}`}>
+                      Full profile
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <section className={styles.verseBanner}>
           <div className={styles.verseBannerContent}>

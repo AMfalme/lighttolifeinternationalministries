@@ -174,8 +174,8 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
       return NextResponse.json({ error: "Leadership not found." }, { status: 404 });
     }
 
-    const resolvedChurchGallery = pickNonEmptyGallery(branchData?.churchGallery, member.churchGallery);
-    const fallbackPastorGallery = pickNonEmptyGallery(branchData?.pastorGallery, member.pastorGallery);
+    const resolvedChurchGallery = pickNonEmptyGallery(branchData?.churchGallery, member?.churchGallery);
+    const fallbackPastorGallery = pickNonEmptyGallery(branchData?.pastorGallery, member?.pastorGallery);
 
     const mergedMember = member
       ? {
