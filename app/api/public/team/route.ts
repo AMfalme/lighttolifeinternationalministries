@@ -66,10 +66,12 @@ const getPriorityRank = (member: TeamMemberDocumentData) => {
   const branchLocation = toBranchKey(String(member.branchLocation || ""));
   const displayName = String(member.displayName || "").toLowerCase();
   const isMosocho = branchKey.includes("mosocho") || branchLocation.includes("mosocho") || displayName.includes("bishop francis akaki");
+  const isOmogwa = branchKey.includes("omogwa") || branchLocation.includes("omogwa");
 
   if (isMosocho) return 0;
-  if (branchKey || branchLocation) return 1;
-  return 2;
+  if (isOmogwa) return 1;
+  if (branchKey || branchLocation) return 2;
+  return 3;
 };
 
 export async function GET() {
