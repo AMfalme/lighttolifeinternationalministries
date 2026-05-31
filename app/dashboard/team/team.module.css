@@ -588,6 +588,52 @@
   color: var(--text-main);
 }
 
+.videoThumb {
+  width: 140px;
+  height: 78px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.videoThumbWrapper {
+  width: 140px;
+  height: 78px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  background: #f3f4f6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.videoThumbVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.videoThumbPlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.videoThumbWrapper:hover .videoThumbPlay {
+  transform: translate(-50%, -50%) scale(1.05);
+}
+
 .formGroup input:focus,
 .formGroup select:focus,
 .formGroupWide input:focus {

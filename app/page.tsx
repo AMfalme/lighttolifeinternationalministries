@@ -64,17 +64,30 @@ export default function Home() {
   const [imageError, setImageError] = useState(false);
 
   const activeFounderGallery = React.useMemo<FounderGalleryImage[]>(() => {
-    const founderLabel = featuredFounders[activeFounderIndex]?.displayName || "Founder";
-    const gallery = carouselImages.slice(0, 5).map((image, index) => ({
-      src: image.url,
-      alt: `${founderLabel} ministry photo ${index + 1}`,
-    }));
+    const founder = featuredFounders[activeFounderIndex] || featuredFounders[0];
+    const founderLabel = founder?.displayName || "Founder";
 
-    if (gallery.length) {
-      return gallery;
+    // Prefer images uploaded for this leader: pastorGallery then churchGallery
+    const memberGallerySrcs: string[] = [];
+    if (founder) {
+      if (Array.isArray((founder as any).pastorGallery) && (founder as any).pastorGallery.length) {
+        memberGallerySrcs.push(...(founder as any).pastorGallery.map(String));
+      } else if (Array.isArray((founder as any).churchGallery) && (founder as any).churchGallery.length) {
+        memberGallerySrcs.push(...(founder as any).churchGallery.map(String));
+      }
     }
 
-    const fallbackImage = featuredFounders[activeFounderIndex]?.pastorImageURL;
+    if (memberGallerySrcs.length) {
+      return memberGallerySrcs.slice(0, 5).map((src, index) => ({ src, alt: `${founderLabel} ministry photo ${index + 1}` }));
+    }
+
+    // Fallback to dashboard carousel images if the member has no gallery
+    if (carouselImages && carouselImages.length) {
+      return carouselImages.slice(0, 5).map((image, index) => ({ src: image.url, alt: `${founderLabel} ministry photo ${index + 1}` }));
+    }
+
+    // Last resort: single portrait
+    const fallbackImage = founder?.pastorImageURL;
     if (fallbackImage) {
       return [{ src: fallbackImage, alt: `${founderLabel} portrait` }];
     }

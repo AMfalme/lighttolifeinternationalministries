@@ -114,6 +114,8 @@ export default function DashboardTeamPage() {
   const [saving, setSaving] = useState(false);
   const [videoUploading, setVideoUploading] = useState(false);
   const [videoUploadError, setVideoUploadError] = useState<string | null>(null);
+  const [showVideoLibrary, setShowVideoLibrary] = useState(false);
+  const [librarySelection, setLibrarySelection] = useState<Record<string, boolean>>({});
   const [creatingMember, setCreatingMember] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [formData, setFormData] = useState<TeamMemberForm>(emptyForm());
@@ -397,6 +399,40 @@ export default function DashboardTeamPage() {
     });
   }, []);
 
+  const allUploadedVideos = useMemo(() => {
+    const urls = teamMembers.flatMap((m) => (m.videos || []).map((v) => String(v).trim()).filter(Boolean));
+    // dedupe preserving order
+    const seen = new Set<string>();
+    return urls.filter((u) => (seen.has(u) ? false : seen.add(u)));
+  }, [teamMembers]);
+
+  const openVideoLibrary = () => {
+    const initial: Record<string, boolean> = {};
+    allUploadedVideos.forEach((u) => (initial[u] = false));
+    setLibrarySelection(initial);
+    setShowVideoLibrary(true);
+  };
+
+  const toggleLibraryItem = (url: string) => {
+    setLibrarySelection((prev) => ({ ...prev, [url]: !prev[url] }));
+  };
+
+  const addSelectedLibraryVideos = () => {
+    const selected = Object.keys(librarySelection).filter((k) => librarySelection[k]);
+    if (!selected.length) {
+      setShowVideoLibrary(false);
+      return;
+    }
+
+    setFormData((current) => {
+      const currentVideos = current.videos.split(/\n|,/).map((i) => i.trim()).filter(Boolean);
+      const merged = Array.from(new Set([...currentVideos, ...selected]));
+      return { ...current, videos: merged.join(", ") };
+    });
+
+    setShowVideoLibrary(false);
+  };
+
   const getVideoLabel = (url: string, index: number) => {
     try {
       const pathname = new URL(url).pathname;
@@ -404,6 +440,25 @@ export default function DashboardTeamPage() {
       return fileName || `Video ${index + 1}`;
     } catch {
       return `Video ${index + 1}`;
+    }
+  };
+
+  const getVideoPoster = (url: string) => {
+    try {
+      const u = new URL(url);
+      const host = u.hostname || "";
+      // Cloudinary-hosted videos: build an auto-generated image transform
+      if (host.includes("res.cloudinary.com") || host.includes("cloudinary.com")) {
+        const parts = url.split('/upload/');
+        if (parts.length === 2) {
+          // Request an auto-formatted image variant; replace video extension with jpg
+          const transformed = parts[0] + '/upload/w_320,h_180,c_fill,g_auto,f_auto/' + parts[1].replace(/\.(mp4|webm|ogg)(\?.*)?$/i, '.jpg');
+          return transformed;
+        }
+      }
+      return "";
+    } catch (e) {
+      return "";
     }
   };
 
@@ -756,6 +811,9 @@ export default function DashboardTeamPage() {
                         <input type="file" accept="video/*" multiple onChange={handleVideoUpload} disabled={videoUploading} aria-label="Upload videos" />
                         {videoUploading ? "Uploading videos..." : "Upload branch videos"}
                       </label>
+                        <button type="button" onClick={openVideoLibrary} className={styles.addButton} style={{ marginLeft: 12 }}>
+                          Choose existing videos
+                        </button>
                       <div className={styles.hint}>Upload video files to Cloudinary. They will be saved automatically and used on the branch page.</div>
                       {videoUploadError ? <div className={styles.videoError}>{videoUploadError}</div> : null}
                       {videoUrls.length ? (
@@ -776,6 +834,45 @@ export default function DashboardTeamPage() {
                       ) : (
                         <div className={styles.hint}>No branch videos uploaded yet.</div>
                       )}
+                    </div>
+                    {/* Video library modal */}
+                    <div className={`${styles.modal} ${showVideoLibrary ? styles.active : ""}`} role="dialog" aria-modal="true">
+                      <div className={styles.modalContent}>
+                        <h2>Select existing uploaded videos</h2>
+                        <p className={styles.hint}>Choose from videos already uploaded to other branch profiles. Selected items will be added to this branch's video list.</p>
+                        {allUploadedVideos.length ? (
+                          <div style={{ display: "grid", gap: 10 }}>
+                            {allUploadedVideos.map((url, idx) => {
+                              const poster = getVideoPoster(url);
+                              return (
+                                <label key={url} style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, borderRadius: 10, border: "1px solid rgba(148,163,184,0.12)" }}>
+                                  <input type="checkbox" checked={Boolean(librarySelection[url])} onChange={() => toggleLibraryItem(url)} />
+                                  <div className={styles.videoThumbWrapper as any}>
+                                    {poster ? (
+                                      <img src={poster} alt={getVideoLabel(url, idx)} className={styles.videoThumb as any} />
+                                    ) : (
+                                      <video src={url} className={styles.videoThumbVideo as any} muted playsInline loop preload="metadata" />
+                                    )}
+                                    <span className={styles.videoThumbPlay as any} aria-hidden>▶</span>
+                                  </div>
+                                  <div style={{ flex: 1 }}>
+                                    <strong style={{ display: "block" }}>{getVideoLabel(url, idx)}</strong>
+                                    <span style={{ color: "var(--text-muted)", fontSize: 13, wordBreak: "break-all" }}>{url}</span>
+                                  </div>
+                                  <a href={url} target="_blank" rel="noreferrer" style={{ color: "#1d4ed8", fontWeight: 700 }}>Preview</a>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className={styles.hint}>No uploaded videos found across branches yet.</p>
+                        )}
+
+                        <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 16 }}>
+                          <button type="button" className={styles.cancelBtn} onClick={() => setShowVideoLibrary(false)}>Close</button>
+                          <button type="button" className={styles.saveBtn} onClick={addSelectedLibraryVideos}>Add selected</button>
+                        </div>
+                      </div>
                     </div>
                     <div className={styles.formGroup}>
                       <label htmlFor="phoneNumber">Phone Number</label>
