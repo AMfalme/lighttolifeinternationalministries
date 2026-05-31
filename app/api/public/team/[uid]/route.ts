@@ -6,6 +6,7 @@ type BranchDocumentData = {
   displayName?: string;
   branchLocation?: string;
   branchAddress?: string;
+  branchMapUrl?: string;
   branchDescription?: string;
   pastorDescription?: string;
   pastorTitle?: string;
@@ -21,6 +22,7 @@ type TeamMemberDocumentData = {
   branchKey?: string;
   branchLocation?: string;
   branchAddress?: string;
+  branchMapUrl?: string;
   branchDescription?: string;
   pastorDescription?: string;
   pastorImageURL?: string;
@@ -185,6 +187,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
           pastorTitle: member.pastorTitle || branchData?.pastorTitle || "",
           branchLocation: branchData?.branchLocation || member.branchLocation || "Church Branch",
           branchAddress: branchData?.branchAddress || member.branchAddress || "",
+          branchMapUrl: branchData?.branchMapUrl || member.branchMapUrl || "",
           branchDescription:
             branchData?.branchDescription ||
             member.branchDescription ||
@@ -211,6 +214,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
           pastorTitle: branchData?.pastorTitle || "",
           branchLocation: branchData?.branchLocation || "Church Branch",
           branchAddress: branchData?.branchAddress || "",
+          branchMapUrl: branchData?.branchMapUrl || "",
           branchDescription:
             branchData?.branchDescription ||
             "A vibrant church community with worship, teaching, and ministry designed to serve every family.",

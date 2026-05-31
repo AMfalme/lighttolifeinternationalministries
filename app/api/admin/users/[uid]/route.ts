@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/app/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 
+const extractMapUrl = (value?: string) => {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+
+  const iframeMatch = trimmed.match(/src=["']([^"']+)["']/i);
+  const url = iframeMatch?.[1] || trimmed;
+  return String(url || "").replace(/&amp;/gi, "&");
+};
+
 const requireAdmin = async (request: NextRequest) => {
   const header = request.headers.get("authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
@@ -37,6 +46,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ u
     const body = await request.json();
     const displayName = String(body.displayName || "").trim();
     const branchLocation = String(body.branchLocation || "").trim();
+    const branchMapUrl = extractMapUrl(body.branchMapUrl);
     const phoneNumber = String(body.phoneNumber || "").trim();
     const role = String(body.role || "user").trim();
 
@@ -63,6 +73,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ u
       {
         displayName,
         branchLocation,
+        branchMapUrl,
         phoneNumber,
         role,
         updatedAt: FieldValue.serverTimestamp(),
@@ -70,7 +81,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ u
       { merge: true },
     );
 
-    return NextResponse.json({ uid, displayName, branchLocation, phoneNumber, role });
+    return NextResponse.json({ uid, displayName, branchLocation, branchMapUrl, phoneNumber, role });
   } catch (error) {
     console.error("User update error:", error);
     return NextResponse.json({ error: "Failed to update user." }, { status: 500 });

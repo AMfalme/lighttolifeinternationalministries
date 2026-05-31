@@ -44,11 +44,11 @@ export default function Footer() {
             <h4 className={pageStyles.footerTitle}>Contact</h4>
             <p className={pageStyles.footerText}>
               <strong>Email:</strong><br />
-              info@lighttolife.org
+              francisakaki@lighttolifeinternationalministries.org
             </p>
             <p className={pageStyles.footerText}>
               <strong>Phone:</strong><br />
-              +1 (555) 123-4567
+              +254 796 789443
             </p>
           </div>
         </div>

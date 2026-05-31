@@ -141,6 +141,7 @@ export async function PATCH(
     const { uid } = await params;
 
     const body = await request.json();
+    const targetUid = String(body.existingUid || uid).trim() || uid;
 
     console.log("RAW REQUEST BODY:", body);
 
@@ -198,11 +199,11 @@ export async function PATCH(
     ).trim();
 
     const branchKey = toBranchKey(
-      branchLocation || uid
+      branchLocation || targetUid
     );
 
     console.log("NORMALIZED DATA:", {
-      uid,
+      uid: targetUid,
       branchLocation,
       branchKey,
       pastorGallery,
@@ -220,11 +221,12 @@ export async function PATCH(
     let authUpdateWarning = "";
 
     try {
-      await adminAuth().updateUser(uid, {
+      await adminAuth().updateUser(targetUid, {
         displayName,
         email,
         photoURL: pastorImageURL || undefined,
       });
+      await adminAuth().setCustomUserClaims(targetUid, { role: "leadership" });
     } catch (authError) {
       authUpdateWarning =
         authError instanceof Error
@@ -239,7 +241,7 @@ export async function PATCH(
 
     await adminDb()
       .collection("users")
-      .doc(uid)
+      .doc(targetUid)
       .set(
         {
           displayName,
@@ -301,7 +303,7 @@ export async function PATCH(
     }
 
     return NextResponse.json({
-      uid,
+      uid: targetUid,
       displayName,
       pastorTitle,
       email,

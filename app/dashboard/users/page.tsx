@@ -13,7 +13,17 @@ type ManagedUser = {
   displayName?: string;
   role?: string;
   branchLocation?: string;
+  branchMapUrl?: string;
   phoneNumber?: string;
+};
+
+const extractMapUrl = (value?: string) => {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+
+  const iframeMatch = trimmed.match(/src=["']([^"']+)["']/i);
+  const url = iframeMatch?.[1] || trimmed;
+  return String(url || "").replace(/&amp;/gi, "&");
 };
 
 export default function UsersPage() {
@@ -63,6 +73,7 @@ export default function UsersPage() {
           displayName: data.displayName || "",
           role: data.role || "user",
           branchLocation: data.branchLocation || "",
+          branchMapUrl: extractMapUrl(data.branchMapUrl),
           phoneNumber: data.phoneNumber || "",
         } as ManagedUser;
       });
@@ -136,6 +147,7 @@ export default function UsersPage() {
           role: u.role || "user",
           displayName: u.displayName || "",
           branchLocation: u.branchLocation || "",
+            branchMapUrl: extractMapUrl(u.branchMapUrl),
           phoneNumber: u.phoneNumber || "",
         }),
       });
@@ -272,6 +284,19 @@ export default function UsersPage() {
                     />
                   </div>
                   <div className={styles.formGroup}>
+                    <label>Location Map URL or Embed Code</label>
+                    <input
+                      type="text"
+                      value={selectedUser.branchMapUrl || ""}
+                      onChange={(event) =>
+                        setUsersList((prev) =>
+                          prev.map((item) => (item.id === selectedUser.id ? { ...item, branchMapUrl: event.target.value } : item)),
+                        )
+                      }
+                      placeholder='Paste the copied iframe src or the full <iframe ...> embed code'
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
                     <label>Phone Number</label>
                     <input
                       type="tel"
@@ -316,6 +341,7 @@ export default function UsersPage() {
                       <th>Name</th>
                       <th>Role</th>
                       <th>Branch Location</th>
+                      <th>Location Map</th>
                       <th>Phone</th>
                       <th>Actions</th>
                     </tr>
@@ -344,12 +370,30 @@ export default function UsersPage() {
                           )}
                         </td>
                         <td>{u.branchLocation || "—"}</td>
+                        <td>
+                          {u.branchMapUrl ? (
+                            <a href={u.branchMapUrl} target="_blank" rel="noreferrer">
+                              View map
+                            </a>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                         <td>{u.phoneNumber || "—"}</td>
                         <td>
                           {currentUserRole === "admin" || currentUserRole === "leadership" ? (
-                            <button onClick={() => void saveUser(u)} className={styles.submitBtn}>
-                              {savingUserId === u.id ? "Saving..." : "Save"}
-                            </button>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedUserId(u.id)}
+                                className={styles.submitBtn}
+                              >
+                                Edit
+                              </button>
+                              <button type="button" onClick={() => void saveUser(u)} className={styles.submitBtn}>
+                                {savingUserId === u.id ? "Saving..." : "Save"}
+                              </button>
+                            </div>
                           ) : (
                             <span>—</span>
                           )}

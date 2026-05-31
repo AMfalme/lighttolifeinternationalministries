@@ -7,6 +7,7 @@ export interface userDetails {
   photoURL?: string;
   phoneNumber?: string;
   branchLocation?: string; // e.g., "Mosocho (Main church headquarters)", "Nyanchwa", "Omogwa"
+  branchMapUrl?: string;
   role?: UserRole; // admin or leadership
   createdAt?: Date;
   updatedAt?: Date;

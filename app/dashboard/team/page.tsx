@@ -28,6 +28,15 @@ interface TeamMember {
   createdAt?: string;
 }
 
+type AuthUserOption = {
+  id: string;
+  email: string;
+  displayName?: string;
+  role?: string;
+  branchLocation?: string;
+  phoneNumber?: string;
+};
+
 // type UserOption = {
 //   id: string;
 //   email: string;
@@ -108,6 +117,9 @@ export default function DashboardTeamPage() {
   const [creatingMember, setCreatingMember] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [formData, setFormData] = useState<TeamMemberForm>(emptyForm());
+  const [authUsers, setAuthUsers] = useState<AuthUserOption[]>([]);
+  const [loadingAuthUsers, setLoadingAuthUsers] = useState(false);
+  const [selectedAuthUserId, setSelectedAuthUserId] = useState("");
   const editorRef = useRef<HTMLDivElement | null>(null);
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim() || "";
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim() || "";
@@ -166,9 +178,53 @@ export default function DashboardTeamPage() {
 
     setTeamMembers(payload.members || []);
   };
+
+  const loadAuthUsers = useCallback(async () => {
+    setLoadingAuthUsers(true);
+
+    try {
+      const fsConfig = await import("@/app/lib/firebase/config");
+      const db = fsConfig.db;
+      if (!db) {
+        setAuthUsers([]);
+        return;
+      }
+
+      const { collection, getDocs } = await import("firebase/firestore");
+      const snapshot = await getDocs(collection(db, "users"));
+      const nextUsers = snapshot.docs
+        .map((document) => {
+          const data: any = document.data();
+          return {
+            id: document.id,
+            email: data.email || "",
+            displayName: data.displayName || "",
+            role: data.role || "user",
+            branchLocation: data.branchLocation || "",
+            phoneNumber: data.phoneNumber || "",
+          } as AuthUserOption;
+        })
+        .filter((item) => item.email);
+
+      setAuthUsers(nextUsers);
+    } catch (error) {
+      console.error("Error loading auth users for leadership picker:", error);
+      setAuthUsers([]);
+    } finally {
+      setLoadingAuthUsers(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    void loadAuthUsers();
+  }, [loadAuthUsers, user]);
+
   const openEditForm = (member: TeamMember) => {
     setCreatingMember(false);
     setEditingMember(member);
+    const matchedUser = authUsers.find((item) => item.email.toLowerCase() === member.email.toLowerCase());
+    setSelectedAuthUserId(matchedUser?.id || "");
     setFormData({
       displayName: member.displayName,
       pastorTitle: member.pastorTitle || "",
@@ -198,11 +254,21 @@ export default function DashboardTeamPage() {
   const openCreateForm = () => {
     setCreatingMember(true);
     setEditingMember(null);
+    setSelectedAuthUserId("");
     setFormData(emptyForm());
     requestAnimationFrame(() => {
       editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   };
+
+  useEffect(() => {
+    if (!editingMember || creatingMember) {
+      return;
+    }
+
+    const matchedUser = authUsers.find((item) => item.email.toLowerCase() === editingMember.email.toLowerCase());
+    setSelectedAuthUserId((current) => current || matchedUser?.id || "");
+  }, [authUsers, creatingMember, editingMember]);
 
   const getAuthToken = async () => {
     const firebaseAuth = await import("firebase/auth");
@@ -377,6 +443,8 @@ export default function DashboardTeamPage() {
     try {
       const token = await getAuthToken();
       const url = creatingMember ? "/api/admin/team" : `/api/admin/team/${editingMember?.uid}`;
+      const selectedAuthUser = authUsers.find((item) => item.id === selectedAuthUserId) || null;
+      const selectedUserRole = selectedAuthUser?.role || "user";
       const churchGalleryList = formData.churchGallery;
       const pastorGalleryList = formData.pastorGallery;
       console.log("Submitting leadership data:", {
@@ -401,6 +469,7 @@ export default function DashboardTeamPage() {
         },
         body: JSON.stringify({
           ...formData,
+          existingUid: selectedAuthUser?.id || undefined,
           pastorTitle: formData.pastorTitle || "",
           pastorGallery: pastorGalleryList,
           churchGallery: churchGalleryList,
@@ -416,7 +485,29 @@ export default function DashboardTeamPage() {
             throw new Error(payload?.error || "Unable to save leadership.");
       }
 
+      if (selectedAuthUser && selectedUserRole !== "leadership") {
+        const promoteResponse = await fetch(`/api/admin/users/${selectedAuthUser.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            displayName: formData.displayName,
+            branchLocation: formData.branchLocation,
+            phoneNumber: formData.phoneNumber,
+            role: "leadership",
+          }),
+        });
+
+        const promotePayload = await promoteResponse.json();
+        if (!promoteResponse.ok) {
+          throw new Error(promotePayload?.error || "Unable to promote the selected user to leadership.");
+        }
+      }
+
       await refreshMembers();
+      await loadAuthUsers();
       closeEditor();
           alert(creatingMember ? "Leadership created successfully!" : "Leadership updated successfully!");
     } catch (error) {
@@ -518,8 +609,49 @@ export default function DashboardTeamPage() {
                       <input id="pastorTitle" type="text" value={formData.pastorTitle} onChange={(event) => setFormData({ ...formData, pastorTitle: event.target.value })} placeholder="Enter title, for example Lead Pastor" />
                     </div>
                     <div className={styles.formGroup}>
+                      <label htmlFor="authUserId">Select authenticated user</label>
+                      <select
+                        id="authUserId"
+                        value={selectedAuthUserId}
+                        onChange={(event) => {
+                          const nextUserId = event.target.value;
+                          setSelectedAuthUserId(nextUserId);
+
+                          if (!nextUserId) {
+                            return;
+                          }
+
+                          const selectedUser = authUsers.find((item) => item.id === nextUserId);
+                          if (selectedUser) {
+                            setFormData((current) => ({
+                              ...current,
+                              email: selectedUser.email,
+                              displayName: current.displayName || selectedUser.displayName || current.displayName,
+                            }));
+                          }
+                        }}
+                      >
+                        <option value="">{loadingAuthUsers ? "Loading users..." : "Choose an existing authenticated user"}</option>
+                        {authUsers.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.displayName || item.email} {item.role ? `(${item.role})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <div className={styles.hint}>Selecting a user will use their Firestore auth profile and promote them to leadership on save if needed.</div>
+                    </div>
+                    <div className={styles.formGroup}>
                       <label htmlFor="email">Email</label>
-                      <input id="email" type="email" value={formData.email} onChange={(event) => setFormData({ ...formData, email: event.target.value })} placeholder="Enter email address" disabled={!creatingMember} />
+                      <input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(event) => {
+                          setSelectedAuthUserId("");
+                          setFormData({ ...formData, email: event.target.value });
+                        }}
+                        placeholder="Enter or override email address"
+                      />
                     </div>
                     <div className={styles.formGroup}>
                       <label htmlFor="branchLocation">Branch Location</label>

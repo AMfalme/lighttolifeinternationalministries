@@ -1,15 +1,47 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardSidebar from "@/app/components/DashboardSidebar/DashboardSidebar";
 import { DashboardLoading } from "./loading";
 import styles from "./dashboard.module.css";
 import ImageUpload from "@/app/components/ImageUpload/ImageUpload";
 import { useFastAuth } from "@/app/lib/firebase/useFastAuth";
+import { applyTheme, getStoredTheme, type Theme } from "@/app/lib/theme";
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading } = useFastAuth("/login");
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!profileMenuRef.current) return;
+      if (!profileMenuRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setProfileMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   if (loading) {
     return <DashboardLoading />;
@@ -32,41 +64,116 @@ export default function DashboardPage() {
         <DashboardSidebar onLogout={handleLogout} />
         <main className={styles.main}>
           <header className={styles.header}>
-            <div>
-              <h1>Welcome back, {user?.displayName || user?.email}! 👋</h1>
-              <p>Manage your missionary website and community</p>
+            <div className={styles.welcomeCard}>
+              <div className={styles.welcomeAvatar} aria-hidden>
+                {user?.photoURL ? (
+                  <img src={user.photoURL} alt="avatar" />
+                ) : (
+                  <span>{(user?.displayName || user?.email || "U").slice(0,1).toUpperCase()}</span>
+                )}
+              </div>
+              <div className={styles.welcomeContent}>
+                <h1>Welcome back, {user?.displayName || user?.email || 'User'}! 👋</h1>
+                <p className={styles.welcomeSubtitle}>Manage your missionary website and community</p>
+              </div>
+              <div className={styles.welcomeActions} ref={profileMenuRef}>
+                <button
+                  type="button"
+                  className={styles.profileTrigger}
+                  aria-expanded={profileMenuOpen}
+                  aria-label="Open profile menu"
+                  onClick={() => setProfileMenuOpen((open) => !open)}
+                >
+                  <span className={styles.profileTriggerAvatar} aria-hidden>
+                    {user?.photoURL ? (
+                      <img src={user.photoURL} alt="" />
+                    ) : (
+                      <span>{(user?.displayName || user?.email || "U").slice(0, 1).toUpperCase()}</span>
+                    )}
+                  </span>
+                  <span className={styles.profileTriggerText}>
+                    <strong>Profile</strong>
+                    <small>Quick actions</small>
+                  </span>
+                  <span className={styles.profileTriggerChevron} aria-hidden>▾</span>
+                </button>
+
+                {profileMenuOpen ? (
+                  <div className={styles.profileMenu} role="menu" aria-label="Profile actions">
+                    <div className={styles.profileMenuSection}>
+                      <span className={styles.profileMenuLabel}>Appearance</span>
+                      <div className={styles.themeToggleGroup} role="radiogroup" aria-label="Theme">
+                        {(["light", "dark"] as Theme[]).map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            className={`${styles.themeBtn} ${theme === option ? styles.active : ""}`}
+                            onClick={() => {
+                              setTheme(option);
+                              setProfileMenuOpen(false);
+                            }}
+                          >
+                            {option === "light" ? "☀️ Light" : "🌙 Dark"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className={styles.profileMenuSection}>
+                      <span className={styles.profileMenuLabel}>Account</span>
+                      <a href="/dashboard/profile" className={styles.profileMenuLink} onClick={() => setProfileMenuOpen(false)}>
+                        👤 Profile
+                      </a>
+                      <a href="/dashboard/settings" className={styles.profileMenuLink} onClick={() => setProfileMenuOpen(false)}>
+                        ⚙️ Settings
+                      </a>
+                    </div>
+
+                    <div className={styles.profileMenuSection}>
+                      <span className={styles.profileMenuLabel}>Navigation</span>
+                      <a href="/" className={styles.profileMenuLink} onClick={() => setProfileMenuOpen(false)}>
+                        🏠 Go To Homepage
+                      </a>
+                      <button type="button" onClick={handleLogout} className={styles.profileMenuDanger}>
+                        🚪 Logout
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </header>
-          <div className={styles.stats}>
-            <div className={styles.card}>
+          <div className={styles.stats} role="list">
+            <div className={`${styles.card} ${styles.statCard}`} role="listitem">
               <div className={styles.cardIcon}>📊</div>
-              <h3>Missions</h3>
-              <p>15</p>
+              <div className={styles.statText}>
+                <h4>Missions</h4>
+                <strong>15</strong>
+              </div>
             </div>
-            <div className={styles.card}>
+            <div className={`${styles.card} ${styles.statCard}`} role="listitem">
               <div className={styles.cardIcon}>💰</div>
-              <h3>Donations</h3>
-              <p>$50,000</p>
+              <div className={styles.statText}>
+                <h4>Donations</h4>
+                <strong>$50,000</strong>
+              </div>
             </div>
-            <div className={styles.card}>
+            <div className={`${styles.card} ${styles.statCard}`} role="listitem">
               <div className={styles.cardIcon}>🙋</div>
-              <h3>Volunteers</h3>
-              <p>200</p>
+              <div className={styles.statText}>
+                <h4>Volunteers</h4>
+                <strong>200</strong>
+              </div>
             </div>
-            <div className={styles.card}>
+            <div className={`${styles.card} ${styles.statCard}`} role="listitem">
               <div className={styles.cardIcon}>📚</div>
-              <h3>Students Sponsored</h3>
-              <p>200</p>
+              <div className={styles.statText}>
+                <h4>Students</h4>
+                <strong>200</strong>
+              </div>
             </div>
           </div>
           <div className={styles.content}>
-            <section className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <h2>🖼️ Image Library</h2>
-                <p className={styles.sectionSubtitle}>Upload images and select them later in other dashboard sections.</p>
-              </div>
-              <ImageUpload />
-            </section>
             <section className={styles.section}>
               <div className={styles.sectionHeader}>
                 <h2>📝 Manage Site</h2>

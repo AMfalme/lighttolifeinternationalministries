@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "./components/Navbar/Navbar";
 import TeamSection from "./components/TeamSection/TeamSection";
 import styles from "./page.module.css";
@@ -26,6 +26,31 @@ type PublicTeamMember = {
   email?: string;
 };
 
+type FounderGalleryImage = {
+  src: string;
+  alt: string;
+};
+
+const getBranchPriority = (member: PublicTeamMember) => {
+  const branchKey = String(member.branchKey || "").toLowerCase();
+  const branchLocation = String(member.branchLocation || "").toLowerCase();
+  const displayName = String(member.displayName || "").toLowerCase();
+
+  if (branchKey.includes("mosocho") || branchLocation.includes("mosocho") || displayName.includes("bishop")) {
+    return 0;
+  }
+
+  if (branchKey.includes("omogwa") || branchLocation.includes("omogwa") || displayName.includes("reverend")) {
+    return 1;
+  }
+
+  if (branchKey.includes("nyanchwa") || branchLocation.includes("nyanchwa") || displayName.includes("pastor")) {
+    return 2;
+  }
+
+  return 3;
+};
+
 export default function Home() {
 
   const { user, loading: authLoading } = useFastAuth();
@@ -33,7 +58,41 @@ export default function Home() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showEditor, setShowEditor] = useState(false);
   const [role, setRole] = useState<string | null>(null);
-  const [featuredFounder, setFeaturedFounder] = useState<PublicTeamMember | null>(null);
+  const [featuredFounders, setFeaturedFounders] = useState<PublicTeamMember[]>([]);
+  const [activeFounderIndex, setActiveFounderIndex] = useState(0);
+  const [announcement, setAnnouncement] = useState("");
+  const [imageError, setImageError] = useState(false);
+
+  const activeFounderGallery = React.useMemo<FounderGalleryImage[]>(() => {
+    const founderLabel = featuredFounders[activeFounderIndex]?.displayName || "Founder";
+    const gallery = carouselImages.slice(0, 5).map((image, index) => ({
+      src: image.url,
+      alt: `${founderLabel} ministry photo ${index + 1}`,
+    }));
+
+    if (gallery.length) {
+      return gallery;
+    }
+
+    const fallbackImage = featuredFounders[activeFounderIndex]?.pastorImageURL;
+    if (fallbackImage) {
+      return [{ src: fallbackImage, alt: `${founderLabel} portrait` }];
+    }
+
+    return [];
+  }, [activeFounderIndex, carouselImages, featuredFounders]);
+
+  useEffect(() => {
+    const member = featuredFounders[activeFounderIndex];
+    if (!member) return;
+    const label = member.displayName || `Leader ${activeFounderIndex + 1}`;
+    setAnnouncement(`${label} selected`);
+  }, [activeFounderIndex, featuredFounders]);
+
+  // Reset image error state whenever the active founder changes
+  useEffect(() => {
+    setImageError(false);
+  }, [activeFounderIndex, featuredFounders]);
 
   useEffect(() => {
     let mounted = true;
@@ -89,10 +148,18 @@ export default function Home() {
 
         if (!mounted) return;
         const members = payload.members || [];
-        setFeaturedFounder(members[0] || null);
+        const orderedMembers = [...members]
+          .sort((left, right) => getBranchPriority(left) - getBranchPriority(right))
+          .slice(0, 3);
+
+        setFeaturedFounders(orderedMembers);
+        setActiveFounderIndex(0);
       } catch (error) {
         console.error("Error loading founder spotlight:", error);
-        if (mounted) setFeaturedFounder(null);
+        if (mounted) {
+          setFeaturedFounders([]);
+          setActiveFounderIndex(0);
+        }
       }
     })();
 
@@ -116,8 +183,8 @@ export default function Home() {
   }, [carouselImages.length]);
 
   // touch/swipe support
-  const touchStartX = useRef<number | null>(null);
-  const touchEndX = useRef<number | null>(null);
+  const touchStartX = React.useRef<number | null>(null);
+  const touchEndX = React.useRef<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -207,22 +274,66 @@ export default function Home() {
           </div>
         </section>
 
-        {featuredFounder ? (
+        {featuredFounders.length ? (() => {
+          const activeFounder = featuredFounders[Math.min(activeFounderIndex, featuredFounders.length - 1)] || featuredFounders[0];
+          const founderTitleLabel = activeFounder.pastorTitle || "Branch Title";
+          const founderTitleContext = activeFounder.branchLocation
+            ? ` (${activeFounder.branchLocation}${/mosocho/i.test(String(activeFounder.branchLocation)) ? ", Main headquarter" : ""})`
+            : "";
+
+          return (
           <section className={styles.founderSection} id="founder">
             <div className={styles.sectionContainer}>
-              <div className={styles.founderCard}>
-                <div className={styles.founderMedia}>
+              <div className={styles.founderTabsWrap}>
+                <div className={styles.founderTabs} role="radiogroup" aria-label="Leadership branches">
+                  {featuredFounders.map((member, index) => {
+                    const isActive = member.uid === activeFounder?.uid;
+                    const tabId = `founder-tab-${member.uid}`;
+                    const panelId = `founder-panel-${member.uid}`;
+                    return (
+                      <div key={member.uid} className={styles.founderTabItem}>
+                        <input
+                          id={tabId}
+                          type="radio"
+                          name="featured-founder-tab"
+                          className={styles.founderTabInput}
+                          checked={isActive}
+                          onChange={() => setActiveFounderIndex(index)}
+                          aria-controls={panelId}
+                          aria-label={member.displayName || `Leader ${index + 1}`}
+                        />
+                        <label
+                          htmlFor={tabId}
+                          className={`${styles.founderTab} ${isActive ? styles.founderTabActive : ""}`}
+                        >
+                          <span className={styles.founderTabName}>{member.displayName || `Leader ${index + 1}`}</span>
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div aria-live="polite" aria-atomic="true" className={styles.visuallyHidden}>{announcement}</div>
+
+                <div className={styles.founderCard}>
+                <div className={styles.founderMedia} id={`founder-panel-${activeFounder.uid}`} role="tabpanel" aria-labelledby={`founder-tab-${activeFounder.uid}`}>
                   <div className={styles.founderPortrait}>
-                    {featuredFounder.pastorImageURL ? (
+                    {activeFounder.pastorImageURL && !imageError ? (
                       <Image
-                        src={featuredFounder.pastorImageURL}
-                        alt={featuredFounder.displayName || "Bishop Francis Akaki"}
+                        src={activeFounder.pastorImageURL}
+                        alt={
+                          `${activeFounder.displayName || "Founder"} — ${activeFounder.pastorTitle || activeFounder.branchLocation || "Leader"}`
+                        }
                         fill
                         sizes="(max-width: 768px) 100vw, 320px"
                         className={styles.founderImage}
+                        onError={() => setImageError(true)}
+                        onLoad={() => setImageError(false)}
                       />
                     ) : (
-                      <span>{(featuredFounder.displayName || "B").slice(0, 1).toUpperCase()}</span>
+                      <span aria-hidden={false} role="img" aria-label={`${activeFounder.displayName || "Founder"}`} title={`${activeFounder.displayName || "Founder"}`}>
+                        {(activeFounder.displayName || "B").slice(0, 1).toUpperCase()}
+                      </span>
                     )}
                   </div>
                   <div className={styles.founderBadge}>Founder</div>
@@ -230,52 +341,115 @@ export default function Home() {
 
                 <div className={styles.founderCopy}>
                   <span className={styles.sectionLabel}>FOUNDATION</span>
-                  <h2 className={styles.founderTitle}>
-                    {featuredFounder.displayName || "Bishop Francis Akaki"}
-                  </h2>
-                  <p className={styles.founderRole}>
-                    {featuredFounder.pastorTitle || featuredFounder.branchLocation || "Mosocho Main Headquarters"}
+                  <dl className={styles.founderDetails}>
+                    <div className={styles.founderDetailRow}>
+                      <dt className={styles.founderDetailLabel}>Name</dt>
+                      <dd className={styles.founderDetailValue}>{activeFounder.displayName || "Branch Leader"}</dd>
+                    </div>
+                    <div className={styles.founderDetailRow}>
+                      <dt className={styles.founderDetailLabel}>Title</dt>
+                      <dd className={styles.founderDetailValue}>
+                        {founderTitleLabel}
+                        <span className={styles.founderDetailNote}>{founderTitleContext}</span>
+                      </dd>
+                    </div>
+                    <div className={styles.founderDetailRow}>
+                      <dt className={styles.founderDetailLabel}>Role</dt>
+                      <dd className={styles.founderDetailValue}>
+                        {activeFounder.branchKey ? `${activeFounder.branchKey} branch leadership` : "Branch leadership"}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className={styles.founderSummary}>
+                    {activeFounder.branchDescription ||
+                      activeFounder.pastorDescription ||
+                      `${activeFounder.displayName || "This leader"} serves with a heart for people, a clear vision for the branch, and a commitment to spiritual growth and community care.`}
                   </p>
-                  <p className={styles.founderDescription}>
-                    {featuredFounder.pastorDescription || featuredFounder.branchDescription || "The founding voice behind the Mosocho main headquarters and the ministry's leadership heartbeat."}
-                  </p>
-
                   <div className={styles.founderLinks}>
-                    {featuredFounder.phoneNumber ? (
-                      <a className={styles.founderLink} href={`tel:${featuredFounder.phoneNumber.replace(/\s+/g, "")}`}>
-                        Call {featuredFounder.phoneNumber}
+                    {activeFounder.phoneNumber ? (
+                      <a className={styles.founderLink} href={`tel:${activeFounder.phoneNumber.replace(/\s+/g, "")}`}>
+                        Call {activeFounder.phoneNumber}
                       </a>
                     ) : null}
-                    {featuredFounder.email ? (
-                      <a className={styles.founderLink} href={`mailto:${featuredFounder.email}`}>
-                        Email {featuredFounder.email}
+                    {activeFounder.email ? (
+                      <a className={styles.founderLink} href={`mailto:${activeFounder.email}`}>
+                        Email {activeFounder.email}
                       </a>
                     ) : null}
-                    {featuredFounder.branchAddress ? (
+                    {activeFounder.branchAddress ? (
                       <a
                         className={styles.founderLink}
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(featuredFounder.branchAddress)}`}
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeFounder.branchAddress)}`}
                         target="_blank"
                         rel="noreferrer"
                       >
                         View location
                       </a>
                     ) : null}
-                    <Link className={styles.founderLink} href={`/team/${featuredFounder.branchKey || featuredFounder.uid}`}>
+                    <Link className={styles.founderLink} href={`/team/${activeFounder.branchKey || activeFounder.uid}`}>
                       Full profile
                     </Link>
+                  </div>
+                  <div className={styles.founderGalleryWrap}>
+                    <div className={styles.founderGalleryHeader}>
+                      <span className={styles.founderGalleryLabel}>Featured moments</span>
+                      <span className={styles.founderGalleryHint}>{Math.min(activeFounderGallery.length, 5)} photos</span>
+                    </div>
+                    {activeFounderGallery.length ? (
+                      <div className={styles.founderGallery} aria-label={`${activeFounder.displayName || "Founder"} gallery`}>
+                        {activeFounderGallery.slice(0, 5).map((photo) => (
+                          <figure key={photo.src} className={styles.founderGalleryItem}>
+                            <Image
+                              src={photo.src}
+                              alt={photo.alt}
+                              fill
+                              sizes="(max-width: 768px) 48vw, 120px"
+                              className={styles.founderGalleryImage}
+                            />
+                          </figure>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className={styles.founderGalleryEmpty}>
+                        <span>No extra photos available yet</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           </section>
-        ) : null}
+          );
+        })() : null}
 
         <section className={styles.verseBanner}>
           <div className={styles.verseBannerContent}>
             <p className={styles.verseBannerText}>
               <strong>John 8:12</strong> — Jesus said, <em>"I am the light of the world. Whoever follows me will never walk in darkness, but will have the light of life."</em>
             </p>
+          </div>
+        </section>
+
+        <section className={styles.versesSection} id="verses">
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeader}>
+              <span className={styles.sectionLabel}>QUOTABLE VERSES</span>
+              <h2 className={styles.sectionHeading}>Favorite Verses</h2>
+              <p className={styles.sectionDescription}>Verses the ministry holds dear — a small selection to inspire and guide.</p>
+            </div>
+
+            <div className={styles.versesGrid}>
+              <div className={styles.verseCard}>
+                <blockquote className={styles.verseQuote}>
+                  <strong>John 8:32</strong> — <em>"And you will know the truth, and the truth will set you free."</em>
+                </blockquote>
+              </div>
+              <div className={styles.verseCard}>
+                <blockquote className={styles.verseQuote}>
+                  <strong>Matthew 6:33</strong> — <em>"But seek first the kingdom of God and his righteousness, and all these things will be added to you."</em>
+                </blockquote>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -462,8 +636,8 @@ export default function Home() {
                   "Light to Life changed everything for my family. My children now attend school because of their scholarship program. God bless this ministry."
                 </div>
                 <div className={styles.testimonialAuthor}>
-                  <strong>Grace Chijioke</strong>
-                  <span>Lagos, Nigeria</span>
+                  <strong>Grace Kwamboka</strong>
+                  <span>Omogwa, Kisii</span>
                 </div>
               </div>
 
@@ -472,8 +646,8 @@ export default function Home() {
                   "The spiritual guidance and mentorship I received here gave me direction when I was lost. I've found my purpose in serving others."
                 </div>
                 <div className={styles.testimonialAuthor}>
-                  <strong>David Nnamdi</strong>
-                  <span>Enugu, Nigeria</span>
+                  <strong>David Nnamdi Mogire</strong>
+                  <span>Keumbu, Kisii</span>
                 </div>
               </div>
 
@@ -482,8 +656,8 @@ export default function Home() {
                   "As a beneficiary of their healthcare initiative, I witnessed God's compassion in action. The care and dignity shown was remarkable."
                 </div>
                 <div className={styles.testimonialAuthor}>
-                  <strong>Comfort Okafor</strong>
-                  <span>Port Harcourt, Nigeria</span>
+                  <strong>Comfort Mayore</strong>
+                  <span>Nyanchwa, Kisii</span>
                 </div>
               </div>
 
@@ -492,8 +666,8 @@ export default function Home() {
                   "Volunteering with this ministry opened my eyes to what faith-driven action looks like. It's transformed my entire perspective on life."
                 </div>
                 <div className={styles.testimonialAuthor}>
-                  <strong>Joshua Adebayo</strong>
-                  <span>Accra, Ghana</span>
+                  <strong>Joshua Naipanoi</strong>
+                  <span>Mosocho, Kisii</span>
                 </div>
               </div>
             </div>

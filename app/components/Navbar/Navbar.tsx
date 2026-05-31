@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { applyTheme, getStoredTheme, type Theme } from "@/app/lib/theme";
 import styles from "./navbar.module.css";
@@ -21,10 +21,12 @@ export default function Navbar() {
   const [theme, setTheme] = useState<Theme>("light");
   const [isOpen, setIsOpen] = useState(false);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
   const navItems = useMemo<NavItem[]>(
     () => [
@@ -145,6 +147,28 @@ export default function Navbar() {
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!profileMenuRef.current) return;
+      if (!(event.target instanceof Node)) return;
+      if (!profileMenuRef.current.contains(event.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setProfileMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
   const handleTopLevelClick = (item: NavItem, event: MouseEvent<HTMLAnchorElement>) => {
     if (!item.subItems.length || !isMobile) {
       setIsOpen(false);
@@ -223,52 +247,85 @@ export default function Navbar() {
         </div>
       </nav>
 
-      <div className={styles.navActions}>
+      <div className={styles.navActions} ref={profileMenuRef}>
         {!authLoading && !user ? (
           <>
             <Link className={styles.authLink} href="/login">Login</Link>
             <Link className={styles.authLink} href="/register">Register</Link>
+            <Link className={styles.navButton} href="/donate">Support Us</Link>
           </>
         ) : !authLoading && user ? (
-          <Link className={styles.authLink} href="/dashboard">Dashboard</Link>
-        ) : null}
-        <Link className={styles.navButton} href="/donate">Support Us</Link>
+          <>
+            <button
+              type="button"
+              className={styles.profileTrigger}
+              aria-expanded={profileMenuOpen}
+              aria-label="Open account menu"
+              onClick={() => setProfileMenuOpen((open) => !open)}
+            >
+              <span className={styles.profileTriggerAvatar} aria-hidden>
+                {user?.photoURL ? (
+                  <img src={user.photoURL} alt="" />
+                ) : (
+                  <span>{(user?.displayName || user?.email || "M").slice(0, 1).toUpperCase()}</span>
+                )}
+              </span>
+              <span className={styles.profileTriggerText}>
+                <strong>{user.displayName || "My Account"}</strong>
+                <small>Theme, dashboard, logout</small>
+              </span>
+              <span className={styles.profileTriggerChevron} aria-hidden>▾</span>
+            </button>
 
-        {user && !authLoading && (
-          <button
-            className={styles.authLink}
-            onClick={async () => {
-              try {
-                await import("@/app/lib/firebase/config");
-                const firebaseAuth = await import("firebase/auth");
-                const auth = firebaseAuth.getAuth();
-                await firebaseAuth.signOut(auth);
-              } catch (e) {
-                console.error("Navbar logout error:", e);
-              }
-              router.push("/");
-            }}
-          >
-            Logout
-          </button>
-        )}
-        <label className={styles.switch}>
-          <input
-            type="checkbox"
-            className={styles.switchInput}
-            checked={theme === "dark"}
-            onChange={() => {
-              const nextTheme: Theme = theme === "light" ? "dark" : "light";
-              setTheme(nextTheme);
-              applyTheme(nextTheme);
-            }}
-            aria-label={theme === "light" ? "Enable dark theme" : "Enable light theme"}
-          />
-          <span className={styles.switchSlider}>
-            <span className={`${styles.switchIcon} ${styles.sunIcon}`} aria-hidden="true">☀</span>
-            <span className={`${styles.switchIcon} ${styles.moonIcon}`} aria-hidden="true">☾</span>
-          </span>
-        </label>
+            {profileMenuOpen ? (
+              <div className={styles.profileMenu} role="menu" aria-label="Account menu">
+                <div className={styles.profileMenuSection}>
+                  <span className={styles.profileMenuLabel}>Theme</span>
+                  <div className={styles.themeToggleGroup} role="radiogroup" aria-label="Theme">
+                    {(["light", "dark"] as Theme[]).map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        className={`${styles.themeBtn} ${theme === option ? styles.active : ""}`}
+                        onClick={() => {
+                          setTheme(option);
+                          applyTheme(option);
+                          setProfileMenuOpen(false);
+                        }}
+                      >
+                        {option === "light" ? "☀️ Light" : "🌙 Dark"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className={styles.profileMenuSection}>
+                  <span className={styles.profileMenuLabel}>Account</span>
+                  <Link className={styles.profileMenuLink} href="/dashboard" onClick={() => setProfileMenuOpen(false)}>Dashboard</Link>
+                  <Link className={styles.profileMenuLink} href="/dashboard/profile" onClick={() => setProfileMenuOpen(false)}>Profile</Link>
+                  <button
+                    type="button"
+                    className={styles.profileMenuDanger}
+                    onClick={async () => {
+                      try {
+                        await import("@/app/lib/firebase/config");
+                        const firebaseAuth = await import("firebase/auth");
+                        const auth = firebaseAuth.getAuth();
+                        await firebaseAuth.signOut(auth);
+                      } catch (e) {
+                        console.error("Navbar logout error:", e);
+                      }
+                      setProfileMenuOpen(false);
+                      router.push("/");
+                    }}
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </>
+        ) : null}
       </div>
     </header>
   );

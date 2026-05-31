@@ -14,6 +14,7 @@ type TeamBranchDetail = {
   pastorTitle?: string;
   branchLocation: string;
   branchAddress?: string;
+  branchMapUrl?: string;
   branchDescription?: string;
   pastorDescription?: string;
   pastorImageURL?: string;
@@ -28,6 +29,7 @@ type BranchDocumentData = {
   branchKey?: string;
   branchLocation?: string;
   branchAddress?: string;
+  branchMapUrl?: string;
   branchDescription?: string;
   pastorDescription?: string;
   pastorTitle?: string;
@@ -43,6 +45,7 @@ type TeamMemberDocumentData = {
   branchKey?: string;
   branchLocation?: string;
   branchAddress?: string;
+  branchMapUrl?: string;
   branchDescription?: string;
   pastorDescription?: string;
   pastorImageURL?: string;
@@ -66,6 +69,14 @@ const toBranchKey = (value: string) =>
 
 const buildMapEmbedUrl = (address?: string) =>
   address ? `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed` : "";
+
+const normalizeMapUrl = (value?: string) => {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+  const iframeMatch = trimmed.match(/src=["']([^"']+)["']/i);
+  const url = iframeMatch?.[1] || trimmed;
+  return String(url || "").replace(/&amp;/gi, "&");
+};
 
 const isPlayableVideo = (value: string) => /res\.cloudinary\.com|\.(mp4|webm|ogg)(\?|$)/i.test(value);
 
@@ -197,12 +208,13 @@ export default function TeamMemberBranchPage() {
   );
   const churchGalleryImages = Array.from(
     new Set(
-      ((member.churchGallery && member.churchGallery.length ? member.churchGallery : member.pastorGallery) || [])
+      ((member.churchGallery && member?.churchGallery.length ? member.churchGallery : member.pastorGallery) || [])
         .filter((image): image is string => Boolean(image)),
     ),
   );
   const pastorPrimaryImage = member.pastorImageURL || pastorGalleryImages[0] || "";
-  const mapEmbedUrl = buildMapEmbedUrl(member.branchAddress);
+  const mapEmbedUrl = normalizeMapUrl(member.branchMapUrl) || buildMapEmbedUrl(member.branchAddress);
+  const mapLinkUrl = normalizeMapUrl(member.branchMapUrl) || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(member.branchAddress || member.branchLocation)}`;
 
   return (
     <>
@@ -321,8 +333,8 @@ export default function TeamMemberBranchPage() {
             <article className={styles.mapCard}>
               <div className={styles.cardHeader}>
                 <h3>Branch Map</h3>
-                {member.branchAddress ? (
-                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(member.branchAddress)}`} target="_blank" rel="noreferrer">
+                {member.branchAddress || member.branchMapUrl ? (
+                  <a href={mapLinkUrl} target="_blank" rel="noreferrer">
                     Open in Maps
                   </a>
                 ) : null}
