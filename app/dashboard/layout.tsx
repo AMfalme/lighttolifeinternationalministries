@@ -1,7 +1,14 @@
+import DashboardTopBar from "@/app/components/DashboardTopBar/DashboardTopBar";
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <>
+      <DashboardTopBar />
+      {children}
+    </>
+  );
 }

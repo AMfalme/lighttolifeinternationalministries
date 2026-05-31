@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { applyTheme, getStoredTheme, type Theme } from "@/app/lib/theme";
 import styles from "@/app/dashboard/dashboard.module.css";
 import { useFastAuth } from "@/app/lib/firebase/useFastAuth";
 import { db } from "@/app/lib/firebase/config";
@@ -14,6 +15,8 @@ type DashboardSidebarProps = {
 export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
   const { user, loading } = useFastAuth("/login");
   const [role, setRole] = useState<string | null>(null);
+  const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -39,6 +42,35 @@ export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target;
+      const trigger = document.querySelector("[data-dashboard-profile-trigger]");
+      const menu = document.querySelector("[data-dashboard-profile-menu]");
+      if (!(target instanceof Node)) return;
+      if (trigger?.contains(target) || menu?.contains(target)) return;
+      setProfileMenuOpen(false);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setProfileMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  useEffect(() => {
     if (mobileOpen) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "unset";
 
@@ -52,6 +84,77 @@ export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
       <div className={styles.mobileHeader}>
         <div className={styles.mobileBrand}>
           <Image src="/logo.jpeg" alt="Light to Life" width={140} height={64} className={styles.logo} priority />
+        </div>
+        <div className={styles.sidebarProfileActions}>
+          <button
+            type="button"
+            className={styles.profileTrigger}
+            aria-expanded={profileMenuOpen}
+            aria-label="Open dashboard profile menu"
+            data-dashboard-profile-trigger
+            onClick={() => setProfileMenuOpen((open) => !open)}
+          >
+            <span className={styles.profileTriggerAvatar} aria-hidden>
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="" />
+              ) : (
+                <span>{(user?.displayName || user?.email || "D").slice(0, 1).toUpperCase()}</span>
+              )}
+            </span>
+          </button>
+
+          {profileMenuOpen ? (
+            <div className={styles.profileMenu} role="menu" aria-label="Dashboard profile menu" data-dashboard-profile-menu>
+              <div className={styles.profileMenuSection}>
+                <span className={styles.profileMenuLabel}>Appearance</span>
+                <div className={styles.themeToggleGroup} role="radiogroup" aria-label="Theme">
+                  {(["light", "dark"] as Theme[]).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={`${styles.themeBtn} ${theme === option ? styles.active : ""}`}
+                      onClick={() => {
+                        setTheme(option);
+                        setProfileMenuOpen(false);
+                      }}
+                    >
+                      {option === "light" ? "☀️ Light" : "🌙 Dark"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.profileMenuSection}>
+                <span className={styles.profileMenuLabel}>Account</span>
+                <a href="/dashboard/profile" className={styles.profileMenuLink} onClick={() => setProfileMenuOpen(false)}>
+                  👤 Profile
+                </a>
+                <a href="/dashboard/settings" className={styles.profileMenuLink} onClick={() => setProfileMenuOpen(false)}>
+                  ⚙️ Settings
+                </a>
+              </div>
+
+              <div className={styles.profileMenuSection}>
+                <span className={styles.profileMenuLabel}>Navigation</span>
+                <a href="/dashboard" className={styles.profileMenuLink} onClick={() => setProfileMenuOpen(false)}>
+                  🎛️ Dashboard
+                </a>
+                <a href="/" className={styles.profileMenuLink} onClick={() => setProfileMenuOpen(false)}>
+                  🏠 Go To Homepage
+                </a>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setProfileMenuOpen(false);
+                    await onLogout();
+                  }}
+                  className={styles.profileMenuDanger}
+                >
+                  🚪 Logout
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
         <button
           aria-label={mobileOpen ? 'Close menu' : 'Open menu'}

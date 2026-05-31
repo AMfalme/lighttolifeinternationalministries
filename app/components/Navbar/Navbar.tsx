@@ -34,9 +34,9 @@ export default function Navbar() {
         label: "About Us",
         href: "/#about",
         subItems: [
-          { label: "Mission", href: "/#features" },
-          { label: "About", href: "/#about" },
-          { label: "Team", href: "/#leadership" },
+          { label: "Main Branch", href: "/team/mosocho" },
+          { label: "Nyanchwa Branch", href: "/team/nyanchwa" },
+          { label: "Omogwa Branch", href: "/team/omogwa" },
         ],
       },
       {
@@ -225,23 +225,31 @@ export default function Navbar() {
               <Link className={styles.authLink} href="/register" onClick={() => setIsOpen(false)}>Register</Link>
             </>
           ) : !authLoading && user ? (
-            <button
-              className={styles.authLink}
-              onClick={async () => {
-                try {
-                  await import("@/app/lib/firebase/config");
-                  const firebaseAuth = await import("firebase/auth");
-                  const auth = firebaseAuth.getAuth();
-                  await firebaseAuth.signOut(auth);
-                } catch (e) {
-                  console.error("Navbar logout error:", e);
-                }
-                setIsOpen(false);
-                router.push("/");
-              }}
-            >
-              Logout
-            </button>
+            <>
+              <Link className={styles.authLink} href="/dashboard" onClick={() => setIsOpen(false)}>
+                Dashboard
+              </Link>
+              <Link className={styles.authLink} href="/dashboard/profile" onClick={() => setIsOpen(false)}>
+                Profile
+              </Link>
+              <button
+                className={styles.authLink}
+                onClick={async () => {
+                  try {
+                    await import("@/app/lib/firebase/config");
+                    const firebaseAuth = await import("firebase/auth");
+                    const auth = firebaseAuth.getAuth();
+                    await firebaseAuth.signOut(auth);
+                  } catch (e) {
+                    console.error("Navbar logout error:", e);
+                  }
+                  setIsOpen(false);
+                  router.push("/");
+                }}
+              >
+                Logout
+              </button>
+            </>
           ) : null}
           <Link className={styles.navButton} href="/donate" onClick={() => setIsOpen(false)}>Support Us</Link>
         </div>
@@ -270,11 +278,6 @@ export default function Navbar() {
                   <span>{(user?.displayName || user?.email || "M").slice(0, 1).toUpperCase()}</span>
                 )}
               </span>
-              <span className={styles.profileTriggerText}>
-                <strong>{user.displayName || "My Account"}</strong>
-                <small>Theme, dashboard, logout</small>
-              </span>
-              <span className={styles.profileTriggerChevron} aria-hidden>▾</span>
             </button>
 
             {profileMenuOpen ? (

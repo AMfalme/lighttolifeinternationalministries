@@ -1,47 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import DashboardSidebar from "@/app/components/DashboardSidebar/DashboardSidebar";
 import { DashboardLoading } from "./loading";
 import styles from "./dashboard.module.css";
 import ImageUpload from "@/app/components/ImageUpload/ImageUpload";
 import { useFastAuth } from "@/app/lib/firebase/useFastAuth";
-import { applyTheme, getStoredTheme, type Theme } from "@/app/lib/theme";
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading } = useFastAuth("/login");
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
-  const profileMenuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
-
-  useEffect(() => {
-    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
-      if (!profileMenuRef.current) return;
-      if (!profileMenuRef.current.contains(event.target as Node)) {
-        setProfileMenuOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setProfileMenuOpen(false);
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("touchstart", handlePointerDown);
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("touchstart", handlePointerDown);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, []);
 
   if (loading) {
     return <DashboardLoading />;
@@ -75,71 +44,6 @@ export default function DashboardPage() {
               <div className={styles.welcomeContent}>
                 <h1>Welcome back, {user?.displayName || user?.email || 'User'}! 👋</h1>
                 <p className={styles.welcomeSubtitle}>Manage your missionary website and community</p>
-              </div>
-              <div className={styles.welcomeActions} ref={profileMenuRef}>
-                <button
-                  type="button"
-                  className={styles.profileTrigger}
-                  aria-expanded={profileMenuOpen}
-                  aria-label="Open profile menu"
-                  onClick={() => setProfileMenuOpen((open) => !open)}
-                >
-                  <span className={styles.profileTriggerAvatar} aria-hidden>
-                    {user?.photoURL ? (
-                      <img src={user.photoURL} alt="" />
-                    ) : (
-                      <span>{(user?.displayName || user?.email || "U").slice(0, 1).toUpperCase()}</span>
-                    )}
-                  </span>
-                  <span className={styles.profileTriggerText}>
-                    <strong>Profile</strong>
-                    <small>Quick actions</small>
-                  </span>
-                  <span className={styles.profileTriggerChevron} aria-hidden>▾</span>
-                </button>
-
-                {profileMenuOpen ? (
-                  <div className={styles.profileMenu} role="menu" aria-label="Profile actions">
-                    <div className={styles.profileMenuSection}>
-                      <span className={styles.profileMenuLabel}>Appearance</span>
-                      <div className={styles.themeToggleGroup} role="radiogroup" aria-label="Theme">
-                        {(["light", "dark"] as Theme[]).map((option) => (
-                          <button
-                            key={option}
-                            type="button"
-                            className={`${styles.themeBtn} ${theme === option ? styles.active : ""}`}
-                            onClick={() => {
-                              setTheme(option);
-                              setProfileMenuOpen(false);
-                            }}
-                          >
-                            {option === "light" ? "☀️ Light" : "🌙 Dark"}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className={styles.profileMenuSection}>
-                      <span className={styles.profileMenuLabel}>Account</span>
-                      <a href="/dashboard/profile" className={styles.profileMenuLink} onClick={() => setProfileMenuOpen(false)}>
-                        👤 Profile
-                      </a>
-                      <a href="/dashboard/settings" className={styles.profileMenuLink} onClick={() => setProfileMenuOpen(false)}>
-                        ⚙️ Settings
-                      </a>
-                    </div>
-
-                    <div className={styles.profileMenuSection}>
-                      <span className={styles.profileMenuLabel}>Navigation</span>
-                      <a href="/" className={styles.profileMenuLink} onClick={() => setProfileMenuOpen(false)}>
-                        🏠 Go To Homepage
-                      </a>
-                      <button type="button" onClick={handleLogout} className={styles.profileMenuDanger}>
-                        🚪 Logout
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
               </div>
             </div>
           </header>
