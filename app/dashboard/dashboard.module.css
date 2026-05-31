@@ -214,8 +214,8 @@
   gap: 0;
   padding: 6px;
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
   color: var(--text-main);
   cursor: pointer;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
@@ -255,9 +255,9 @@
   width: min(320px, calc(100vw - 32px));
   padding: 14px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.6);
   z-index: 30;
   display: grid;
   gap: 12px;
@@ -267,7 +267,7 @@
   display: grid;
   gap: 8px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  border-bottom: 1px solid var(--surface-border);
 }
 
 .profileMenuSection:last-child {
@@ -308,6 +308,24 @@
 }
 
 .profileMenuLink:hover,
+.profileMenuLink,
+.profileMenuDanger,
+.themeBtn {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--button-secondary-border);
+  background: var(--button-secondary-bg);
+  color: var(--text-main);
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.profileMenuLink:hover,
 .profileMenuDanger:hover,
 .themeBtn:hover {
   border-color: rgba(37, 99, 235, 0.28);
@@ -316,27 +334,14 @@
 
 .profileMenuDanger {
   cursor: pointer;
-  background: rgba(254, 242, 242, 0.92);
-  color: #b91c1c;
+  background: rgba(220, 38, 38, 0.08);
+  color: #fca5a5;
 }
 
 .themeBtn.active {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: white;
   border-color: #2563eb;
-}
-
-.header h1 {
-  color: var(--text-main);
-  font-size: 2rem;
-  margin: 0 0 8px 0;
-  font-weight: 700;
-}
-
-.header p {
-  color: var(--text-muted);
-  margin: 0;
-  font-size: 1rem;
 }
 
 /* STATS CARDS */
