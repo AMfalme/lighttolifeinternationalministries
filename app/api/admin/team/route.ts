@@ -48,6 +48,22 @@ type BranchDocumentData = {
   pastorGallery?: string[];
   churchGallery?: string[];
   videos?: string[];
+  branchHistory?: string;
+  pastorBiography?: string;
+  churchStory?: string;
+  vision?: string;
+  futureDirection?: string;
+  visionGoals?: string[];
+  directors?: BranchFeatureItem[];
+  projects?: BranchFeatureItem[];
+};
+
+type BranchFeatureItem = {
+  id?: string;
+  imageURL?: string;
+  name?: string;
+  role?: string;
+  description?: string;
 };
 
 type TeamMemberDocumentData = {
@@ -61,6 +77,14 @@ type TeamMemberDocumentData = {
   pastorImageURL?: string;
   pastorGallery?: string[];
   churchGallery?: string[];
+  branchHistory?: string;
+  pastorBiography?: string;
+  churchStory?: string;
+  vision?: string;
+  futureDirection?: string;
+  visionGoals?: string[];
+  directors?: BranchFeatureItem[];
+  projects?: BranchFeatureItem[];
   phoneNumber?: string;
   email?: string;
   role?: string;
@@ -101,7 +125,81 @@ const normalizeGalleryValue = (
   return [];
 };
 
+const normalizeTextList = (value: string[] | string | undefined | null) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(/\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+const normalizeFeatureItems = (
+  value: Array<BranchFeatureItem | string> | string | undefined | null,
+) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item, index) => {
+        if (typeof item === "string") {
+          const trimmed = item.trim();
+          if (!trimmed) return null;
+
+          return {
+            id: `item-${index}-${trimmed}`,
+            imageURL: "",
+            name: trimmed,
+            role: "",
+            description: "",
+          } satisfies BranchFeatureItem;
+        }
+
+        if (!item || typeof item !== "object") {
+          return null;
+        }
+
+        const imageURL = typeof item.imageURL === "string" ? item.imageURL.trim() : "";
+        const name = typeof item.name === "string" ? item.name.trim() : "";
+        const role = typeof item.role === "string" ? item.role.trim() : "";
+        const description = typeof item.description === "string" ? item.description.trim() : "";
+
+        if (!imageURL && !name && !role && !description) {
+          return null;
+        }
+
+        return {
+          id: item.id || `item-${index}`,
+          imageURL,
+          name,
+          role,
+          description,
+        } satisfies BranchFeatureItem;
+      })
+      .filter(Boolean) as BranchFeatureItem[];
+  }
+
+  if (typeof value === "string") {
+    return normalizeTextList(value).map((item, index) => ({
+      id: `item-${index}-${item}`,
+      imageURL: "",
+      name: item,
+      role: "",
+      description: "",
+    })) as BranchFeatureItem[];
+  }
+
+  return [];
+};
+
 const pickBranchGallery = (branchData?: BranchDocumentData | null) => branchData?.churchGallery || [];
+
+const pickBranchFeatureItems = (...candidates: Array<BranchFeatureItem[] | undefined>) =>
+  candidates.find((candidate) => Array.isArray(candidate) && candidate.length) || [];
 
 const normalize = (value: string) => makeBranchKey(value || "");
 
@@ -157,6 +255,14 @@ export async function GET(request: NextRequest) {
         pastorGallery: pickNonEmptyGallery(branchData?.pastorGallery, normalizeGalleryValue(member.pastorGallery)),
         churchGallery: pickNonEmptyGallery(pickBranchGallery(branchData), normalizeGalleryValue(member.churchGallery)),
         videos: Array.isArray(branchData?.videos) ? branchData.videos : [],
+        branchHistory: member.branchHistory || branchData?.branchHistory || "",
+        pastorBiography: member.pastorBiography || branchData?.pastorBiography || "",
+        churchStory: member.churchStory || branchData?.churchStory || "",
+        vision: member.vision || branchData?.vision || "",
+        futureDirection: member.futureDirection || branchData?.futureDirection || "",
+        visionGoals: normalizeTextList(branchData?.visionGoals || member.visionGoals),
+        directors: pickBranchFeatureItems(normalizeFeatureItems(branchData?.directors), normalizeFeatureItems(member.directors)),
+        projects: pickBranchFeatureItems(normalizeFeatureItems(branchData?.projects), normalizeFeatureItems(member.projects)),
         phoneNumber: member.phoneNumber || "",
         email: member.email || "",
       };
@@ -183,6 +289,14 @@ const createTeamMember = async ({
   pastorGallery,
   churchGallery,
   videos,
+  branchHistory,
+  pastorBiography,
+  churchStory,
+  vision,
+  futureDirection,
+  visionGoals,
+  directors,
+  projects,
   phoneNumber,
 }: {
   existingUid?: string;
@@ -198,6 +312,14 @@ const createTeamMember = async ({
   pastorGallery: string[];
   churchGallery: string[];
   videos: string[];
+  branchHistory: string;
+  pastorBiography: string;
+  churchStory: string;
+  vision: string;
+  futureDirection: string;
+  visionGoals: string[];
+  directors: BranchFeatureItem[];
+  projects: BranchFeatureItem[];
   phoneNumber: string;
 }) => {
   const authUser = existingUid
@@ -231,6 +353,14 @@ const createTeamMember = async ({
     pastorGallery,
     churchGallery,
     videos: Array.isArray(videos) ? videos : [],
+    branchHistory,
+    pastorBiography,
+    churchStory,
+    vision,
+    futureDirection,
+    visionGoals: Array.isArray(visionGoals) ? visionGoals : [],
+    directors: normalizeFeatureItems(directors),
+    projects: normalizeFeatureItems(projects),
     phoneNumber,
     role: "leadership",
     createdAt: FieldValue.serverTimestamp(),
@@ -250,11 +380,19 @@ const createTeamMember = async ({
       pastorDescription,
       pastorImageURL,
       updatedAt: FieldValue.serverTimestamp(),
+      branchHistory,
+      pastorBiography,
+      churchStory,
+      vision,
+      futureDirection,
+      visionGoals: Array.isArray(visionGoals) ? visionGoals : [],
     };
 
     if (Array.isArray(pastorGallery) && pastorGallery.length) branchPayload.pastorGallery = pastorGallery;
     if (Array.isArray(churchGallery) && churchGallery.length) branchPayload.churchGallery = churchGallery;
     if (Array.isArray(videos) && videos.length) branchPayload.videos = videos;
+    if (Array.isArray(directors) && directors.length) branchPayload.directors = normalizeFeatureItems(directors);
+    if (Array.isArray(projects) && projects.length) branchPayload.projects = normalizeFeatureItems(projects);
 
     await adminDb().collection("branches").doc(branchKey).set(branchPayload, { merge: true });
   } catch (e) {
@@ -285,6 +423,14 @@ export async function POST(request: NextRequest) {
     const pastorImageURL = String(body.pastorImageURL || "").trim();
     const pastorGallery = normalizeGalleryValue(body.pastorGallery);
     const churchGallery = normalizeGalleryValue(body.churchGallery);
+    const branchHistory = String(body.branchHistory || "").trim();
+    const pastorBiography = String(body.pastorBiography || "").trim();
+    const churchStory = String(body.churchStory || "").trim();
+    const vision = String(body.vision || "").trim();
+    const futureDirection = String(body.futureDirection || "").trim();
+    const visionGoals = normalizeTextList(body.visionGoals);
+    const directors = normalizeFeatureItems(body.directors);
+    const projects = normalizeFeatureItems(body.projects);
     const videos = Array.isArray(body.videos)
       ? body.videos.map((v: string) => String(v).trim()).filter(Boolean)
       : String(body.videos || "")
@@ -345,6 +491,14 @@ export async function POST(request: NextRequest) {
       pastorGallery,
       churchGallery,
       videos,
+      branchHistory,
+      pastorBiography,
+      churchStory,
+      vision,
+      futureDirection,
+      visionGoals,
+      directors,
+      projects,
       phoneNumber,
       existingUid: resolvedUid || undefined,
     });
@@ -359,6 +513,14 @@ export async function POST(request: NextRequest) {
         phoneNumber,
         pastorGallery,
         pastorImageURL: pastorImageURL || "",
+        branchHistory,
+        pastorBiography,
+        churchStory,
+        vision,
+        futureDirection,
+        visionGoals,
+        directors,
+        projects,
       },
       { status: 201 },
     );

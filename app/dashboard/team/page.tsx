@@ -26,6 +26,14 @@ interface TeamMember {
   videos?: string[];
   phoneNumber?: string;
   createdAt?: string;
+  branchHistory?: string;
+  pastorBiography?: string;
+  churchStory?: string;
+  vision?: string;
+  futureDirection?: string;
+  visionGoals?: string[];
+  directors?: BranchFeatureItem[];
+  projects?: BranchFeatureItem[];
 }
 
 type AuthUserOption = {
@@ -59,6 +67,14 @@ type TeamMemberForm = {
   videos: string;
   phoneNumber: string;
   password: string;
+  branchHistory: string;
+  pastorBiography: string;
+  churchStory: string;
+  vision: string;
+  futureDirection: string;
+  visionGoals: string; // comma/newline separated
+  directors: BranchFeatureItem[];
+  projects: BranchFeatureItem[];
 };
 
 type MediaUploadResult = {
@@ -85,7 +101,23 @@ const emptyForm = (): TeamMemberForm => ({
   videos: "",
   phoneNumber: "",
   password: "",
+  branchHistory: "",
+  pastorBiography: "",
+  churchStory: "",
+  vision: "",
+  futureDirection: "",
+  visionGoals: "",
+  directors: [],
+  projects: [],
 });
+
+type BranchFeatureItem = {
+  id?: string;
+  imageURL?: string;
+  name?: string;
+  role?: string;
+  description?: string;
+};
 
 const resolvePrimaryImageUrl = (member: Pick<TeamMember, "pastorImageURL">) =>
   member.pastorImageURL || "";
@@ -241,6 +273,14 @@ export default function DashboardTeamPage() {
       videos: parseGalleryUrls(member.videos).join(", "),
       phoneNumber: member.phoneNumber || "",
       password: "",
+      branchHistory: member.branchHistory || "",
+      pastorBiography: member.pastorBiography || "",
+      churchStory: member.churchStory || "",
+      vision: member.vision || "",
+      futureDirection: member.futureDirection || "",
+      visionGoals: Array.isArray(member.visionGoals) ? (member.visionGoals || []).join(", ") : "",
+      directors: member.directors || [],
+      projects: member.projects || [],
     });
     requestAnimationFrame(() => {
       editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -472,6 +512,51 @@ export default function DashboardTeamPage() {
     setFormData((current) => ({ ...current, churchGallery: nextGallery }));
   }, []);
 
+  // Directors / Projects management
+  const addDirector = () => {
+    setFormData((current) => ({
+      ...current,
+      directors: [
+        ...current.directors,
+        { id: `dir-${Date.now()}`, imageURL: "", name: "", role: "", description: "" },
+      ],
+    }));
+  };
+
+  const updateDirectorField = (index: number, field: keyof BranchFeatureItem, value: string) => {
+    setFormData((current) => {
+      const next = current.directors.slice();
+      next[index] = { ...(next[index] || {}), [field]: value };
+      return { ...current, directors: next };
+    });
+  };
+
+  const removeDirector = (index: number) => {
+    setFormData((current) => ({ ...current, directors: current.directors.filter((_, i) => i !== index) }));
+  };
+
+  const addProject = () => {
+    setFormData((current) => ({
+      ...current,
+      projects: [
+        ...current.projects,
+        { id: `proj-${Date.now()}`, imageURL: "", name: "", role: "", description: "" },
+      ],
+    }));
+  };
+
+  const updateProjectField = (index: number, field: keyof BranchFeatureItem, value: string) => {
+    setFormData((current) => {
+      const next = current.projects.slice();
+      next[index] = { ...(next[index] || {}), [field]: value };
+      return { ...current, projects: next };
+    });
+  };
+
+  const removeProject = (index: number) => {
+    setFormData((current) => ({ ...current, projects: current.projects.filter((_, i) => i !== index) }));
+  };
+
   const handleSubmit = async () => {
     if (!editingMember && !creatingMember) {
       alert("Select a leadership account to edit or create a new one.");
@@ -516,6 +601,11 @@ export default function DashboardTeamPage() {
         churchGalleryCount: churchGalleryList.length,
       });
 
+      const visionGoalsList = formData.visionGoals
+        .split(/\n|,/) // allow newline or comma separated
+        .map((item) => item.trim())
+        .filter(Boolean);
+
       const response = await fetch(url, {
         method: creatingMember ? "POST" : "PATCH",
         headers: {
@@ -529,9 +619,10 @@ export default function DashboardTeamPage() {
           pastorGallery: pastorGalleryList,
           churchGallery: churchGalleryList,
           videos: formData.videos
-            .split(/\n|,/)
+            .split(/\n|,/) 
             .map((item) => item.trim())
             .filter(Boolean),
+          visionGoals: visionGoalsList,
         }),
       });
 
@@ -802,6 +893,105 @@ export default function DashboardTeamPage() {
                       <label htmlFor="pastorDescription">Pastor Description</label>
                       <textarea id="pastorDescription" value={formData.pastorDescription} onChange={(event) => setFormData({ ...formData, pastorDescription: event.target.value })} placeholder="Short bio or description of the pastor." rows={3} />
                     </div>
+                    <div className={styles.formGroupWide}>
+                      <label htmlFor="branchHistory">Branch History</label>
+                      <textarea id="branchHistory" value={formData.branchHistory} onChange={(event) => setFormData({ ...formData, branchHistory: event.target.value })} placeholder="Write the history of this church branch." rows={5} />
+                    </div>
+
+                    <div className={styles.formGroupWide}>
+                      <label htmlFor="pastorBiography">Pastor Biography</label>
+                      <textarea id="pastorBiography" value={formData.pastorBiography} onChange={(event) => setFormData({ ...formData, pastorBiography: event.target.value })} placeholder="Detailed biography of the pastor (education, ministry background, etc)." rows={5} />
+                    </div>
+
+                    <div className={styles.formGroupWide}>
+                      <label htmlFor="churchStory">Church Story</label>
+                      <textarea id="churchStory" value={formData.churchStory} onChange={(event) => setFormData({ ...formData, churchStory: event.target.value })} placeholder="The story of the church and its mission." rows={5} />
+                    </div>
+
+                    <div className={styles.formGroupWide}>
+                      <label htmlFor="vision">Vision</label>
+                      <textarea id="vision" value={formData.vision} onChange={(event) => setFormData({ ...formData, vision: event.target.value })} placeholder="Branch vision or long-term goals." rows={3} />
+                    </div>
+
+                    <div className={styles.formGroupWide}>
+                      <label htmlFor="futureDirection">Future Direction</label>
+                      <textarea id="futureDirection" value={formData.futureDirection} onChange={(event) => setFormData({ ...formData, futureDirection: event.target.value })} placeholder="Where the branch is heading (projects, expansion, community goals)." rows={3} />
+                    </div>
+
+                    <div className={styles.formGroupWide}>
+                      <label htmlFor="visionGoals">Vision Goals (one per line or comma separated)</label>
+                      <textarea id="visionGoals" value={formData.visionGoals} onChange={(event) => setFormData({ ...formData, visionGoals: event.target.value })} placeholder="e.g. Build a school, Open an orphanage" rows={3} />
+                    </div>
+
+                    <section className={styles.featureSection}>
+                      <div className={styles.mediaSectionHeader}>
+                        <h3>Directors</h3>
+                        <p>Add directors for various dockets (children, outreach, etc.). Include image URL, name, role and a brief description.</p>
+                      </div>
+
+                      {formData.directors.map((director, idx) => (
+                        <div key={director.id || idx} className={styles.featureItem}>
+                          <div className={styles.formGroup}>
+                            <label>Image URL</label>
+                            <input type="text" value={director.imageURL || ""} onChange={(e) => updateDirectorField(idx, "imageURL", e.target.value)} placeholder="https://..." />
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label>Name</label>
+                            <input type="text" value={director.name || ""} onChange={(e) => updateDirectorField(idx, "name", e.target.value)} placeholder="Director name" />
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label>Role</label>
+                            <input type="text" value={director.role || ""} onChange={(e) => updateDirectorField(idx, "role", e.target.value)} placeholder="Children, Outreach, etc." />
+                          </div>
+                          <div className={styles.formGroupWide}>
+                            <label>Description</label>
+                            <textarea value={director.description || ""} onChange={(e) => updateDirectorField(idx, "description", e.target.value)} rows={2} placeholder="Brief description of responsibilities." />
+                          </div>
+                          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                            <button type="button" className={styles.deleteBtn} onClick={() => removeDirector(idx)}>Remove</button>
+                          </div>
+                        </div>
+                      ))}
+
+                      <div>
+                        <button type="button" className={styles.addButton} onClick={addDirector}>+ Add Director</button>
+                      </div>
+                    </section>
+
+                    <section className={styles.featureSection}>
+                      <div className={styles.mediaSectionHeader}>
+                        <h3>Projects</h3>
+                        <p>Add projects for this branch with image, name, short role/title and description.</p>
+                      </div>
+
+                      {formData.projects.map((project, idx) => (
+                        <div key={project.id || idx} className={styles.featureItem}>
+                          <div className={styles.formGroup}>
+                            <label>Image URL</label>
+                            <input type="text" value={project.imageURL || ""} onChange={(e) => updateProjectField(idx, "imageURL", e.target.value)} placeholder="https://..." />
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label>Name</label>
+                            <input type="text" value={project.name || ""} onChange={(e) => updateProjectField(idx, "name", e.target.value)} placeholder="Project name" />
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label>Role / Type</label>
+                            <input type="text" value={project.role || ""} onChange={(e) => updateProjectField(idx, "role", e.target.value)} placeholder="School build, Clinic, etc." />
+                          </div>
+                          <div className={styles.formGroupWide}>
+                            <label>Description</label>
+                            <textarea value={project.description || ""} onChange={(e) => updateProjectField(idx, "description", e.target.value)} rows={2} placeholder="Short description of the project." />
+                          </div>
+                          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                            <button type="button" className={styles.deleteBtn} onClick={() => removeProject(idx)}>Remove</button>
+                          </div>
+                        </div>
+                      ))}
+
+                      <div>
+                        <button type="button" className={styles.addButton} onClick={addProject}>+ Add Project</button>
+                      </div>
+                    </section>
                     <div className={styles.formGroupWide}>
                       <div className={styles.hint}>The media section above keeps the primary image separate from the gallery images so it is easier to review and update.</div>
                     </div>

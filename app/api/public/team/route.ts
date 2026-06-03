@@ -11,6 +11,22 @@ type BranchDocumentData = {
   pastorImageURL?: string;
   pastorGallery?: string[];
   churchGallery?: string[];
+  branchHistory?: string;
+  pastorBiography?: string;
+  churchStory?: string;
+  vision?: string;
+  futureDirection?: string;
+  visionGoals?: string[];
+  directors?: BranchFeatureItem[];
+  projects?: BranchFeatureItem[];
+};
+
+type BranchFeatureItem = {
+  id?: string;
+  imageURL?: string;
+  name?: string;
+  role?: string;
+  description?: string;
 };
 
 type TeamMemberDocumentData = {
@@ -24,6 +40,14 @@ type TeamMemberDocumentData = {
   pastorImageURL?: string;
   pastorGallery?: string[];
   churchGallery?: string[];
+  branchHistory?: string;
+  pastorBiography?: string;
+  churchStory?: string;
+  vision?: string;
+  futureDirection?: string;
+  visionGoals?: string[];
+  directors?: BranchFeatureItem[];
+  projects?: BranchFeatureItem[];
   phoneNumber?: string;
   email?: string;
   role?: string;
@@ -42,6 +66,77 @@ const normalizeGalleryValue = (value: string[] | string | undefined | null) => {
       .split(/\n|,/)
       .map((item) => item.trim())
       .filter(Boolean);
+  }
+
+  return [];
+};
+
+const normalizeTextList = (value: string[] | string | undefined | null) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(/\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+const normalizeFeatureItems = (
+  value: Array<BranchFeatureItem | string> | string | undefined | null,
+) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item, index) => {
+        if (typeof item === "string") {
+          const trimmed = item.trim();
+          if (!trimmed) return null;
+
+          return {
+            id: `item-${index}-${trimmed}`,
+            imageURL: "",
+            name: trimmed,
+            role: "",
+            description: "",
+          } satisfies BranchFeatureItem;
+        }
+
+        if (!item || typeof item !== "object") {
+          return null;
+        }
+
+        const imageURL = typeof item.imageURL === "string" ? item.imageURL.trim() : "";
+        const name = typeof item.name === "string" ? item.name.trim() : "";
+        const role = typeof item.role === "string" ? item.role.trim() : "";
+        const description = typeof item.description === "string" ? item.description.trim() : "";
+
+        if (!imageURL && !name && !role && !description) {
+          return null;
+        }
+
+        return {
+          id: item.id || `item-${index}`,
+          imageURL,
+          name,
+          role,
+          description,
+        } satisfies BranchFeatureItem;
+      })
+      .filter(Boolean) as BranchFeatureItem[];
+  }
+
+  if (typeof value === "string") {
+    return normalizeTextList(value).map((item, index) => ({
+      id: `item-${index}-${item}`,
+      imageURL: "",
+      name: item,
+      role: "",
+      description: "",
+    })) as BranchFeatureItem[];
   }
 
   return [];
@@ -130,6 +225,14 @@ export async function GET() {
         pastorImageURL: member.pastorImageURL || branchData?.pastorImageURL || "",
         pastorGallery: pickNonEmptyGallery(branchData?.pastorGallery, normalizeGalleryValue(member.pastorGallery)),
         churchGallery: pickNonEmptyGallery(pickChurchGallery(branchData), normalizeGalleryValue(member.churchGallery)),
+        branchHistory: member.branchHistory || branchData?.branchHistory || "",
+        pastorBiography: member.pastorBiography || branchData?.pastorBiography || "",
+        churchStory: member.churchStory || branchData?.churchStory || "",
+        vision: member.vision || branchData?.vision || "",
+        futureDirection: member.futureDirection || branchData?.futureDirection || "",
+        visionGoals: normalizeTextList(branchData?.visionGoals || member.visionGoals),
+        directors: normalizeFeatureItems(branchData?.directors || member.directors),
+        projects: normalizeFeatureItems(branchData?.projects || member.projects),
         phoneNumber: member.phoneNumber || "",
         email: member.email || "",
       };

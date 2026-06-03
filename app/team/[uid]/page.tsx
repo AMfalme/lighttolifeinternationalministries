@@ -23,6 +23,14 @@ type TeamBranchDetail = {
   videos?: string[];
   phoneNumber?: string;
   email?: string;
+  branchHistory?: string;
+  pastorBiography?: string;
+  churchStory?: string;
+  vision?: string;
+  futureDirection?: string;
+  visionGoals?: string[];
+  directors?: BranchFeatureItem[];
+  projects?: BranchFeatureItem[];
 };
 
 type BranchDocumentData = {
@@ -53,6 +61,29 @@ type TeamMemberDocumentData = {
   churchGallery?: string[];
   phoneNumber?: string;
   email?: string;
+  branchHistory?: string;
+  pastorBiography?: string;
+  churchStory?: string;
+  vision?: string;
+  futureDirection?: string;
+  visionGoals?: string[];
+  directors?: BranchFeatureItem[];
+  projects?: BranchFeatureItem[];
+};
+
+type BranchFeatureItem = {
+  id?: string;
+  imageURL?: string;
+  name?: string;
+  role?: string;
+  description?: string;
+};
+
+type SectionBlock = {
+  title: string;
+  label: string;
+  body?: string;
+  items?: string[];
 };
 
 const toLocationSlug = (value: string) =>
@@ -215,6 +246,44 @@ export default function TeamMemberBranchPage() {
   const pastorPrimaryImage = member.pastorImageURL || pastorGalleryImages[0] || "";
   const mapEmbedUrl = normalizeMapUrl(member.branchMapUrl) || buildMapEmbedUrl(member.branchAddress);
   const mapLinkUrl = normalizeMapUrl(member.branchMapUrl) || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(member.branchAddress || member.branchLocation)}`;
+  const sectionBlocks: SectionBlock[] = [
+    {
+      title: "Branch Description",
+      label: "Current identity",
+      body: member.branchDescription,
+    },
+    {
+      title: "Church History",
+      label: "Past",
+      body: member.branchHistory,
+    },
+    {
+      title: "Church Story",
+      label: "How it grew",
+      body: member.churchStory,
+    },
+    {
+      title: "Pastor Description",
+      label: "Current ministry focus",
+      body: member.pastorDescription,
+    },
+    {
+      title: "Pastor Biography",
+      label: "Education and calling",
+      body: member.pastorBiography,
+    },
+    {
+      title: "Vision",
+      label: "Future direction",
+      body: member.vision,
+      items: member.visionGoals || [],
+    },
+    {
+      title: "Future Direction",
+      label: "What comes next",
+      body: member.futureDirection,
+    },
+  ].filter((section) => Boolean(section.body) || Boolean(section.items?.length));
 
   return (
     <>
@@ -279,12 +348,49 @@ export default function TeamMemberBranchPage() {
           </div>
         </section>
 
+        <section className={styles.timelineSection}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <p className={styles.sectionKicker}>At a glance</p>
+              <h2>Everything in one logical flow</h2>
+            </div>
+            <p className={styles.sectionLead}>
+              Start with the branch identity, move through the story, then end with vision, teams, and active ministry.
+            </p>
+          </div>
+
+          <div className={styles.timelineGrid}>
+            {sectionBlocks.map((section, index) => (
+              <article key={section.title} className={styles.timelineCard}>
+                <div className={styles.timelineMeta}>
+                  <span className={styles.timelineStep}>{String(index + 1).padStart(2, "0")}</span>
+                  <div>
+                    <p className={styles.timelineLabel}>{section.label}</p>
+                    <h3>{section.title}</h3>
+                  </div>
+                </div>
+                {section.body ? <p className={styles.timelineBody}>{section.body}</p> : null}
+                {section.items && section.items.length ? (
+                  <ul className={styles.timelineList}>
+                    {section.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        </section>
+
         <section className={styles.contentGrid}>
           <article className={styles.profileCard}>
             <div className={styles.profileHead}>
               <div>
                 <p className={styles.roleLabel}>{member.pastorTitle || "Branch Pastor"}</p>
                 <h2>{member.displayName}</h2>
+                <p className={styles.profileSubcopy}>
+                  {member.branchKey ? `Branch key: ${member.branchKey}` : "Branch key not set"}
+                </p>
               </div>
               {pastorPrimaryImage || pastorGalleryImages.length ? (
                 <div className={styles.profileImage}>
@@ -299,7 +405,7 @@ export default function TeamMemberBranchPage() {
                 {member.displayName} leads the {member.branchLocation} branch and serves this community through worship, discipleship, outreach, and pastoral care.
               </p>
               <p>{member.branchDescription}</p>
-              <p>
+              <p className={styles.profileMuted}>
                 This branch is designed for modern families, passionate believers, and seekers alike. Explore worship experiences, heart-led small groups, and ministry teams built for deeper connection.
               </p>
               <div className={styles.detailGrid}>
@@ -365,6 +471,78 @@ export default function TeamMemberBranchPage() {
               />
             </article>
           </div>
+
+          <article className={styles.featureSection}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <p className={styles.sectionKicker}>Leadership</p>
+                <h2>Directors and ministry team</h2>
+              </div>
+              <p className={styles.sectionLead}>
+                The people driving the branch forward across children, outreach, worship, administration, and care.
+              </p>
+            </div>
+
+            {member.directors && member.directors.length ? (
+              <div className={styles.featureGrid}>
+                {member.directors.map((director, index) => (
+                  <article key={director.id || index} className={styles.featureCard}>
+                    <div className={styles.featureMedia}>
+                      {director.imageURL ? (
+                        <Image unoptimized src={director.imageURL} alt={director.name || "Director"} fill sizes="(max-width: 768px) 100vw, 280px" style={{ objectFit: "cover" }} />
+                      ) : (
+                        <span>{(director.name || "D").slice(0, 1).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <div className={styles.featureBody}>
+                      <p className={styles.featureLabel}>Director</p>
+                      <h3>{director.name || "Unnamed director"}</h3>
+                      <p className={styles.featureRole}>{director.role || "Role not set"}</p>
+                      <p>{director.description || "No description provided yet."}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className={styles.emptyState}>No directors added yet.</p>
+            )}
+          </article>
+
+          <article className={styles.featureSection}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <p className={styles.sectionKicker}>Projects</p>
+                <h2>Current and future projects</h2>
+              </div>
+              <p className={styles.sectionLead}>
+                Use these to show what the branch is actively building or dreaming about next.
+              </p>
+            </div>
+
+            {member.projects && member.projects.length ? (
+              <div className={styles.featureGrid}>
+                {member.projects.map((project, index) => (
+                  <article key={project.id || index} className={styles.featureCard}>
+                    <div className={styles.featureMedia}>
+                      {project.imageURL ? (
+                        <Image unoptimized src={project.imageURL} alt={project.name || "Project"} fill sizes="(max-width: 768px) 100vw, 280px" style={{ objectFit: "cover" }} />
+                      ) : (
+                        <span>{(project.name || "P").slice(0, 1).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <div className={styles.featureBody}>
+                      <p className={styles.featureLabel}>Project</p>
+                      <h3>{project.name || "Unnamed project"}</h3>
+                      <p className={styles.featureRole}>{project.role || "Type not set"}</p>
+                      <p>{project.description || "No description provided yet."}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className={styles.emptyState}>No projects added yet.</p>
+            )}
+          </article>
 
           <article className={styles.galleryCard}>
             <GalleryPager

@@ -31,7 +31,7 @@ export default function Navbar() {
   const navItems = useMemo<NavItem[]>(
     () => [
       {
-        label: "About Us",
+        label: "Leadership",
         href: "/#about",
         subItems: [
           { label: "Main Branch", href: "/team/mosocho" },

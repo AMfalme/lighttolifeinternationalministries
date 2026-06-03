@@ -8,12 +8,28 @@ type BranchDocumentData = {
   pastorTitle?: string;
   branchLocation?: string;
   branchAddress?: string;
- branchDescription?: string;
+  branchDescription?: string;
   pastorDescription?: string;
   pastorImageURL?: string;
   pastorGallery?: string[];
   churchGallery?: string[];
   videos?: string[];
+  branchHistory?: string;
+  pastorBiography?: string;
+  churchStory?: string;
+  vision?: string;
+  futureDirection?: string;
+  visionGoals?: string[];
+  directors?: BranchFeatureItem[];
+  projects?: BranchFeatureItem[];
+};
+
+type BranchFeatureItem = {
+  id?: string;
+  imageURL?: string;
+  name?: string;
+  role?: string;
+  description?: string;
 };
 
 const toBranchKey = (value: string) =>
@@ -71,6 +87,77 @@ const normalizeGalleryValue = (
           item !== "undefined" &&
           item !== "null"
       );
+  }
+
+  return [];
+};
+
+const normalizeTextList = (value: string[] | string | undefined | null) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(/\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+const normalizeFeatureItems = (
+  value: Array<BranchFeatureItem | string> | string | undefined | null,
+) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item, index) => {
+        if (typeof item === "string") {
+          const trimmed = item.trim();
+          if (!trimmed) return null;
+
+          return {
+            id: `item-${index}-${trimmed}`,
+            imageURL: "",
+            name: trimmed,
+            role: "",
+            description: "",
+          } satisfies BranchFeatureItem;
+        }
+
+        if (!item || typeof item !== "object") {
+          return null;
+        }
+
+        const imageURL = typeof item.imageURL === "string" ? item.imageURL.trim() : "";
+        const name = typeof item.name === "string" ? item.name.trim() : "";
+        const role = typeof item.role === "string" ? item.role.trim() : "";
+        const description = typeof item.description === "string" ? item.description.trim() : "";
+
+        if (!imageURL && !name && !role && !description) {
+          return null;
+        }
+
+        return {
+          id: item.id || `item-${index}`,
+          imageURL,
+          name,
+          role,
+          description,
+        } satisfies BranchFeatureItem;
+      })
+      .filter(Boolean) as BranchFeatureItem[];
+  }
+
+  if (typeof value === "string") {
+    return normalizeTextList(value).map((item, index) => ({
+      id: `item-${index}-${item}`,
+      imageURL: "",
+      name: item,
+      role: "",
+      description: "",
+    })) as BranchFeatureItem[];
   }
 
   return [];
@@ -173,6 +260,15 @@ export async function PATCH(
       body.pastorDescription || ""
     ).trim();
 
+    const branchHistory = String(body.branchHistory || "").trim();
+    const pastorBiography = String(body.pastorBiography || "").trim();
+    const churchStory = String(body.churchStory || "").trim();
+    const vision = String(body.vision || "").trim();
+    const futureDirection = String(body.futureDirection || "").trim();
+    const visionGoals = normalizeTextList(body.visionGoals);
+    const directors = normalizeFeatureItems(body.directors);
+    const projects = normalizeFeatureItems(body.projects);
+
     const pastorImageURL = String(
       body.pastorImageURL || ""
     ).trim();
@@ -209,6 +305,8 @@ export async function PATCH(
       pastorGallery,
       churchGallery,
       videos,
+      directors,
+      projects,
     });
 
     if (!displayName || !email || !branchLocation) {
@@ -257,6 +355,14 @@ export async function PATCH(
           pastorGallery,
           churchGallery,
           videos,
+          branchHistory,
+          pastorBiography,
+          churchStory,
+          vision,
+          futureDirection,
+          visionGoals,
+          directors,
+          projects,
           phoneNumber,
           updatedAt: FieldValue.serverTimestamp(),
         },
@@ -275,6 +381,14 @@ export async function PATCH(
         branchDescription,
         pastorDescription,
         pastorImageURL,
+        branchHistory,
+        pastorBiography,
+        churchStory,
+        vision,
+        futureDirection,
+        visionGoals,
+        directors,
+        projects,
         pastorGallery,
         churchGallery,
         videos,
@@ -313,6 +427,14 @@ export async function PATCH(
       pastorGallery,
       churchGallery,
       videos,
+      branchHistory,
+      pastorBiography,
+      churchStory,
+      vision,
+      futureDirection,
+      visionGoals,
+      directors,
+      projects,
       warning: authUpdateWarning || undefined,
     });
   } catch (error) {

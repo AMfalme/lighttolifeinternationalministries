@@ -24,6 +24,8 @@ type PublicTeamMember = {
   pastorImageURL?: string;
   phoneNumber?: string;
   email?: string;
+  vision?: string;
+  visionGoals?: string[];
 };
 
 type FounderGalleryImage = {
@@ -378,6 +380,19 @@ export default function Home() {
                       activeFounder.pastorDescription ||
                       `${activeFounder.displayName || "This leader"} serves with a heart for people, a clear vision for the branch, and a commitment to spiritual growth and community care.`}
                   </p>
+                  {(activeFounder.vision || (activeFounder.visionGoals && activeFounder.visionGoals.length)) ? (
+                    <div className={styles.founderVision}>
+                      <h4>Vision</h4>
+                      {activeFounder.vision ? <p>{activeFounder.vision}</p> : null}
+                      {activeFounder.visionGoals && activeFounder.visionGoals.length ? (
+                        <ul>
+                          {activeFounder.visionGoals.map((g, i) => (
+                            <li key={i}>{g}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className={styles.founderLinks}>
                     {activeFounder.phoneNumber ? (
                       <a className={styles.founderLink} href={`tel:${activeFounder.phoneNumber.replace(/\s+/g, "")}`}>
@@ -641,7 +656,7 @@ export default function Home() {
               <p className={styles.sectionDescription}>
                 Real stories of faith, hope, and transformation through the power of God's love and community support.
               </p>
-            </div>
+            </ div>
 
             <div className={styles.testimonialsGrid}>
               <div className={styles.testimonialCard}>
