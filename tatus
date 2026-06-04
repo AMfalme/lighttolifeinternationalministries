@@ -1,0 +1,101 @@
+[33mcommit c736cfa19ad41aa9be9de389fe74d92d60c0e8ce[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Wed Jun 3 16:53:18 2026 +0300
+
+    Additional team member information.
+
+[33mcommit d1e2f46d6eec29ae2b05be892d999888163fdfcb[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Wed Jun 3 14:06:46 2026 +0300
+
+    Added additional information for teams
+
+[33mcommit ce6c9002073a83a72759b27c2060a0bfe5132724[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Sun May 31 08:45:06 2026 +0300
+
+    updates.
+
+[33mcommit 5542bd176397e325beb5a665b4d7411e0e629298[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Sun May 31 08:29:56 2026 +0300
+
+    dashboard top bar
+
+[33mcommit a052da4e0d47866cd11269d6c1028a9fff94116f[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Sun May 31 08:29:36 2026 +0300
+
+    updates
+
+[33mcommit 29ca28e401dfcf4ec644eb2e8e3817accb85daf2[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Sun May 31 08:07:24 2026 +0300
+
+    display uploaded videos to link to a leadership member and add thumbnail, add featuredFounder section, quote bible
+
+[33mcommit 5b78e4065a3ef6c25e8266f74df892b46a5baf46[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Sun May 31 06:31:59 2026 +0300
+
+    new updates, menu mobil first, add leadership sections, etc
+
+[33mcommit 2b0ef4cf5e00411773f6db9166dfc0b2bb290ac2[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Sat May 30 19:43:38 2026 +0300
+
+    update branch order, update favico correctly
+
+[33mcommit 474238ed09e01c48990c24dddd1233d3f4d274ac[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Fri May 22 10:02:03 2026 +0300
+
+    nw
+
+[33mcommit db14213a952c7cca3937df9289a1a9bb4a9125c4[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Fri May 22 09:13:34 2026 +0300
+
+    updates.
+
+[33mcommit 6e85b3265919b1f3cf1c5c657e33397d0d13ff30[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Fri May 22 08:58:38 2026 +0300
+
+    upffff
+
+[33mcommit 2036918d58657179cc7050db1e204af8a57f8158[m[33m ([m[1;32magents/fix-churchgallery-firestore-issue[m[33m)[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Tue May 19 13:09:07 2026 +0300
+
+    clean image gallery for the leadership. temporary fix for churchGallery
+
+[33mcommit a53f0c590a1091974f7c5d0e4d66b075143bba0a[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Tue May 19 09:54:08 2026 +0300
+
+    updates to menu and team images
+
+[33mcommit 1905f0de48c4dcb25c3c8bd0f6377601f635bac4[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Tue May 19 07:28:11 2026 +0300
+
+    team member updates
+
+[33mcommit b201a74612fb2f1400df3081f3114c4dbd7bccf4[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Tue May 19 01:45:27 2026 +0300
+
+    update team info management
+
+[33mcommit e5c405012eafd874479ccae2bf67c2a12e8a4ca3[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Tue May 19 01:10:29 2026 +0300
+
+    fix imageupload compopnent
+
+[33mcommit abb708a31f7f5965c99a8fbaf1f418f3c16dce4c[m
+Author: AMfalme <mfalmegriffin@gmail.com>
+Date:   Mon May 18 18:47:36 2026 +0300
+
+    detailed branch info

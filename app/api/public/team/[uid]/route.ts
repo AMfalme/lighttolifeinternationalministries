@@ -338,12 +338,42 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
           projects: normalizeFeatureItems(branchData?.projects),
         };
 
-    const blogBranchName = mergedMember.branchLocation;
-    const blogsSnap = await adminDb().collection("blogs").where("branch", "==", blogBranchName).get();
+    const normalizeBranch = (value: string) =>
+      String(value || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, " ")
+        .replace(/\b(branch|church|location|site|center|centre)\b/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const branchName = normalizeBranch(mergedMember.branchLocation || mergedMember.branchKey || "");
+    const blogsSnap = await adminDb().collection("blogs").get();
+    const relatedBlogs = blogsSnap.docs
+      .map((document) => {
+        const data = document.data() as { title?: string; content?: string; imageUrl?: string; date?: string; branch?: string };
+        return {
+          id: document.id,
+          title: String(data.title || "").trim(),
+          excerpt: String(data.content || "").trim().slice(0, 180),
+          imageUrl: String(data.imageUrl || "").trim(),
+          date: String(data.date || "").trim(),
+          branch: String(data.branch || "").trim(),
+          normalizedBranch: normalizeBranch(String(data.branch || "")),
+        };
+      })
+      .filter((blog) => {
+        if (!blog.normalizedBranch || !branchName) return false;
+        return (
+          blog.normalizedBranch === branchName ||
+          branchName.includes(blog.normalizedBranch) ||
+          blog.normalizedBranch.includes(branchName)
+        );
+      });
 
     return NextResponse.json({
       member: mergedMember,
-      relatedBlogs: blogsSnap.docs.map((document) => ({ id: document.id, title: document.data().title })),
+      relatedBlogs,
     });
   } catch (error) {
     console.error("Public leadership lookup failed:", error);

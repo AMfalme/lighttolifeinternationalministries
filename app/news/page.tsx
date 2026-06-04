@@ -1,11 +1,118 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Navbar from "../components/Navbar/Navbar";
+import { getAllBlogs, BlogPost } from "../lib/firebase/firestore";
 import styles from "./news.module.css";
 
+const PLACEHOLDER_BLOGS: (BlogPost & { id: string })[] = [
+  {
+    id: "ph-1",
+    title: "Transforming Lives Through Education",
+    content: "Discover how our scholarship program has changed the trajectory of over 500 students in West Africa.",
+    author: "Light to Life",
+    category: "Education",
+    date: "March 15, 2024",
+    imageUrl: "",
+    branch: "",
+  },
+  {
+    id: "ph-2",
+    title: "Healthcare Reaches Remote Villages",
+    content: "Our mobile clinic initiative brings essential medical care to communities with limited healthcare access.",
+    author: "Light to Life",
+    category: "Health",
+    date: "March 8, 2024",
+    imageUrl: "",
+    branch: "",
+  },
+  {
+    id: "ph-3",
+    title: "Building Sustainable Communities",
+    content: "From water wells to training centers, learn how we're creating lasting change in local communities.",
+    author: "Light to Life",
+    category: "Community",
+    date: "February 28, 2024",
+    imageUrl: "",
+    branch: "",
+  },
+  {
+    id: "ph-4",
+    title: "Youth Empowerment Success Stories",
+    content: "Meet the young entrepreneurs who have completed our skills training and now support their families.",
+    author: "Light to Life",
+    category: "Youth",
+    date: "February 20, 2024",
+    imageUrl: "",
+    branch: "",
+  },
+  {
+    id: "ph-5",
+    title: "Women's Conference Empowers Thousands",
+    content: "Celebrating the impact of our annual women's gathering with inspiring speakers and networking.",
+    author: "Light to Life",
+    category: "Events",
+    date: "February 12, 2024",
+    imageUrl: "",
+    branch: "",
+  },
+  {
+    id: "ph-6",
+    title: "Annual Report: Impact & Growth",
+    content: "Review our comprehensive 2023 annual report showcasing achievements across all ministry areas.",
+    author: "Light to Life",
+    category: "Reports",
+    date: "February 5, 2024",
+    imageUrl: "",
+    branch: "",
+  },
+];
+
 export default function NewsPage() {
+  const searchParams = useSearchParams();
+  const branchQuery = searchParams.get("branch")?.trim() || "";
+  const [blogs, setBlogs] = useState<(BlogPost & { id: string })[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const fetchedBlogs = await getAllBlogs();
+        const branchFiltered = branchQuery
+          ? fetchedBlogs.filter(
+              (blog) => String(blog.branch || "").trim().toLowerCase() === branchQuery.toLowerCase(),
+            )
+          : fetchedBlogs;
+
+        if (branchFiltered.length > 0) {
+          setBlogs([...branchFiltered, ...PLACEHOLDER_BLOGS]);
+        } else if (!branchQuery && fetchedBlogs.length > 0) {
+          setBlogs([...fetchedBlogs, ...PLACEHOLDER_BLOGS]);
+        } else {
+          setBlogs(PLACEHOLDER_BLOGS as (BlogPost & { id: string })[]);
+        }
+      } catch (error) {
+        console.error("Error fetching blogs:", error);
+        setBlogs(PLACEHOLDER_BLOGS as (BlogPost & { id: string })[]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchBlogs();
+  }, [branchQuery]);
+
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <Navbar />
+        <div className={styles.container}>Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -32,89 +139,35 @@ export default function NewsPage() {
             </div>
 
             <div className={styles.blogGrid}>
-              <article className={styles.blogCard}>
-                <div className={styles.blogImage}>
-                  <div className={styles.imagePlaceholder}>Featured Image</div>
-                </div>
-                <div className={styles.blogContent}>
-                  <span className={styles.blogDate}>March 15, 2024</span>
-                  <h3 className={styles.blogTitle}>Transforming Lives Through Education</h3>
-                  <p className={styles.blogExcerpt}>
-                    Discover how our scholarship program has changed the trajectory of over 500 students in West Africa.
-                  </p>
-                  <a href="#" className={styles.readMore}>Read More →</a>
-                </div>
-              </article>
-
-              <article className={styles.blogCard}>
-                <div className={styles.blogImage}>
-                  <div className={styles.imagePlaceholder}>Featured Image</div>
-                </div>
-                <div className={styles.blogContent}>
-                  <span className={styles.blogDate}>March 8, 2024</span>
-                  <h3 className={styles.blogTitle}>Healthcare Reaches Remote Villages</h3>
-                  <p className={styles.blogExcerpt}>
-                    Our mobile clinic initiative brings essential medical care to communities with limited healthcare access.
-                  </p>
-                  <a href="#" className={styles.readMore}>Read More →</a>
-                </div>
-              </article>
-
-              <article className={styles.blogCard}>
-                <div className={styles.blogImage}>
-                  <div className={styles.imagePlaceholder}>Featured Image</div>
-                </div>
-                <div className={styles.blogContent}>
-                  <span className={styles.blogDate}>February 28, 2024</span>
-                  <h3 className={styles.blogTitle}>Building Sustainable Communities</h3>
-                  <p className={styles.blogExcerpt}>
-                    From water wells to training centers, learn how we're creating lasting change in local communities.
-                  </p>
-                  <a href="#" className={styles.readMore}>Read More →</a>
-                </div>
-              </article>
-
-              <article className={styles.blogCard}>
-                <div className={styles.blogImage}>
-                  <div className={styles.imagePlaceholder}>Featured Image</div>
-                </div>
-                <div className={styles.blogContent}>
-                  <span className={styles.blogDate}>February 20, 2024</span>
-                  <h3 className={styles.blogTitle}>Youth Empowerment Success Stories</h3>
-                  <p className={styles.blogExcerpt}>
-                    Meet the young entrepreneurs who have completed our skills training and now support their families.
-                  </p>
-                  <a href="#" className={styles.readMore}>Read More →</a>
-                </div>
-              </article>
-
-              <article className={styles.blogCard}>
-                <div className={styles.blogImage}>
-                  <div className={styles.imagePlaceholder}>Featured Image</div>
-                </div>
-                <div className={styles.blogContent}>
-                  <span className={styles.blogDate}>February 12, 2024</span>
-                  <h3 className={styles.blogTitle}>Women's Conference Empowers Thousands</h3>
-                  <p className={styles.blogExcerpt}>
-                    Celebrating the impact of our annual women's gathering with inspiring speakers and networking.
-                  </p>
-                  <a href="#" className={styles.readMore}>Read More →</a>
-                </div>
-              </article>
-
-              <article className={styles.blogCard}>
-                <div className={styles.blogImage}>
-                  <div className={styles.imagePlaceholder}>Featured Image</div>
-                </div>
-                <div className={styles.blogContent}>
-                  <span className={styles.blogDate}>February 5, 2024</span>
-                  <h3 className={styles.blogTitle}>Annual Report: Impact & Growth</h3>
-                  <p className={styles.blogExcerpt}>
-                    Review our comprehensive 2023 annual report showcasing achievements across all ministry areas.
-                  </p>
-                  <a href="#" className={styles.readMore}>Read More →</a>
-                </div>
-              </article>
+              {blogs.map((blog) => (
+                <article key={blog.id} className={styles.blogCard}>
+                  <div className={styles.blogImage}>
+                    {blog.imageUrl ? (
+                      <Image
+                        src={blog.imageUrl}
+                        alt={blog.title}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        style={{ objectFit: "cover" }}
+                      />
+                    ) : (
+                      <div className={styles.imagePlaceholder}>Featured Image</div>
+                    )}
+                  </div>
+                  <div className={styles.blogContent}>
+                    <span className={styles.blogDate}>{blog.date}</span>
+                    <h3 className={styles.blogTitle}>{blog.title}</h3>
+                    <p className={styles.blogExcerpt}>{blog.content.length > 160 ? `${blog.content.slice(0, 160).trim()}...` : blog.content}</p>
+                    <Link href={`/news/${blog.id}`} className={styles.readMore}>
+                      Read More →
+                    </Link>
+                    <div className={styles.blogMeta}>
+                      <span>{blog.author}</span>
+                      <span>{blog.category}</span>
+                    </div>
+                  </div>
+                </article>
+              ))}
             </div>
           </div>
         </section>

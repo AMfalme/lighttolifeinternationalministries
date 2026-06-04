@@ -47,9 +47,8 @@ export default function BlogPage() {
       try {
         const fetchedBlogs = await getAllBlogs();
         if (fetchedBlogs.length > 0) {
-          setBlogs(fetchedBlogs);
+          setBlogs([...fetchedBlogs, ...PLACEHOLDER_BLOGS]);
         } else {
-          // Use placeholder data if no blogs in database
           setBlogs(PLACEHOLDER_BLOGS as (BlogPost & { id: string })[]);
         }
       } catch (error) {

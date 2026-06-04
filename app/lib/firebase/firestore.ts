@@ -116,6 +116,7 @@ export interface BlogPost {
   title: string;
   content: string;
   author: string;
+  branch?: string;
   date: string;
   category: string;
   imageUrl?: string;
@@ -164,33 +165,57 @@ export interface DashboardImage {
 
 // BLOGS
 export const createBlog = async (blog: BlogPost) => {
-  if (useMock) return createMock("mock_blogs", blog) as BlogPost & { id: string };
+  const { id, ...payload } = blog;
+  const normalizedBlog = {
+    title: String(payload.title || "").trim(),
+    content: String(payload.content || "").trim(),
+    author: String(payload.author || "").trim(),
+    branch: payload.branch ? String(payload.branch).trim() : "",
+    date: String(payload.date || new Date().toISOString().split("T")[0]).trim(),
+    category: String(payload.category || "General").trim(),
+    imageUrl: payload.imageUrl ? String(payload.imageUrl).trim() : "",
+    featured: Boolean(payload.featured),
+  } as BlogPost;
+
+  if (useMock) return createMock("mock_blogs", normalizedBlog) as BlogPost & { id: string };
   try {
     const docRef = await addDoc(collection(db, "blogs"), {
-      ...blog,
+      ...normalizedBlog,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    return { id: docRef.id, ...blog };
+    return { id: docRef.id, ...normalizedBlog, createdAt: new Date(), updatedAt: new Date() };
   } catch (error) {
     console.error("Error creating blog:", error);
-    if (typeof window !== "undefined") return createMock("mock_blogs", blog) as BlogPost & { id: string };
+    if (typeof window !== "undefined") return createMock("mock_blogs", normalizedBlog) as BlogPost & { id: string };
     throw error;
   }
 };
 
 export const updateBlog = async (id: string, blog: BlogPost) => {
-  if (useMock) return updateMock("mock_blogs", id, blog) as BlogPost & { id: string };
+  const { id: _ignoredId, ...payload } = blog;
+  const normalizedBlog = {
+    title: String(payload.title || "").trim(),
+    content: String(payload.content || "").trim(),
+    author: String(payload.author || "").trim(),
+    branch: payload.branch ? String(payload.branch).trim() : "",
+    date: String(payload.date || new Date().toISOString().split("T")[0]).trim(),
+    category: String(payload.category || "General").trim(),
+    imageUrl: payload.imageUrl ? String(payload.imageUrl).trim() : "",
+    featured: Boolean(payload.featured),
+  } as BlogPost;
+
+  if (useMock) return updateMock("mock_blogs", id, normalizedBlog) as BlogPost & { id: string };
   try {
     const docRef = doc(db, "blogs", id);
     await updateDoc(docRef, {
-      ...blog,
+      ...normalizedBlog,
       updatedAt: new Date(),
     });
-    return { id, ...blog };
+    return { id, ...normalizedBlog };
   } catch (error) {
     console.error("Error updating blog:", error);
-    if (typeof window !== "undefined") return updateMock("mock_blogs", id, blog) as BlogPost & { id: string };
+    if (typeof window !== "undefined") return updateMock("mock_blogs", id, normalizedBlog) as BlogPost & { id: string };
     throw error;
   }
 };

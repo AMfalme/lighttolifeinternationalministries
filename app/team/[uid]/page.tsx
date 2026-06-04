@@ -190,7 +190,7 @@ export default function TeamMemberBranchPage() {
   const routeUid = Array.isArray(routeParams?.uid) ? routeParams.uid[0] : routeParams?.uid || "";
   const [member, setMember] = useState<TeamBranchDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [relatedBlogs, setRelatedBlogs] = useState<Array<{ id: string; title?: string }>>([]);
+  const [relatedBlogs, setRelatedBlogs] = useState<Array<{ id: string; title?: string; excerpt?: string; imageUrl?: string; date?: string }>>([]);
   const [showPastorModal, setShowPastorModal] = useState(false);
   const [showChurchModal, setShowChurchModal] = useState(false);
 
@@ -619,15 +619,23 @@ export default function TeamMemberBranchPage() {
           <article className={styles.blogsCard}>
             <h3>Related Blog Posts</h3>
             {relatedBlogs && relatedBlogs.length ? (
-              <ul className={styles.blogList}>
-                {relatedBlogs.map((b) => (
-                  <li key={b.id}>
-                    <Link href={`/news?branch=${encodeURIComponent(member.branchLocation)}`}>{b.title || "Read more"}</Link>
-                  </li>
+              <div className={styles.blogList}>
+                {relatedBlogs.map((blog) => (
+                  <article key={blog.id} className={styles.blogListItem}>
+                    <div className={styles.blogListMeta}>
+                      <Link href={`/news/${blog.id}`} className={styles.blogListTitle}>
+                        {blog.title || "Read more"}
+                      </Link>
+                      {blog.date ? <span className={styles.blogListDate}>{blog.date}</span> : null}
+                    </div>
+                    {blog.excerpt ? <p className={styles.blogListExcerpt}>{blog.excerpt.trim()}...</p> : null}
+                  </article>
                 ))}
-              </ul>
+              </div>
             ) : (
-              <p className={styles.emptyState}>No related blog posts yet. <Link href={`/news?branch=${encodeURIComponent(member.branchLocation)}`}>View all news</Link></p>
+              <p className={styles.emptyState}>
+                No related blog posts yet. <Link href={`/news?branch=${encodeURIComponent(member.branchLocation)}`}>View all news</Link>
+              </p>
             )}
           </article>
         </section>

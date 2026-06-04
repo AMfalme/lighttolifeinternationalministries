@@ -564,6 +564,14 @@ export default function DashboardTeamPage() {
     });
   };
 
+  const handleSelectDirectorImage = (index: number, image: { url: string } | null) => {
+    updateDirectorField(index, "imageURL", image?.url || "");
+  };
+
+  const handleSelectProjectImage = (index: number, image: { url: string } | null) => {
+    updateProjectField(index, "imageURL", image?.url || "");
+  };
+
   const removeProject = (index: number) => {
     setFormData((current) => ({ ...current, projects: current.projects.filter((_, i) => i !== index) }));
   };
@@ -634,6 +642,8 @@ export default function DashboardTeamPage() {
             .map((item) => item.trim())
             .filter(Boolean),
           visionGoals: visionGoalsList,
+          directors: formData.directors || [],
+          projects: formData.projects || [],
         }),
       });
 
@@ -985,8 +995,18 @@ export default function DashboardTeamPage() {
                       {formData.directors.map((director, idx) => (
                         <div key={director.id || idx} className={styles.featureItem}>
                           <div className={styles.formGroup}>
-                            <label>Image URL</label>
-                            <input type="text" value={director.imageURL || ""} onChange={(e) => updateDirectorField(idx, "imageURL", e.target.value)} placeholder="https://..." />
+                            <label>Image</label>
+                            <ImageUpload
+                              title="Director image"
+                              description={`Upload or choose the image for ${director.name || "this director"}.`}
+                              selectedLabel="Selected image"
+                              selectedSummary="This image will appear on the director card."
+                              libraryTitle="Uploaded director images"
+                              libraryDescription="Choose an existing uploaded image for this director."
+                              uploadButtonLabel="Upload director image"
+                              onSelectImage={(image) => handleSelectDirectorImage(idx, image)}
+                              initialSelectedUrl={director.imageURL || undefined}
+                            />
                           </div>
                           <div className={styles.formGroup}>
                             <label>Name</label>
@@ -1020,8 +1040,18 @@ export default function DashboardTeamPage() {
                       {formData.projects.map((project, idx) => (
                         <div key={project.id || idx} className={styles.featureItem}>
                           <div className={styles.formGroup}>
-                            <label>Image URL</label>
-                            <input type="text" value={project.imageURL || ""} onChange={(e) => updateProjectField(idx, "imageURL", e.target.value)} placeholder="https://..." />
+                            <label>Image</label>
+                            <ImageUpload
+                              title="Project image"
+                              description={`Upload or choose the image for ${project.name || "this project"}.`}
+                              selectedLabel="Selected image"
+                              selectedSummary="This image will appear on the project card."
+                              libraryTitle="Uploaded project images"
+                              libraryDescription="Choose an existing uploaded image for this project."
+                              uploadButtonLabel="Upload project image"
+                              onSelectImage={(image) => handleSelectProjectImage(idx, image)}
+                              initialSelectedUrl={project.imageURL || undefined}
+                            />
                           </div>
                           <div className={styles.formGroup}>
                             <label>Name</label>

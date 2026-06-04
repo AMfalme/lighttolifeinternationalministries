@@ -23,6 +23,8 @@ export default function DashboardBlogsPage() {
   const router = useRouter();
   const { user, loading } = useFastAuth("/login");
   const [blogs, setBlogs] = useState<(BlogPost & { id: string })[]>([]);
+  const [branches, setBranches] = useState<string[]>([]);
+  const [loadingBranches, setLoadingBranches] = useState(true);
   const [loadingBlogs, setLoadingBlogs] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -30,11 +32,40 @@ export default function DashboardBlogsPage() {
     title: "",
     content: "",
     author: "",
+    branch: "",
     date: new Date().toISOString().split("T")[0],
     category: "General",
     imageUrl: "",
     featured: false,
   });
+
+  const loadBranches = useCallback(async () => {
+    setLoadingBranches(true);
+    try {
+      const fsConfig = await import("@/app/lib/firebase/config");
+      const db = fsConfig.db;
+      if (!db) {
+        setBranches([]);
+        return;
+      }
+
+      const { collection, getDocs } = await import("firebase/firestore");
+      const snapshot = await getDocs(collection(db, "users"));
+      const nextBranches = Array.from(
+        new Set(
+          snapshot.docs
+            .map((document) => String(document.data()?.branchLocation || "").trim())
+            .filter(Boolean),
+        ),
+      ).sort();
+      setBranches(nextBranches);
+    } catch (error) {
+      console.error("Error loading branch list:", error);
+      setBranches([]);
+    } finally {
+      setLoadingBranches(false);
+    }
+  }, []);
 
   const fetchBlogs = useCallback(async () => {
     setLoadingBlogs(true);
@@ -50,9 +81,10 @@ export default function DashboardBlogsPage() {
 
   useEffect(() => {
     if (!loading && user) {
+      void loadBranches();
       void fetchBlogs();
     }
-  }, [loading, user, fetchBlogs]);
+  }, [loading, user, fetchBlogs, loadBranches]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -66,8 +98,10 @@ export default function DashboardBlogsPage() {
 
       await fetchBlogs();
       resetForm();
+      alert(editingId ? "Blog updated successfully." : "Blog created successfully.");
     } catch (error) {
       console.error("Error saving blog:", error);
+      alert(error instanceof Error ? error.message : "Unable to save the blog.");
     }
   };
 
@@ -87,6 +121,7 @@ export default function DashboardBlogsPage() {
   const handleEdit = (blog: BlogPost & { id: string }) => {
     setFormData({
       ...blog,
+      branch: blog.branch || "",
       imageUrl: blog.imageUrl || "",
       featured: Boolean(blog.featured),
     });
@@ -106,6 +141,7 @@ export default function DashboardBlogsPage() {
       title: "",
       content: "",
       author: "",
+      branch: "",
       date: new Date().toISOString().split("T")[0],
       category: "General",
       imageUrl: "",
@@ -181,17 +217,25 @@ export default function DashboardBlogsPage() {
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label>Category *</label>
-                    <input
-                      type="text"
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    <label>Branch / Leadership Link</label>
+                    <select
+                      value={formData.branch || ""}
+                      onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
                       required
-                    />
+                    >
+                      <option value="">Select related branch</option>
+                      {branches.map((branch) => (
+                        <option key={branch} value={branch}>
+                          {branch}
+                        </option>
+                      ))}
+                    </select>
+                    <div className={styles.hint}>
+                      Select the branch associated with this blog from existing leadership branches.
+                    </div>
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label>Date *</label>
                     <input
                       type="date"
                       value={formData.date}
