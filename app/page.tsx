@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
-import Navbar from "./components/Navbar/Navbar";
 import HeroSection from "./components/hero/hero";
 import TeamSection from "./components/TeamSection/TeamSection";
 import styles from "./page.module.css";
@@ -12,7 +11,7 @@ import { getAllDashboardImages, type DashboardImage } from "./lib/dashboardImage
 import { useFastAuth } from "./lib/firebase/useFastAuth";
 import { db } from "./lib/firebase/config";
 import { doc, getDoc } from "firebase/firestore";
-
+import Spotlight from "./components/spotlight/page";
 type PublicTeamMember = {
   uid: string;
   branchKey?: string;
@@ -229,144 +228,18 @@ export default function Home() {
       <HeroSection />
 
       <main className={styles.main} id="home">
-        {featuredFounders.length ? (() => {
-          const activeFounder = featuredFounders[Math.min(activeFounderIndex, featuredFounders.length - 1)] || featuredFounders[0];
-          const founderTitleLabel = activeFounder.pastorTitle || "Branch Title";
-          const founderTitleContext = activeFounder.branchLocation
-            ? ` (${activeFounder.branchLocation}${/east africa|main church headquarters/i.test(String(activeFounder.branchLocation)) ? ", Main headquarter" : ""})`
-            : "";
-
-          return (
-          <section className={styles.founderSection} id="founder">
-            <div className={styles.sectionContainer}>
-              <div className={styles.founderHeader}>
-                <p className={styles.spotlightPre}>Spotlight</p>
-                <h2 className={styles.spotlightTitle}>
-                  Bishop <span className={styles.spotlightName}>Francis Akaki</span>
-                </h2>
-                <p className={styles.spotlightSub}>Championing faith, service, and community impact</p>
-              </div>
-              <div aria-live="polite" aria-atomic="true" className={styles.visuallyHidden}>{announcement}</div>
-
-                <div className={styles.founderCard}>
-                <div className={styles.founderMedia} id={`founder-panel-${activeFounder.uid}`} role="tabpanel" aria-labelledby={`founder-tab-${activeFounder.uid}`}>
-                  <div className={styles.founderPortrait}>
-                    {activeFounder.pastorImageURL && !imageError ? (
-                      <Image
-                        src={activeFounder.pastorImageURL}
-                        alt={
-                          `${activeFounder.displayName || "Founder"} — ${activeFounder.pastorTitle || activeFounder.branchLocation || "Leader"}`
-                        }
-                        fill
-                        sizes="(max-width: 768px) 100vw, 320px"
-                        className={styles.founderImage}
-                        onError={() => setImageError(true)}
-                        onLoad={() => setImageError(false)}
-                      />
-                    ) : (
-                      <span aria-hidden={false} role="img" aria-label={`${activeFounder.displayName || "Founder"}`} title={`${activeFounder.displayName || "Founder"}`}>
-                        {(activeFounder.displayName || "B").slice(0, 1).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  <div className={styles.founderBadge}>Founder</div>
-                </div>
-
-                <div className={styles.founderCopy}>
-                  <span className={styles.sectionLabel}>FOUNDATION</span>
-                  <dl className={styles.founderDetails}>
-                    <div className={styles.founderDetailRow}>
-                      <dt className={styles.founderDetailLabel}>Name</dt>
-                      <dd className={styles.founderDetailValue}>{activeFounder.displayName || "Branch Leader"}</dd>
-                    </div>
-                    <div className={styles.founderDetailRow}>
-                      <dt className={styles.founderDetailLabel}>Title</dt>
-                      <dd className={styles.founderDetailValue}>
-                        {founderTitleLabel}
-                        <span className={styles.founderDetailNote}>{founderTitleContext}</span>
-                      </dd>
-                    </div>
-                    <div className={styles.founderDetailRow}>
-                      <dt className={styles.founderDetailLabel}>Role</dt>
-                      <dd className={styles.founderDetailValue}>
-                        {activeFounder.branchKey ? `${activeFounder.branchKey} branch leadership` : "Branch leadership"}
-                      </dd>
-                    </div>
-                  </dl>
-                  <p className={styles.founderSummary}>
-                    {activeFounder.branchDescription ||
-                      activeFounder.pastorDescription ||
-                      `${activeFounder.displayName || "This leader"} serves with a heart for people, a clear vision for the branch, and a commitment to spiritual growth and community care.`}
-                  </p>
-                  {(activeFounder.vision || (activeFounder.visionGoals && activeFounder.visionGoals.length)) ? (
-                    <div className={styles.founderVision}>
-                      <h4>Vision</h4>
-                      {activeFounder.vision ? <p>{activeFounder.vision}</p> : null}
-                      {activeFounder.visionGoals && activeFounder.visionGoals.length ? (
-                        <ul>
-                          {activeFounder.visionGoals.map((g, i) => (
-                            <li key={i}>{g}</li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  <div className={styles.founderLinks}>
-                    {activeFounder.phoneNumber ? (
-                      <a className={styles.founderLink} href={`tel:${activeFounder.phoneNumber.replace(/\s+/g, "")}`}>
-                        Call {activeFounder.phoneNumber}
-                      </a>
-                    ) : null}
-                    {activeFounder.email ? (
-                      <a className={styles.founderLink} href={`mailto:${activeFounder.email}`}>
-                        Email {activeFounder.email}
-                      </a>
-                    ) : null}
-                    {activeFounder.branchAddress ? (
-                      <a
-                        className={styles.founderLink}
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeFounder.branchAddress)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        View location
-                      </a>
-                    ) : null}
-                    <Link className={styles.founderLink} href={`/team/${activeFounder.branchKey || activeFounder.uid}`}>
-                      Full profile
-                    </Link>
-                  </div>
-                  <div className={styles.founderGalleryWrap}>
-                    <div className={styles.founderGalleryHeader}>
-                      <span className={styles.founderGalleryLabel}>Featured moments</span>
-                      <span className={styles.founderGalleryHint}>{Math.min(activeFounderGallery.length, 5)} photos</span>
-                    </div>
-                    {activeFounderGallery.length ? (
-                      <div className={styles.founderGallery} aria-label={`${activeFounder.displayName || "Founder"} gallery`}>
-                        {activeFounderGallery.slice(0, 5).map((photo) => (
-                          <figure key={photo.src} className={styles.founderGalleryItem}>
-                            <Image
-                              src={photo.src}
-                              alt={photo.alt}
-                              fill
-                              sizes="(max-width: 768px) 48vw, 120px"
-                              className={styles.founderGalleryImage}
-                            />
-                          </figure>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className={styles.founderGalleryEmpty}>
-                        <span>No extra photos available yet</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-          );
-        })() : null}
+        
+        {featuredFounders.length > 0 && (
+          <Spotlight
+            founder={featuredFounders[
+              Math.min(
+                activeFounderIndex,
+                featuredFounders.length - 1
+              )
+            ]}
+            gallery={activeFounderGallery}
+          />
+        )}
 
         <section className={styles.verseBanner}>
           <div className={styles.verseBannerContent}>

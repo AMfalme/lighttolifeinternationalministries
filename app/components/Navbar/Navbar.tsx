@@ -209,7 +209,12 @@ export default function Navbar() {
       </button>
 
       {/* Desktop Navigation */}
-      <nav className="hidden gap-10 text-sm font-medium text-white lg:flex" aria-label="Primary navigation">
+      <nav 
+        className={`hidden gap-10 text-sm font-medium lg:flex ${
+          theme === "light" ? "text-slate-900" : "text-white"
+        }`} 
+        aria-label="Primary navigation"
+      >
         {navItems.map((item, index) => (
           <div key={item.label} className="group relative">
             <Link 
@@ -222,7 +227,7 @@ export default function Navbar() {
             </Link>
             {item.subItems.length > 0 && (
               <div className="absolute left-0 top-full hidden pt-2 group-hover:block">
-                <div className="flex flex-col gap-2 rounded-lg bg-black/90 p-4 min-w-max shadow-lg border border-amber-400/30">
+                <div className="flex flex-col gap-2 rounded-lg bg-black/90 p-4 min-w-max shadow-lg border border-amber-400/30 text-white">
                   {item.subItems.map((subItem) => (
                     <Link
                       key={subItem.href}
@@ -313,8 +318,12 @@ export default function Navbar() {
       <div className={styles.navActions} ref={profileMenuRef}>
         {!authLoading && !user ? (
           <>
-            <Link className={styles.authLink} href="/login">Login</Link>
-            <Link className={styles.authLink} href="/register">Register</Link>
+            <Link className={`${styles.authLink} ${theme === "light" ? "text-slate-900" : "text-white"}`} href="/login">
+              Login
+            </Link>
+            <Link className={`${styles.authLink} ${theme === "light" ? "text-slate-900" : "text-white"}`} href="/register">
+              Register
+            </Link>
             <Link className={styles.navButton} href="/donate">Donate</Link>
           </>
         ) : !authLoading && user ? (

@@ -237,11 +237,11 @@ export default function BranchProfile() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100">
-      {/* Navbar */}
-      <Navbar />
-
       {/* Location Carousel */}
       <LocationCarousel />
+
+      {/* Navbar */}
+      <Navbar />
 
       {/* HERO */}
       <div className="relative h-72 sm:h-80 lg:h-96 w-full">

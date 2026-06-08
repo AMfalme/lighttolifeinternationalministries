@@ -1075,9 +1075,6 @@ export default function DashboardTeamPage() {
                         <button type="button" className={styles.addButton} onClick={addProject}>+ Add Project</button>
                       </div>
                         </section>
-                      </>
-                    )}
-
                     <div className={styles.formGroupWide}>
                       <div className={styles.hint}>The media section above keeps the primary image separate from the gallery images so it is easier to review and update.</div>
                     </div>
@@ -1150,6 +1147,9 @@ export default function DashboardTeamPage() {
                         </div>
                       </div>
                     </div>
+                      </>
+                    )}
+
                     
 
                     <div className={styles.formActions}>
