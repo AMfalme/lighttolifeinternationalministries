@@ -26,11 +26,29 @@ type ImageUploadProps = {
   initialSelectedUrl?: string;
   initialSelectedUrls?: string[];
   multiSelect?: boolean;
+  title?: string;
+  description?: string;
+  selectedLabel?: string;
+  selectedSummary?: string;
+  libraryTitle?: string;
+  libraryDescription?: string;
 };
 
 type DashboardImageWithId = DashboardImage & { id: string };
 
-export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSelectedUrl, initialSelectedUrls, multiSelect }: ImageUploadProps) {
+export default function ImageUpload({
+  onSelectImage,
+  onSelectMultiple,
+  initialSelectedUrl,
+  initialSelectedUrls,
+  multiSelect,
+  title,
+  description,
+  selectedLabel,
+  selectedSummary,
+  libraryTitle,
+  libraryDescription,
+}: ImageUploadProps) {
   const [images, setImages] = useState<DashboardImageWithId[]>([]);
   const [loadingImages, setLoadingImages] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -295,10 +313,8 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
     <div className={styles.uploadShell}>
       <div className={styles.uploadToolbar}>
         <div>
-          <h3>Upload image</h3>
-          <p>
-            Upload images to the gallery, then pick from the saved gallery when you need an image in another section.
-          </p>
+          <h3>{title || "Upload image"}</h3>
+          <p>{description || "Upload images to the gallery, then pick from the saved gallery when you need an image in another section."}</p>
         </div>
         <label className={styles.uploadButton}>
           <input
@@ -332,17 +348,21 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
             ))}
           </div>
           <div className={styles.selectedMeta}>
-            <span>{multiSelect ? `${selectedImages.length} images selected` : "Selected image"}</span>
+            <span>{selectedLabel || (multiSelect ? `${selectedImages.length} images selected` : "Selected image")}</span>
             <strong>{selectedImages[0].fileName}</strong>
-            <p>
-              {multiSelect
-                ? selectedImages
-                    .slice(0, 3)
-                    .map((image) => image.fileName)
-                    .join(", ")
-                : `Image ID: ${selectedImages[0].id}`}
-              {multiSelect && selectedImages.length > 3 ? ` +${selectedImages.length - 3} more` : ""}
-            </p>
+            {selectedSummary ? (
+              <p>{selectedSummary}</p>
+            ) : (
+              <p>
+                {multiSelect
+                  ? selectedImages
+                      .slice(0, 3)
+                      .map((image) => image.fileName)
+                      .join(", ")
+                  : `Image ID: ${selectedImages[0].id}`}
+                {multiSelect && selectedImages.length > 3 ? ` +${selectedImages.length - 3} more` : ""}
+              </p>
+            )}
             <div className={styles.actionRow}>
               <button type="button" className={styles.secondaryButton} onClick={handleCopyImageUrl}>
                 Copy URL
@@ -354,8 +374,8 @@ export default function ImageUpload({ onSelectImage, onSelectMultiple, initialSe
 
       <div className={styles.libraryHeader}>
         <div>
-          <h4>Uploaded images</h4>
-          <p>Browse the full image library and pick the files you want to use.</p>
+          <h4>{libraryTitle || "Uploaded images"}</h4>
+          <p>{libraryDescription || "Browse the full image library and pick the files you want to use."}</p>
         </div>
         <div className={styles.libraryActions}>
           <span>{images.length} saved</span>
