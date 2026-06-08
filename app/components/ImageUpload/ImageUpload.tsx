@@ -28,6 +28,7 @@ type ImageUploadProps = {
   multiSelect?: boolean;
   title?: string;
   description?: string;
+  uploadButtonLabel?: string;
   selectedLabel?: string;
   selectedSummary?: string;
   libraryTitle?: string;
@@ -44,6 +45,7 @@ export default function ImageUpload({
   multiSelect,
   title,
   description,
+  uploadButtonLabel,
   selectedLabel,
   selectedSummary,
   libraryTitle,
@@ -113,8 +115,10 @@ export default function ImageUpload({
 
     const normalizedSelectionKey = (initialSelectedUrls || []).slice().sort().join("|");
     if (!normalizedSelectionKey) {
-      initialSelectionKeyRef.current = "";
-      setSelectedIds(new Set());
+      if (initialSelectionKeyRef.current !== "") {
+        initialSelectionKeyRef.current = "";
+        setSelectedIds(new Set());
+      }
       return;
     }
 
@@ -325,7 +329,7 @@ export default function ImageUpload({
             disabled={uploading}
             aria-label="Upload images"
           />
-          {uploading ? "Uploading..." : "Choose images"}
+          {uploading ? "Uploading..." : uploadButtonLabel || "Choose images"}
         </label>
       </div>
 
