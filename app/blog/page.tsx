@@ -8,7 +8,7 @@ import { getAllBlogs, BlogPost } from "../lib/firebase/firestore";
 import styles from "./blog.module.css";
 
 // Placeholder blogs for initial display
-const PLACEHOLDER_BLOGS: BlogPost[] = [
+const PLACEHOLDER_BLOGS: (BlogPost & { id: string })[] = [
   {
     id: "1",
     title: "How We're Making a Difference in Education",
