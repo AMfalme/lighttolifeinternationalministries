@@ -3,8 +3,21 @@
 import Image from "next/image";
 import Link from "next/link";
 
+interface SpotlightFounder {
+  uid: string;
+  displayName?: string;
+  pastorTitle?: string;
+  branchLocation?: string;
+  branchDescription?: string;
+  pastorDescription?: string;
+  pastorImageURL?: string;
+  phoneNumber?: string;
+  email?: string;
+  branchKey?: string;
+}
+
 interface SpotlightProps {
-  founder: any;
+  founder: SpotlightFounder;
   gallery: {
     src: string;
     alt: string;
@@ -39,10 +52,11 @@ export default function Spotlight({
               {founder.pastorImageURL ? (
                 <Image
                   src={founder.pastorImageURL}
-                  alt={founder.displayName}
+                  alt={founder.displayName || "Founder"}
                   width={600}
                   height={700}
                   className="h-[600px] w-full object-cover"
+                  unoptimized
                 />
               ) : (
                 <div className="flex h-[600px] w-[450px] items-center justify-center bg-slate-800 text-8xl font-bold text-white">
@@ -80,34 +94,6 @@ export default function Spotlight({
                 founder.pastorDescription ||
                 "Serving with a heart for people and a commitment to spiritual growth."}
             </p>
-
-            {founder.vision && (
-              <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
-                <h3 className="mb-3 text-lg font-semibold text-white">
-                  Vision
-                </h3>
-
-                <p className="text-slate-300">
-                  {founder.vision}
-                </p>
-
-                {founder.visionGoals?.length > 0 && (
-                  <ul className="mt-4 space-y-2">
-                    {founder.visionGoals.map(
-                      (goal: string, index: number) => (
-                        <li
-                          key={index}
-                          className="flex items-start gap-2 text-slate-400"
-                        >
-                          <span className="text-amber-400">•</span>
-                          {goal}
-                        </li>
-                      )
-                    )}
-                  </ul>
-                )}
-              </div>
-            )}
 
             {/* CONTACT */}
             <div className="mt-8 flex flex-wrap gap-4">
@@ -160,6 +146,7 @@ export default function Spotlight({
                         src={photo.src}
                         alt={photo.alt}
                         fill
+                        unoptimized
                         className="object-cover transition hover:scale-110"
                       />
                     </div>

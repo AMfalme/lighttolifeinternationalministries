@@ -298,7 +298,7 @@ export default function TeamMemberBranchPage() {
             <div className={styles.titleRow}>
               <div className={styles.profileIcon}>
                 {pastorPrimaryImage ? (
-                  <Image unoptimized src={pastorPrimaryImage} alt={member.displayName} fill sizes="72px" style={{ objectFit: "cover", objectPosition: "center top" }} />
+                  <Image unoptimized src={pastorPrimaryImage} alt={member.displayName || "Pastor"} fill sizes="72px" style={{ objectFit: "cover", objectPosition: "center top" }} />
                 ) : (
                   <span>{member.displayName?.[0]?.toUpperCase() || "B"}</span>
                 )}
@@ -344,7 +344,7 @@ export default function TeamMemberBranchPage() {
           </div>
           <div className={styles.heroImage}>
             {pastorPrimaryImage ? (
-              <Image unoptimized src={pastorPrimaryImage} alt={member.displayName} fill sizes="(max-width: 768px) 100vw, 42vw" style={{ objectFit: "cover", objectPosition: "center top" }} />
+              <Image unoptimized src={pastorPrimaryImage} alt={member.displayName || "Branch Image"} fill sizes="(max-width: 768px) 100vw, 42vw" style={{ objectFit: "cover", objectPosition: "center top" }} />
             ) : (
               <div className={styles.loading}>No profile image available.</div>
             )}
@@ -397,7 +397,7 @@ export default function TeamMemberBranchPage() {
               </div>
               {pastorPrimaryImage || pastorGalleryImages.length ? (
                 <div className={styles.profileImage}>
-                  <Image unoptimized src={pastorPrimaryImage || pastorGalleryImages[0] || ""} alt={member.displayName} fill sizes="180px" style={{ objectFit: "cover", objectPosition: "center top" }} />
+                  <Image unoptimized src={pastorPrimaryImage || pastorGalleryImages[0] || ""} alt={member.displayName || "Profile"} fill sizes="180px" style={{ objectFit: "cover", objectPosition: "center top" }} />
                   <button className={styles.viewImagesBtn} onClick={() => setShowPastorModal(true)}>View pastor images</button>
                 </div>
               ) : null}

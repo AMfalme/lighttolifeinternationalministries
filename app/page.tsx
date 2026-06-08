@@ -234,7 +234,7 @@ export default function Home() {
             founder={featuredFounders[
               Math.min(
                 activeFounderIndex,
-                featuredFounders.length - 1
+                Math.max(0, featuredFounders.length - 1)
               )
             ]}
             gallery={activeFounderGallery}

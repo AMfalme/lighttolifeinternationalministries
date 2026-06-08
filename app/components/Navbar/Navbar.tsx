@@ -209,12 +209,7 @@ export default function Navbar() {
       </button>
 
       {/* Desktop Navigation */}
-      <nav 
-        className={`hidden gap-10 text-sm font-medium lg:flex ${
-          theme === "light" ? "text-slate-900" : "text-white"
-        }`} 
-        aria-label="Primary navigation"
-      >
+      <nav className="hidden gap-10 text-sm font-medium lg:flex text-amber-400" aria-label="Primary navigation">
         {navItems.map((item, index) => (
           <div key={item.label} className="group relative">
             <Link 
@@ -227,7 +222,7 @@ export default function Navbar() {
             </Link>
             {item.subItems.length > 0 && (
               <div className="absolute left-0 top-full hidden pt-2 group-hover:block">
-                <div className="flex flex-col gap-2 rounded-lg bg-black/90 p-4 min-w-max shadow-lg border border-amber-400/30 text-white">
+                <div className="flex flex-col gap-2 rounded-lg bg-black/90 p-4 min-w-max shadow-lg border border-amber-400/30 text-amber-400">
                   {item.subItems.map((subItem) => (
                     <Link
                       key={subItem.href}
@@ -251,7 +246,7 @@ export default function Navbar() {
       {/* Mobile Navigation */}
       {isOpen && (
         <nav className="lg:hidden absolute top-20 left-0 right-0 bg-black/95 border-b border-amber-400/30 p-4" aria-label="Mobile navigation">
-          <div className="flex flex-col gap-4 text-sm font-medium text-white">
+          <div className="flex flex-col gap-4 text-sm font-medium text-amber-400">
             {navItems.map((item, index) => (
               <div key={item.label}>
                 <Link 
@@ -318,10 +313,10 @@ export default function Navbar() {
       <div className={styles.navActions} ref={profileMenuRef}>
         {!authLoading && !user ? (
           <>
-            <Link className={`${styles.authLink} ${theme === "light" ? "text-slate-900" : "text-white"}`} href="/login">
+            <Link className={`${styles.authLink} text-amber-400`} href="/login">
               Login
             </Link>
-            <Link className={`${styles.authLink} ${theme === "light" ? "text-slate-900" : "text-white"}`} href="/register">
+            <Link className={`${styles.authLink} text-amber-400`} href="/register">
               Register
             </Link>
             <Link className={styles.navButton} href="/donate">Donate</Link>
