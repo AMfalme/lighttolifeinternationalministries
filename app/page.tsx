@@ -11,7 +11,7 @@ import { getAllDashboardImages, type DashboardImage } from "./lib/dashboardImage
 import { useFastAuth } from "./lib/firebase/useFastAuth";
 import { db } from "./lib/firebase/config";
 import { doc, getDoc } from "firebase/firestore";
-import Spotlight from "./components/spotlight/page";
+import Spotlight from "./components/spotlight";
 type PublicTeamMember = {
   uid: string;
   branchKey?: string;
