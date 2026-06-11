@@ -1,0 +1,12 @@
+
+> lightoflife@0.1.0 build
+> next build
+
+▲ Next.js 16.2.4 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 24.8s
+  Running TypeScript ...
+Debug Failure. Expected C:/Users/BOSS/Dev/lighttolife/.next/cache/.tsbuildinfo === C:\Users\BOSS\Dev\lighttolife\.next\cache\.tsbuildinfo. 
+Next.js build worker exited with code: 1 and signal: null

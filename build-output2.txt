@@ -1,0 +1,29 @@
+
+> lightoflife@0.1.0 build
+> next build
+
+▲ Next.js 16.2.4 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 27.0s
+  Running TypeScript ...
+  Finished TypeScript in 17.0s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/23) ...
+  Generating static pages using 3 workers (5/23) 
+  Generating static pages using 3 workers (11/23) 
+⨯ useSearchParams() should be wrapped in a suspense boundary at page "/news". Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+    at S (C:\Users\BOSS\Dev\lighttolife\.next\server\chunks\ssr\node_modules_next_0pb9qoy._.js:2:2692)
+    at r (C:\Users\BOSS\Dev\lighttolife\.next\server\chunks\ssr\node_modules_next_0pb9qoy._.js:4:6760)
+    at C:\Users\BOSS\Dev\lighttolife\.next\server\chunks\ssr\[root-of-the-server]__0tr2m8d._.js:1:10347
+    at an (C:\Users\BOSS\Dev\lighttolife\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:84267)
+    at ai (C:\Users\BOSS\Dev\lighttolife\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:86086)
+    at al (C:\Users\BOSS\Dev\lighttolife\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:107860)
+    at ao (C:\Users\BOSS\Dev\lighttolife\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:105275)
+    at aa (C:\Users\BOSS\Dev\lighttolife\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:84619)
+    at ai (C:\Users\BOSS\Dev\lighttolife\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:86135)
+    at ai (C:\Users\BOSS\Dev\lighttolife\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:104615)
+Error occurred prerendering page "/news". Read more: https://nextjs.org/docs/messages/prerender-error
+Export encountered an error on /news/page: /news, exiting the build.
+⨯ Next.js build worker exited with code: 1 and signal: null
