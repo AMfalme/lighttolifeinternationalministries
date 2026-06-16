@@ -41,7 +41,7 @@ export default function Navbar() {
         subItems: [
           { label: "Mission", href: "/#features" },
           { label: "About", href: "/#about" },
-          { label: "Team", href: "/#leadership" },
+          { label: "Team", href: "/team" },
         ],
       },
       {
