@@ -86,7 +86,7 @@
 
 .selectedCard {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
   flex-wrap: wrap;
   padding: 12px;
@@ -106,48 +106,20 @@
 }
 
 .selectedThumbList {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  flex: 1 1 420px;
-  min-width: min(100%, 420px);
-  width: 100%;
 }
 
 .selectedThumb {
   position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
+  width: 64px;
+  height: 64px;
   overflow: hidden;
   border-radius: 14px;
   background: #e9eef6;
   border: 1px solid rgba(148, 163, 184, 0.2);
   flex: 0 0 auto;
-}
-
-.selectedThumb[role="button"] {
-  cursor: pointer;
-}
-
-.selectedThumb[role="button"]:hover .selectedOverlay {
-  opacity: 1;
-}
-
-.selectedOverlay {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 10px;
-  padding: 8px 10px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.72);
-  color: #ffffff;
-  font-size: 0.76rem;
-  font-weight: 700;
-  text-align: center;
-  opacity: 0.9;
-  transition: opacity 0.2s ease;
-  z-index: 2;
 }
 
 .selectedPreview {
@@ -224,15 +196,6 @@
   flex-direction: column;
   justify-content: center;
   gap: 10px;
-  min-width: min(100%, 240px);
-  flex: 0 1 280px;
-}
-
-.selectedHint {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.88rem;
-  line-height: 1.5;
 }
 
 .selectedMeta span,
@@ -328,7 +291,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  z-index: 50;
+  z-index: 2000;
 }
 
 .modalContent {
@@ -341,14 +304,8 @@
   box-shadow: 0 30px 90px rgba(15, 23, 42, 0.28);
   padding: 24px;
   backdrop-filter: blur(18px);
-}
-
-.modalHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
+  position: relative;
+  z-index: 2001;
 }
 
 .modalHeader h3 {
@@ -485,11 +442,6 @@
   .uploadToolbar,
   .selectedCard {
     flex-direction: column;
-  }
-
-  .selectedThumbList {
-    min-width: 100%;
-    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
   }
 
   .selectedPreview {

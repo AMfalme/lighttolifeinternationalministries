@@ -144,30 +144,59 @@ export default function BranchProfile() {
             )}
           </div>
         );
-      case "Gallery":
-        const galleryImages = branchData.churchGallery || branchData.pastorGallery || [];
+      case "Gallery": {
+        const churchImages = branchData.churchGallery || [];
+        const pastorImages = branchData.pastorGallery || [];
+        const hasAnyGallery = churchImages.length > 0 || pastorImages.length > 0;
+
         return (
-          <div className="space-y-4">
-            {galleryImages.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-3">
-                {galleryImages.map((image, idx) => (
-                  <div key={idx} className="rounded-xl overflow-hidden border border-slate-200 h-48">
-                    <Image
-                      src={image}
-                      alt={`Branch gallery ${idx + 1}`}
-                      width={300}
-                      height={200}
-                      className="object-cover w-full h-full"
-                      unoptimized
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
+          <div className="space-y-8">
+            {churchImages.length > 0 && (
+              <section>
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">Church Gallery</h3>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {churchImages.map((image, idx) => (
+                    <div key={`church-${idx}`} className="rounded-xl overflow-hidden border border-slate-200 h-48">
+                      <Image
+                        src={image}
+                        alt={`Church gallery ${idx + 1}`}
+                        width={300}
+                        height={200}
+                        className="object-cover w-full h-full"
+                        unoptimized
+                      />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {pastorImages.length > 0 && (
+              <section>
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">Pastor Gallery</h3>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {pastorImages.map((image, idx) => (
+                    <div key={`pastor-${idx}`} className="rounded-xl overflow-hidden border border-slate-200 h-48">
+                      <Image
+                        src={image}
+                        alt={`Pastor gallery ${idx + 1}`}
+                        width={300}
+                        height={200}
+                        className="object-cover w-full h-full"
+                        unoptimized
+                      />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {!hasAnyGallery && (
               <p className="text-slate-600">No gallery images available</p>
             )}
           </div>
         );
+      }
       case "Story":
         return (
           <div className="space-y-4">

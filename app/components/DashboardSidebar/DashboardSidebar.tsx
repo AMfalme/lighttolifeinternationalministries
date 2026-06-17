@@ -39,7 +39,7 @@ export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
   }, [user]);
 
   const isPrivileged = role === "admin" || role === "leadership";
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(true);
 
   useEffect(() => {
     applyTheme(theme);
@@ -167,7 +167,7 @@ export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
         </button>
       </div>
 
-      <aside className={`${styles.sidebar} ${mobileOpen ? styles.open : ''}`}>
+      <aside className={`${styles.sidebar} ${mobileOpen ? styles.open : styles.closed}`}>
         <div className={styles.sidebarHeader}>
           <Image src="/logo.jpeg" alt="Light to Life Logo" width={160} height={76} className={styles.logo} priority />
           <button className={styles.closeMobile} onClick={() => setMobileOpen(false)} aria-label="Close menu">✕</button>
@@ -181,6 +181,7 @@ export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
               <>
                 <li><a href="/dashboard/blogs" className={styles.navLink} onClick={() => setMobileOpen(false)}>📝 Manage Blogs</a></li>
                 <li><a href="/dashboard/team" className={styles.navLink} onClick={() => setMobileOpen(false)}>👥 Leadership</a></li>
+                <li><a href="/dashboard/team-members" className={styles.navLink} onClick={() => setMobileOpen(false)}>👥 Team Members</a></li>
                 <li><a href="/dashboard/events" className={styles.navLink} onClick={() => setMobileOpen(false)}>📅 Manage Events</a></li>
                 <li><a href="/dashboard/projects" className={styles.navLink} onClick={() => setMobileOpen(false)}>🏗️ Manage Projects</a></li>
                 <li><a href="/dashboard/users" className={styles.navLink} onClick={() => setMobileOpen(false)}>🔐 Users</a></li>
