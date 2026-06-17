@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import TeamMemberCard from "@/app/components/TeamMember/TeamMember";
 import Navbar from "../components/Navbar/Navbar";
 import styles from "./team.module.css";
 
@@ -14,6 +15,7 @@ type LeadershipMember = {
   pastorDescription?: string;
   branchDescription?: string;
   photoURL?: string;
+  pastorImageURL?: string;
 };
 
 type ManagementMember = {
@@ -21,6 +23,7 @@ type ManagementMember = {
   name?: string;
   title?: string;
   role?: string;
+  photoURL?: string;
   imageURL?: string;
   background?: string;
   gallery?: string[];
@@ -28,16 +31,6 @@ type ManagementMember = {
   phoneNumber?: string;
   email?: string;
 };
-
-function Avatar({ name }: { name: string }) {
-  const initials = name
-    .split(" ")
-    .map((s) => s[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-  return <div className={styles.avatar}>{initials}</div>;
-}
 
 const getExcerpt = (text?: string, max = 110) => {
   if (!text) return "";
@@ -49,9 +42,11 @@ const getMemberImageUrl = (
   type: "leadership" | "management"
 ) => {
   if (type === "leadership") {
-    return (member as LeadershipMember).photoURL;
+    const m = member as LeadershipMember;
+    return m.photoURL || m.pastorImageURL;
   }
-  return (member as ManagementMember).imageURL;
+  const m = member as ManagementMember;
+  return m.imageURL || m.photoURL;
 };
 
 const getMemberRole = (
@@ -190,45 +185,37 @@ export default function TeamPage() {
               {loadingLeadership ? (
                 [1, 2, 3].map((index) => (
                   <article key={`lead-loading-${index}`} className={styles.card}>
-                    <div className={styles.avatar} />
-                    <div className={styles.info}>
-                      <div className={styles.skeletonLine} />
-                      <div className={styles.skeletonLineShort} />
-                      <div className={styles.skeletonLine} />
+                    {/* Placeholder for skeleton loading, TeamMemberCard doesn't have a built-in skeleton */}
+                    <div className={styles.imageWrapper} style={{ backgroundColor: "#e0e0e0", animation: "pulse 1.5s infinite" }} />
+                    <div className={styles.info} style={{ padding: "1rem" }}>
+                      <div className={styles.skeletonLine} style={{ height: "24px", width: "80%", marginBottom: "8px" }} />
+                      <div className={styles.skeletonLineShort} style={{ height: "16px", width: "60%", marginBottom: "12px" }} />
+                      <div className={styles.skeletonLine} style={{ height: "16px", width: "90%", marginBottom: "6px" }} />
+                      <div className={styles.skeletonLine} style={{ height: "16px", width: "70%" }} />
                     </div>
+                    <style>{`
+                      @keyframes pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.5; }
+                      }
+                    `}</style>
                   </article>
                 ))
               ) : leadership.length ? (
-                leadership.map((member) => {
-                  const imageUrl = getMemberImageUrl(member, "leadership");
-                  return (
-                    <article key={member.id} className={styles.card}>
-                      <div className={styles.imageWrapper}>
-                        {imageUrl ? (
-                          <img
-                            src={imageUrl}
-                            alt={member.displayName || "Leader"}
-                            className={styles.memberImage}
-                          />
-                        ) : (
-                          <Avatar name={member.displayName || "Leader"} />
-                        )}
-                      </div>
-                      <div className={styles.info}>
-                        <h3>{member.displayName || "Branch Leader"}</h3>
-                        <p className={styles.role}>{getMemberRole(member, "leadership")}</p>
-                        <p className={styles.bio}>{getExcerpt(getMemberDescription(member, "leadership"), 120)}</p>
-                        <button
-                          type="button"
-                          className={styles.moreBtn}
-                          onClick={() => openModal(member, "leadership")}
-                        >
-                          See more
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })
+                leadership.map((member) => (
+                  <TeamMemberCard
+                    key={member.id}
+                    href={`/team/${member.id}`} // Assuming member.id is the UID for the detail page
+                    imageSrc={getMemberImageUrl(member, "leadership")}
+                    imageAlt={member.displayName || "Leader"}
+                    name={member.displayName || "Branch Leader"}
+                    role={getMemberRole(member, "leadership")}
+                    description={getExcerpt(getMemberDescription(member, "leadership"), 120)}
+                    onCtaClick={() => openModal(member, "leadership")}
+                    ctaLabel="See more"
+                    className={styles.card} // Apply existing card styles
+                  />
+                ))
               ) : (
                 <article className={styles.card}>
                   <div className={styles.info}>
@@ -246,38 +233,21 @@ export default function TeamPage() {
             <h2>Management Team</h2>
             {loadingTeam ? (
               <p>Loading management members…</p>
-            ) : teamMembers.length ? (
+            ) : teamMembers.length > 0 ? (
               <div className={styles.grid}>
-                {teamMembers.map((member) => {
-                  const imageUrl = getMemberImageUrl(member, "management");
-                  return (
-                    <article key={member.id} className={styles.card}>
-                      <div className={styles.imageWrapper}>
-                        {imageUrl ? (
-                          <img
-                            src={imageUrl}
-                            alt={member.name || "Team Member"}
-                            className={styles.memberImage}
-                          />
-                        ) : (
-                          <Avatar name={member.name || "Team"} />
-                        )}
-                      </div>
-                      <div className={styles.info}>
-                        <h3>{member.name || "Team Member"}</h3>
-                        <p className={styles.role}>{getMemberRole(member, "management")}</p>
-                        <p className={styles.bio}>{getExcerpt(getMemberDescription(member, "management"), 120)}</p>
-                        <button
-                          type="button"
-                          className={styles.moreBtn}
-                          onClick={() => openModal(member, "management")}
-                        >
-                          See more
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
+                {teamMembers.map((member) => (
+                  <TeamMemberCard
+                    key={member.id}
+                    imageSrc={getMemberImageUrl(member, "management")}
+                    imageAlt={member.name || "Team Member"}
+                    name={member.name || "Team Member"}
+                    role={getMemberRole(member, "management")}
+                    description={getExcerpt(getMemberDescription(member, "management"), 120)}
+                    onCtaClick={() => openModal(member, "management")}
+                    ctaLabel="See more"
+                    className={styles.card} // Apply existing card styles
+                  />
+                ))}
               </div>
             ) : (
               <div className={styles.emptyState}>
@@ -308,8 +278,10 @@ export default function TeamPage() {
                       alt={getMemberAvatarName(selectedMember, selectedMemberType)}
                       className={styles.memberImage}
                     />
-                  ) : (
-                    <Avatar name={getMemberAvatarName(selectedMember, selectedMemberType)} />
+                  ) : ( // Fallback for no image, using the TeamMemberCard's internal logic for initials
+                    <div className={styles.avatarPlaceholder}>
+                      <span>{getMemberAvatarName(selectedMember, selectedMemberType).charAt(0).toUpperCase()}</span>
+                    </div>
                   )}
                 </div>
                 <div>

@@ -75,12 +75,12 @@
 .card {
   display: flex;
   gap: 20px;
+  flex-direction: column; /* Ensure image is on top, then content */
   align-items: stretch;
-  padding: 20px;
-  background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+  /* The TeamMemberCard component already provides styling for background, border-radius, shadow. */
+  /* This CSS class should primarily control the flex layout of its children (image and text content). */
+  /* Padding is handled by the p-6 on the content div within TeamMemberCard. */
+  /* If padding is desired around the image, it should be added to the imageWrapper in TeamMemberCard. */
 }
 
 .imageWrapper {
@@ -286,8 +286,8 @@
 @media (max-width: 520px) {
   .card {
     flex-direction: column;
-    gap: 14px;
-    padding: 16px;
+    gap: 14px; /* Override global gap for smaller screens */
+    /* padding: 16px; */ /* Remove, let TeamMemberCard handle its own padding */
   }
   .imageWrapper {
     width: 100%;
