@@ -11,6 +11,7 @@ type BranchDocumentData = {
   pastorImageURL?: string;
   pastorGallery?: string[];
   gallery?: string[];
+  displayOrder?: number;
   mainImage?: string;
 };
 
@@ -28,6 +29,7 @@ type TeamMemberDocumentData = {
   phoneNumber?: string;
   email?: string;
   photoURL?: string;
+  displayOrder?: number;
   role?: string;
 };
 
@@ -90,7 +92,7 @@ export async function GET() {
         churchGallery: Array.isArray(member.churchGallery) && member.churchGallery.length ? member.churchGallery : Array.isArray(branchData?.gallery) ? branchData.gallery : [],
         phoneNumber: member.phoneNumber || "",
         email: member.email || "",
-        displayOrder: member.displayOrder ?? branchData?.displayOrder ?? 999,
+        displayOrder: Number(member.displayOrder ?? branchData?.displayOrder ?? 999),
         photoURL: member.photoURL || branchData?.mainImage || "",
       };
     });

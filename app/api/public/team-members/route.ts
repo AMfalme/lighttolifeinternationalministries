@@ -11,15 +11,20 @@ type TeamMemberDocument = {
   branchLocation?: string;
   phoneNumber?: string;
   email?: string;
+  displayOrder?: string | number;
 };
 
 export async function GET() {
   try {
     const snapshot = await adminDb().collection("teamMembers").get();
-    const members = snapshot.docs.map((document) => ({
-      id: document.id,
-      ...(document.data() as TeamMemberDocument),
-    }));
+    const members = snapshot.docs.map((document) => {
+      const data = document.data() as TeamMemberDocument;
+      return {
+        id: document.id,
+        ...data,
+        displayOrder: data.displayOrder !== undefined ? Number(data.displayOrder) : 999,
+      };
+    });
 
     return NextResponse.json({ members });
   } catch (error) {

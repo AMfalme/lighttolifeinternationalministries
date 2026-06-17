@@ -136,7 +136,7 @@ export default function TeamSection() {
           <TeamMemberCard
             key={member.uid}
             href={`/team/${member.branchKey || (member.branchLocation ? toBranchKey(member.branchLocation) : member.uid)}`}
-            imageSrc={member.photoURL}
+            imageSrc={member.pastorImageURL || member.photoURL}
             imageAlt={member.displayName || "Branch leader"}
             name={member.displayName || "Branch Leader"}
             role={member.pastorTitle || member.branchLocation || "Branch Leader"}
