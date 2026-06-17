@@ -16,6 +16,7 @@ type LeadershipMember = {
   branchDescription?: string;
   photoURL?: string;
   pastorImageURL?: string;
+  displayOrder?: number;
 };
 
 type ManagementMember = {
@@ -30,6 +31,7 @@ type ManagementMember = {
   branchLocation?: string;
   phoneNumber?: string;
   email?: string;
+  displayOrder?: number;
 };
 
 const getExcerpt = (text?: string, max = 110) => {
@@ -126,7 +128,10 @@ export default function TeamPage() {
         if (!response.ok) {
           throw new Error(payload.error || "Failed to load leadership.");
         }
-        if (mounted) setLeadership(payload.members || []);
+        if (mounted) {
+          const sorted = (payload.members || []).sort((a, b) => (a.displayOrder ?? 999) - (b.displayOrder ?? 999));
+          setLeadership(sorted);
+        }
       } catch (error) {
         console.error("Leadership load failed:", error);
         if (mounted) setLeadership([]);
@@ -142,7 +147,10 @@ export default function TeamPage() {
         if (!response.ok) {
           throw new Error(payload.error || "Failed to load team members.");
         }
-        if (mounted) setTeamMembers(payload.members || []);
+        if (mounted) {
+          const sorted = (payload.members || []).sort((a, b) => (a.displayOrder ?? 999) - (b.displayOrder ?? 999));
+          setTeamMembers(sorted);
+        }
       } catch (error) {
         console.error("Team members load failed:", error);
         if (mounted) setTeamMembers([]);

@@ -24,6 +24,7 @@ type ManagementMember = {
   branchLocation?: string;
   phoneNumber?: string;
   email?: string;
+  displayOrder?: number;
 };
 
 type ManagementMemberForm = {
@@ -36,6 +37,7 @@ type ManagementMemberForm = {
   gallery: string;
   phoneNumber: string;
   email: string;
+  displayOrder: string;
 };
 
 type MediaUploadResult = {
@@ -58,6 +60,7 @@ const emptyForm = (): ManagementMemberForm => ({
   gallery: "",
   phoneNumber: "",
   email: "",
+  displayOrder: "1",
 });
 
 const roles = ["General Ministry Director", "Director", "Coordinator", "Team Member"];
@@ -162,6 +165,7 @@ export default function DashboardTeamMembersPage() {
       gallery: (member.gallery || []).join(", "),
       phoneNumber: member.phoneNumber || "",
       email: member.email || "",
+      displayOrder: String(member.displayOrder || 999),
     });
     requestAnimationFrame(() => {
       editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -229,6 +233,7 @@ export default function DashboardTeamMembersPage() {
           title: formData.title,
           role: formData.role,
           branchLocation: formData.branchLocation,
+          displayOrder: Number(formData.displayOrder) || 999,
           imageURL: formData.imageURL,
           background: formData.background,
           gallery: formData.gallery

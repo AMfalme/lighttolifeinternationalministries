@@ -29,6 +29,7 @@ interface TeamMember {
   phoneNumber?: string;
   photoURL?: string;
   createdAt?: string;
+  displayOrder?: number;
 }
 
 type UserOption = {
@@ -54,6 +55,7 @@ type TeamMemberForm = {
   phoneNumber: string;
   photoURL: string;
   password: string;
+  displayOrder: string;
 };
 
 type MediaUploadResult = {
@@ -81,6 +83,7 @@ const emptyForm = (): TeamMemberForm => ({
   phoneNumber: "",
   photoURL: "",
   password: "",
+  displayOrder: "1",
 });
 
 export default function DashboardTeamPage() {
@@ -169,6 +172,7 @@ export default function DashboardTeamPage() {
           phoneNumber: data.phoneNumber || "",
           photoURL: data.photoURL || "",
           createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt || "",
+          displayOrder: data.displayOrder || 999,
         } as TeamMember;
       });
 
@@ -196,6 +200,7 @@ export default function DashboardTeamPage() {
       phoneNumber: member.phoneNumber || "",
       photoURL: member.photoURL || "",
       password: "",
+      displayOrder: String(member.displayOrder || 999),
     });
     setFormStep(1);
     requestAnimationFrame(() => {
@@ -401,6 +406,7 @@ export default function DashboardTeamPage() {
         },
         body: JSON.stringify({
           ...formData,
+          displayOrder: Number(formData.displayOrder) || 999,
           pastorTitle: formData.pastorTitle || "",
           photoURL: formData.pastorImageURL || formData.photoURL,
           pastorGallery: formData.pastorGallery
@@ -538,6 +544,10 @@ export default function DashboardTeamPage() {
                             onChange={(event) => setFormData({ ...formData, branchLocation: event.target.value })}
                             placeholder="Enter branch location name"
                           />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label htmlFor="displayOrder">Display Order (Hierarchy)</label>
+                          <input id="displayOrder" type="number" value={formData.displayOrder} onChange={(event) => setFormData({ ...formData, displayOrder: event.target.value })} placeholder="e.g. 1 for top" />
                         </div>
                         <div className={styles.formGroup}>
                           <label htmlFor="branchAddress">Branch Address</label>
