@@ -47,23 +47,58 @@ const getExcerpt = (text?: string, max = 110) => {
 const getMemberImageUrl = (
   member: LeadershipMember | ManagementMember,
   type: "leadership" | "management"
-) => (type === "leadership" ? member.photoURL : member.imageURL);
+) => {
+  if (type === "leadership") {
+    return (member as LeadershipMember).photoURL;
+  }
+  return (member as ManagementMember).imageURL;
+};
 
 const getMemberRole = (
   member: LeadershipMember | ManagementMember,
   type: "leadership" | "management"
-) =>
-  type === "leadership"
-    ? member.pastorTitle || member.role || member.branchLocation || "Branch Leader"
-    : member.title || member.role || member.branchLocation || "Team Member";
+) => {
+  if (type === "leadership") {
+    const leader = member as LeadershipMember;
+    return leader.pastorTitle || leader.role || leader.branchLocation || "Branch Leader";
+  }
+  const manager = member as ManagementMember;
+  return manager.title || manager.role || manager.branchLocation || "Team Member";
+};
 
 const getMemberDescription = (
   member: LeadershipMember | ManagementMember,
   type: "leadership" | "management"
+) => {
+  if (type === "leadership") {
+    const leader = member as LeadershipMember;
+    return leader.pastorDescription || leader.branchDescription || "Committed to serving the community with passion and care.";
+  }
+  const manager = member as ManagementMember;
+  return manager.background || "This team member has not yet provided a public summary.";
+};
+
+const getMemberName = (
+  member: LeadershipMember | ManagementMember,
+  type: "leadership" | "management"
 ) =>
   type === "leadership"
-    ? member.pastorDescription || member.branchDescription || "Committed to serving the community with passion and care."
-    : member.background || "This team member has not yet provided a public summary.";
+    ? (member as LeadershipMember).displayName || "Leadership"
+    : (member as ManagementMember).name || "Team Member";
+
+const getMemberAvatarName = (
+  member: LeadershipMember | ManagementMember,
+  type: "leadership" | "management"
+) =>
+  type === "leadership"
+    ? (member as LeadershipMember).displayName || "Leader"
+    : (member as ManagementMember).name || "Team";
+
+const getMemberGallery = (
+  member: LeadershipMember | ManagementMember,
+  type: "leadership" | "management"
+) =>
+  type === "management" ? (member as ManagementMember).gallery : undefined;
 
 export default function TeamPage() {
   const [leadership, setLeadership] = useState<LeadershipMember[]>([]);
@@ -258,11 +293,7 @@ export default function TeamPage() {
               <div className={styles.modalHeader}>
                 <div>
                   <p className={styles.kicker}>{selectedMemberType === "leadership" ? "Leadership" : "Team Member"}</p>
-                  <h2 className={styles.modalTitle}>
-                    {selectedMemberType === "leadership"
-                      ? selectedMember.displayName || "Leadership"
-                      : selectedMember.name || "Team Member"}
-                  </h2>
+                  <h2 className={styles.modalTitle}>{getMemberName(selectedMember, selectedMemberType)}</h2>
                   <p className={styles.role}>{getMemberRole(selectedMember, selectedMemberType)}</p>
                 </div>
                 <button type="button" className={styles.modalClose} onClick={closeModal} aria-label="Close details">
@@ -274,22 +305,20 @@ export default function TeamPage() {
                   {getMemberImageUrl(selectedMember, selectedMemberType) ? (
                     <img
                       src={getMemberImageUrl(selectedMember, selectedMemberType) || ""}
-                      alt={selectedMemberType === "leadership" ? selectedMember.displayName || "Leader" : selectedMember.name || "Team Member"}
+                      alt={getMemberAvatarName(selectedMember, selectedMemberType)}
                       className={styles.memberImage}
                     />
                   ) : (
-                    <Avatar
-                      name={selectedMemberType === "leadership" ? selectedMember.displayName || "Leader" : selectedMember.name || "Team"}
-                    />
+                    <Avatar name={getMemberAvatarName(selectedMember, selectedMemberType)} />
                   )}
                 </div>
                 <div>
                   <p className={styles.bio}>{getMemberDescription(selectedMember, selectedMemberType)}</p>
-                  {selectedMemberType === "management" && selectedMember.gallery?.length ? (
+                  {selectedMemberType === "management" && getMemberGallery(selectedMember, selectedMemberType)?.length ? (
                     <div className={styles.galleryPreview}>
                       <p className={styles.galleryTitle}>Work gallery</p>
                       <div className={styles.galleryGrid}>
-                        {selectedMember.gallery.slice(0, 4).map((item, index) => (
+                        {getMemberGallery(selectedMember, selectedMemberType)?.slice(0, 4).map((item, index) => (
                           <img key={index} src={item} alt={`Gallery image ${index + 1}`} className={styles.galleryItem} />
                         ))}
                       </div>

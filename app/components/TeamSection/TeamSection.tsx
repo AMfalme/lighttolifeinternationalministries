@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState, useRef } from "react";
+import TeamMemberCard from "@/app/components/TeamMember/TeamMember";
 import pageStyles from "@/app/page.module.css";
 
 type TeamMemberRecord = {
@@ -17,6 +18,7 @@ type TeamMemberRecord = {
   pastorImageURL?: string;
   churchGallery?: string[];
   phoneNumber?: string;
+  photoURL?: string;
 };
 
 export default function TeamSection() {
@@ -129,39 +131,21 @@ export default function TeamSection() {
         </>
       ) : teamMembers.length ? (
         teamMembers.map((member) => (
-          <a
+          <TeamMemberCard
             key={member.uid}
             href={`/team/${member.branchKey || (member.branchLocation ? toBranchKey(member.branchLocation) : member.uid)}`}
-            className={pageStyles.leaderCard}
-          >
-            <div className={pageStyles.leaderImageBox}>
-              {member.pastorImageURL ? (
-                <Image
-                  src={member.pastorImageURL}
-                  alt={member.displayName || "Branch leader"}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 310px"
-                  className={pageStyles.leaderImage}
-                />
-              ) : (
-                <div className={pageStyles.imagePlaceholder}>
-                  <span>{(member.displayName || "T").slice(0, 1).toUpperCase()}</span>
-                </div>
-              )}
-            </div>
-
-            <div className={pageStyles.leaderInfo}>
-              <h3 className={pageStyles.leaderName}>{member.displayName || "Branch Leader"}</h3>
-              <p className={pageStyles.leaderRole}>{member.pastorTitle || member.branchLocation || "Branch Leader"}</p>
-              <p className={pageStyles.leaderBio}>
-                {member.pastorDescription
-                  ? `${member.pastorDescription.slice(0, 120)}...`
-                  : member.branchDescription
-                  ? `${member.branchDescription.slice(0, 120)}...`
-                  : "Explore the branch worship style, community values, and ministry heartbeat."}
-              </p>
-            </div>
-          </a>
+            imageSrc={member.photoURL}
+            imageAlt={member.displayName || "Branch leader"}
+            name={member.displayName || "Branch Leader"}
+            role={member.pastorTitle || member.branchLocation || "Branch Leader"}
+            description={
+              member.pastorDescription
+                ? `${member.pastorDescription.slice(0, 120)}...`
+                : member.branchDescription
+                ? `${member.branchDescription.slice(0, 120)}...`
+                : "Explore the branch worship style, community values, and ministry heartbeat."
+            }
+          />
         ))
       ) : (
         <div className={pageStyles.leaderCard}>
