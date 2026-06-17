@@ -7,7 +7,7 @@ import Navbar from "../components/Navbar/Navbar";
 import styles from "./team.module.css";
 
 type LeadershipMember = {
-  id: string;
+  uid: string;
   displayName?: string;
   role?: string;
   pastorTitle?: string;
@@ -43,7 +43,7 @@ const getMemberImageUrl = (
 ) => {
   if (type === "leadership") {
     const m = member as LeadershipMember;
-    return m.photoURL || m.pastorImageURL;
+    return m.pastorImageURL || m.photoURL;
   }
   const m = member as ManagementMember;
   return m.imageURL || m.photoURL;
@@ -204,8 +204,8 @@ export default function TeamPage() {
               ) : leadership.length ? (
                 leadership.map((member) => (
                   <TeamMemberCard
-                    key={member.id}
-                    href={`/team/${member.id}`} // Assuming member.id is the UID for the detail page
+                    key={member.uid}
+                    href={`/team/${member.uid}`} 
                     imageSrc={getMemberImageUrl(member, "leadership")}
                     imageAlt={member.displayName || "Leader"}
                     name={member.displayName || "Branch Leader"}
