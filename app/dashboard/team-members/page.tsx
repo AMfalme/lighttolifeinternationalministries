@@ -307,7 +307,7 @@ export default function DashboardTeamMembersPage() {
             <div className={styles.header}>
               <div>
                 <p className={styles.kicker}>Dashboard / Team Members</p>
-                <h1>Management Team</h1>
+                <h1>Regional Departmental Heads</h1>
                 <p className={styles.description}>Manage branch-level management staff and contributors who support the ministry.</p>
               </div>
               <button type="button" className={styles.addButton} onClick={openCreateForm}>

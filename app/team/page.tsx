@@ -230,7 +230,7 @@ export default function TeamPage() {
 
         <section className={styles.section}>
           <div className={styles.container}>
-            <h2>Management Team</h2>
+            <h2>Regional Departmental Heads</h2>
             {loadingTeam ? (
               <p>Loading management members…</p>
             ) : teamMembers.length > 0 ? (
