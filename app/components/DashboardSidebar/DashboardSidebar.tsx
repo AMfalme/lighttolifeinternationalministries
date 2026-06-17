@@ -39,7 +39,14 @@ export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
   }, [user]);
 
   const isPrivileged = role === "admin" || role === "leadership";
-  const [mobileOpen, setMobileOpen] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    // On initial load, if desktop, ensure sidebar is open
+    if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+      setMobileOpen(true);
+    }
+  }, []);
 
   useEffect(() => {
     applyTheme(theme);
@@ -71,7 +78,7 @@ export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
   }, []);
 
   useEffect(() => {
-    if (mobileOpen) document.body.style.overflow = "hidden";
+    if (mobileOpen && window.innerWidth < 1024) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "unset";
 
     return () => {
@@ -81,7 +88,7 @@ export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
 
   return (
     <>
-      <div className={styles.mobileHeader}>
+      <div className={styles.mobileHeader} style={!mobileOpen ? { display: 'flex' } : undefined}>
         <div className={styles.mobileBrand}>
           <Image src="/logo.jpeg" alt="Light to Life" width={140} height={64} className={styles.logo} priority />
         </div>
@@ -159,6 +166,7 @@ export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
         <button
           aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
           className={styles.hamburger}
+          aria-expanded={mobileOpen}
           onClick={() => setMobileOpen((s) => !s)}
         >
           <span className={styles.hamburgerLine}></span>
@@ -174,25 +182,25 @@ export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
         </div>
         <nav className={styles.sidebarNav}>
           <ul>
-            <li><a href="/dashboard" className={styles.navLink} onClick={() => setMobileOpen(false)}>🎛️ Dashboard</a></li>
-            <li><a href="/dashboard/profile" className={styles.navLink} onClick={() => setMobileOpen(false)}>👤 Profile</a></li>
+            <li><a href="/dashboard" className={styles.navLink}>🎛️ Dashboard</a></li>
+            <li><a href="/dashboard/profile" className={styles.navLink}>👤 Profile</a></li>
 
             {isPrivileged && (
               <>
-                <li><a href="/dashboard/blogs" className={styles.navLink} onClick={() => setMobileOpen(false)}>📝 Manage Blogs</a></li>
-                <li><a href="/dashboard/team" className={styles.navLink} onClick={() => setMobileOpen(false)}>👥 Leadership</a></li>
-                <li><a href="/dashboard/team-members" className={styles.navLink} onClick={() => setMobileOpen(false)}>👥 Team Members</a></li>
-                <li><a href="/dashboard/events" className={styles.navLink} onClick={() => setMobileOpen(false)}>📅 Manage Events</a></li>
-                <li><a href="/dashboard/projects" className={styles.navLink} onClick={() => setMobileOpen(false)}>🏗️ Manage Projects</a></li>
-                <li><a href="/dashboard/users" className={styles.navLink} onClick={() => setMobileOpen(false)}>🔐 Users</a></li>
+                <li><a href="/dashboard/blogs" className={styles.navLink}>📝 Manage Blogs</a></li>
+                <li><a href="/dashboard/team" className={styles.navLink}>👥 Leadership</a></li>
+                <li><a href="/dashboard/team-members" className={styles.navLink}>👥 Team Members</a></li>
+                <li><a href="/dashboard/events" className={styles.navLink}>📅 Manage Events</a></li>
+                <li><a href="/dashboard/projects" className={styles.navLink}>🏗️ Manage Projects</a></li>
+                <li><a href="/dashboard/users" className={styles.navLink}>🔐 Users</a></li>
               </>
             )}
           </ul>
         </nav>
         <div className={styles.sidebarFooter}>
           <ul>
-            <li><a href="/dashboard/settings" className={styles.navLink} onClick={() => setMobileOpen(false)}>⚙️ Settings</a></li>
-            <li><a href="/" className={styles.navLink} onClick={() => setMobileOpen(false)}>🏠 Go To Homepage</a></li>
+            <li><a href="/dashboard/settings" className={styles.navLink}>⚙️ Settings</a></li>
+            <li><a href="/" className={styles.navLink}>🏠 Go To Homepage</a></li>
             <li>
               <button type="button" onClick={onLogout} className={styles.logoutBtn}>
                 🚪 Logout

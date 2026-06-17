@@ -172,11 +172,14 @@ export default function DashboardTeamPage() {
           phoneNumber: data.phoneNumber || "",
           photoURL: data.photoURL || "",
           createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt || "",
-          displayOrder: data.displayOrder || 999,
+          displayOrder: data.displayOrder !== undefined ? Number(data.displayOrder) : 999,
         } as TeamMember;
       });
 
-      setTeamMembers(members);
+      const sorted = members.sort((a, b) => 
+        (a.displayOrder ?? 999) - (b.displayOrder ?? 999)
+      );
+      setTeamMembers(sorted);
     } catch (error) {
       console.error("Error fetching leadership:", error);
       setTeamMembers([]);
@@ -200,7 +203,7 @@ export default function DashboardTeamPage() {
       phoneNumber: member.phoneNumber || "",
       photoURL: member.photoURL || "",
       password: "",
-      displayOrder: String(member.displayOrder || 999),
+      displayOrder: member.displayOrder !== undefined ? String(member.displayOrder) : "999",
     });
     setFormStep(1);
     requestAnimationFrame(() => {
@@ -406,7 +409,7 @@ export default function DashboardTeamPage() {
         },
         body: JSON.stringify({
           ...formData,
-          displayOrder: Number(formData.displayOrder) || 999,
+          displayOrder: formData.displayOrder === "" ? 999 : Number(formData.displayOrder),
           pastorTitle: formData.pastorTitle || "",
           photoURL: formData.pastorImageURL || formData.photoURL,
           pastorGallery: formData.pastorGallery

@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
           .map((item) => item.trim())
           .filter(Boolean);
     const branchKey = toBranchKey(branchLocation || name);
+    const displayOrder = body.displayOrder === "" ? 999 : Number(body.displayOrder);
 
     if (!name || !title || !role) {
       return NextResponse.json({ error: "Missing required team member fields." }, { status: 400 });
@@ -103,6 +104,7 @@ export async function POST(request: NextRequest) {
       branchKey,
       phoneNumber,
       email,
+      displayOrder,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });

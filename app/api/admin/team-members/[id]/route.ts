@@ -72,6 +72,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           .map((item) => item.trim())
           .filter(Boolean);
     const branchKey = toBranchKey(branchLocation || name);
+    const displayOrder = body.displayOrder === "" ? 999 : Number(body.displayOrder);
 
     if (!name || !title || !role) {
       return NextResponse.json({ error: "Missing required team member fields." }, { status: 400 });
@@ -89,6 +90,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         branchKey,
         phoneNumber,
         email,
+        displayOrder,
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },

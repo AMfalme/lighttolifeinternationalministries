@@ -122,7 +122,11 @@ export default function DashboardTeamMembersPage() {
       if (!response.ok) {
         throw new Error(payload?.error || "Failed to fetch team members.");
       }
-      setMembers(payload.members || []);
+      
+      const sorted = (payload.members || []).sort((a, b) => 
+        (a.displayOrder ?? 999) - (b.displayOrder ?? 999)
+      );
+      setMembers(sorted);
     } catch (error) {
       console.error("Error fetching team members:", error);
       setMembers([]);
@@ -165,7 +169,7 @@ export default function DashboardTeamMembersPage() {
       gallery: (member.gallery || []).join(", "),
       phoneNumber: member.phoneNumber || "",
       email: member.email || "",
-      displayOrder: String(member.displayOrder || 999),
+      displayOrder: member.displayOrder !== undefined ? String(member.displayOrder) : "999",
     });
     requestAnimationFrame(() => {
       editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -233,7 +237,7 @@ export default function DashboardTeamMembersPage() {
           title: formData.title,
           role: formData.role,
           branchLocation: formData.branchLocation,
-          displayOrder: Number(formData.displayOrder) || 999,
+          displayOrder: formData.displayOrder === "" ? 999 : Number(formData.displayOrder),
           imageURL: formData.imageURL,
           background: formData.background,
           gallery: formData.gallery
@@ -370,6 +374,10 @@ export default function DashboardTeamMembersPage() {
                         ))}
                       </select>
                       <div className={styles.hint}>Branch locations are populated from leadership branch assignments, and include a general ministry option for headquarters roles.</div>
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label htmlFor="displayOrder">Hierarchy Rank (Order)</label>
+                      <input id="displayOrder" type="number" value={formData.displayOrder} onChange={(event) => setFormData({ ...formData, displayOrder: event.target.value })} placeholder="e.g. 1 for top" />
                     </div>
                     <div className={styles.formGroup}>
                       <label htmlFor="email">Email</label>

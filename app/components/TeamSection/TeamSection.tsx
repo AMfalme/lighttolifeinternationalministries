@@ -19,6 +19,7 @@ type TeamMemberRecord = {
   churchGallery?: string[];
   phoneNumber?: string;
   photoURL?: string;
+  displayOrder?: number;
 };
 
 export default function TeamSection() {
@@ -39,7 +40,8 @@ export default function TeamSection() {
           throw new Error(payload.error || "Failed to load leadership.");
         }
 
-        setTeamMembers(payload.members || []);
+        const sorted = (payload.members || []).sort((a, b) => (a.displayOrder ?? 999) - (b.displayOrder ?? 999));
+        setTeamMembers(sorted);
       } catch (error) {
         console.error("Error loading leadership:", error);
         setTeamMembers([]);
