@@ -44,7 +44,7 @@ export default function Footer() {
             <h4 className={pageStyles.footerTitle}>Contact</h4>
             <p className={pageStyles.footerText}>
               <strong>Email:</strong><br />
-              francisakaki@lighttolifeinternationalministries.org
+              dlight360org@gmail.com
             </p>
             <p className={pageStyles.footerText}>
               <strong>Phone:</strong><br />

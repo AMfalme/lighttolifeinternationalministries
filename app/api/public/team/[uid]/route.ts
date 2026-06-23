@@ -6,30 +6,14 @@ type BranchDocumentData = {
   displayName?: string;
   branchLocation?: string;
   branchAddress?: string;
-  branchMapUrl?: string;
   branchDescription?: string;
   pastorDescription?: string;
   pastorTitle?: string;
   pastorImageURL?: string;
   pastorGallery?: string[];
-  churchGallery?: string[];
+  gallery?: string[];
+  mainImage?: string;
   videos?: string[];
-  branchHistory?: string;
-  pastorBiography?: string;
-  churchStory?: string;
-  vision?: string;
-  futureDirection?: string;
-  visionGoals?: string[];
-  directors?: BranchFeatureItem[];
-  projects?: BranchFeatureItem[];
-};
-
-type BranchFeatureItem = {
-  id?: string;
-  imageURL?: string;
-  name?: string;
-  role?: string;
-  description?: string;
 };
 
 type TeamMemberDocumentData = {
@@ -38,22 +22,14 @@ type TeamMemberDocumentData = {
   branchKey?: string;
   branchLocation?: string;
   branchAddress?: string;
-  branchMapUrl?: string;
   branchDescription?: string;
   pastorDescription?: string;
   pastorImageURL?: string;
   pastorGallery?: string[];
   churchGallery?: string[];
-  branchHistory?: string;
-  pastorBiography?: string;
-  churchStory?: string;
-  vision?: string;
-  futureDirection?: string;
-  visionGoals?: string[];
-  directors?: BranchFeatureItem[];
-  projects?: BranchFeatureItem[];
   phoneNumber?: string;
   email?: string;
+  photoURL?: string;
   role?: string;
 };
 
@@ -73,80 +49,6 @@ const normalize = (value: string) => toBranchKey(value || "");
 
 const snapshotExists = (snapshot: { exists?: boolean | (() => boolean) }) =>
   typeof snapshot.exists === "function" ? snapshot.exists() : Boolean(snapshot.exists);
-
-const pickNonEmptyGallery = (...candidates: Array<string[] | undefined>) =>
-  candidates.find((candidate) => Array.isArray(candidate) && candidate.length) || [];
-
-const normalizeTextList = (value: string[] | string | undefined | null) => {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item).trim()).filter(Boolean);
-  }
-
-  if (typeof value === "string") {
-    return value
-      .split(/\n|,/)
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
-
-  return [];
-};
-
-const normalizeFeatureItems = (
-  value: Array<BranchFeatureItem | string> | string | undefined | null,
-) => {
-  if (Array.isArray(value)) {
-    return value
-      .map((item, index) => {
-        if (typeof item === "string") {
-          const trimmed = item.trim();
-          if (!trimmed) return null;
-
-          return {
-            id: `item-${index}-${trimmed}`,
-            imageURL: "",
-            name: trimmed,
-            role: "",
-            description: "",
-          } satisfies BranchFeatureItem;
-        }
-
-        if (!item || typeof item !== "object") {
-          return null;
-        }
-
-        const imageURL = typeof item.imageURL === "string" ? item.imageURL.trim() : "";
-        const name = typeof item.name === "string" ? item.name.trim() : "";
-        const role = typeof item.role === "string" ? item.role.trim() : "";
-        const description = typeof item.description === "string" ? item.description.trim() : "";
-
-        if (!imageURL && !name && !role && !description) {
-          return null;
-        }
-
-        return {
-          id: item.id || `item-${index}`,
-          imageURL,
-          name,
-          role,
-          description,
-        } satisfies BranchFeatureItem;
-      })
-      .filter(Boolean) as BranchFeatureItem[];
-  }
-
-  if (typeof value === "string") {
-    return normalizeTextList(value).map((item, index) => ({
-      id: `item-${index}-${item}`,
-      imageURL: "",
-      name: item,
-      role: "",
-      description: "",
-    })) as BranchFeatureItem[];
-  }
-
-  return [];
-};
 
 export async function GET(_request: NextRequest, context: { params: Promise<{ uid: string }> }) {
   try {
@@ -271,9 +173,6 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
       return NextResponse.json({ error: "Leadership not found." }, { status: 404 });
     }
 
-    const resolvedChurchGallery = pickNonEmptyGallery(branchData?.churchGallery, member?.churchGallery);
-    const fallbackPastorGallery = pickNonEmptyGallery(branchData?.pastorGallery, member?.pastorGallery);
-
     const mergedMember = member
       ? {
           uid: member.uid,
@@ -282,7 +181,6 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
           pastorTitle: member.pastorTitle || branchData?.pastorTitle || "",
           branchLocation: branchData?.branchLocation || member.branchLocation || "Church Branch",
           branchAddress: branchData?.branchAddress || member.branchAddress || "",
-          branchMapUrl: branchData?.branchMapUrl || member.branchMapUrl || "",
           branchDescription:
             branchData?.branchDescription ||
             member.branchDescription ||
@@ -297,18 +195,18 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
               : Array.isArray(branchData?.pastorGallery)
               ? branchData.pastorGallery
               : [],
-          churchGallery: resolvedChurchGallery.length ? resolvedChurchGallery : fallbackPastorGallery,
+          churchGallery:
+            Array.isArray(branchData?.gallery) && branchData.gallery.length
+              ? branchData.gallery
+              : Array.isArray(member.churchGallery) && member.churchGallery.length
+              ? member.churchGallery
+              : Array.isArray(branchData?.gallery)
+              ? branchData.gallery
+              : [],
           phoneNumber: member.phoneNumber || "",
           email: member.email || "",
+          photoURL: branchData?.mainImage || member.photoURL || "",
           videos: Array.isArray(branchData?.videos) ? branchData.videos : [],
-          branchHistory: branchData?.branchHistory || member.branchHistory || "",
-          pastorBiography: branchData?.pastorBiography || member.pastorBiography || "",
-          churchStory: branchData?.churchStory || member.churchStory || "",
-          vision: branchData?.vision || member.vision || "",
-          futureDirection: branchData?.futureDirection || member.futureDirection || "",
-          visionGoals: normalizeTextList(branchData?.visionGoals || member.visionGoals),
-          directors: normalizeFeatureItems(branchData?.directors || member.directors),
-          projects: normalizeFeatureItems(branchData?.projects || member.projects),
         }
       : {
           uid: branchData?.branchKey || normalizedParams || routeUid,
@@ -317,74 +215,25 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ ui
           pastorTitle: branchData?.pastorTitle || "",
           branchLocation: branchData?.branchLocation || "Church Branch",
           branchAddress: branchData?.branchAddress || "",
-          branchMapUrl: branchData?.branchMapUrl || "",
           branchDescription:
             branchData?.branchDescription ||
             "A vibrant church community with worship, teaching, and ministry designed to serve every family.",
           pastorDescription: branchData?.pastorDescription || "",
           pastorImageURL: branchData?.pastorImageURL || "",
           pastorGallery: Array.isArray(branchData?.pastorGallery) ? branchData?.pastorGallery : [],
-          churchGallery: pickNonEmptyGallery(branchData?.churchGallery),
+          churchGallery: Array.isArray(branchData?.gallery) ? branchData?.gallery : [],
           phoneNumber: "",
           email: "",
+          photoURL: branchData?.mainImage || "",
           videos: Array.isArray(branchData?.videos) ? branchData?.videos : [],
-          branchHistory: branchData?.branchHistory || "",
-          pastorBiography: branchData?.pastorBiography || "",
-          churchStory: branchData?.churchStory || "",
-          vision: branchData?.vision || "",
-          futureDirection: branchData?.futureDirection || "",
-          visionGoals: normalizeTextList(branchData?.visionGoals),
-          directors: normalizeFeatureItems(branchData?.directors),
-          projects: normalizeFeatureItems(branchData?.projects),
         };
 
-    const normalizeBranch = (value: string) =>
-      String(value || "")
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, " ")
-        .replace(/\b(branch|church|location|site|center|centre)\b/g, "")
-        .replace(/\s+/g, " ")
-        .trim();
-
-    const normalizeBranchSlug = (value: string) =>
-      normalizeBranch(value).replace(/\s+/g, "-");
-
-    const normalizedBranchTokens = (value: string) =>
-      normalizeBranch(value)
-        .split(" ")
-        .filter(Boolean)
-        .filter((token) => !["main", "headquarters", "leadership", "pastor", "service", "ministry"].includes(token));
-
-    const branchName = normalizeBranch(mergedMember.branchLocation || mergedMember.branchKey || "");
-    const branchValue = String(mergedMember.branchLocation || mergedMember.branchKey || "").trim();
-    const branchValueLower = branchValue.toLowerCase();
-    const blogsSnap = await adminDb().collection("blogs").get();
-    const filteredRelatedBlogs = blogsSnap.docs
-      .map((document) => {
-        const data = document.data() as { title?: string; content?: string; imageUrl?: string; date?: string; branch?: string };
-        const branch = String(data.branch || "").trim();
-        return {
-          id: document.id,
-          title: String(data.title || "").trim(),
-          excerpt: String(data.content || "").trim().slice(0, 180),
-          imageUrl: String(data.imageUrl || "").trim(),
-          date: String(data.date || "").trim(),
-          branch,
-        };
-      })
-      .filter((blog) => {
-        const blogBranch = String(blog.branch || "").trim();
-        return (
-          branchValue &&
-          blogBranch &&
-          blogBranch.toLowerCase() === branchValueLower
-        );
-      });
+    const blogBranchName = mergedMember.branchLocation;
+    const blogsSnap = await adminDb().collection("blogs").where("branch", "==", blogBranchName).get();
 
     return NextResponse.json({
       member: mergedMember,
-      relatedBlogs: filteredRelatedBlogs,
+      relatedBlogs: blogsSnap.docs.map((document) => ({ id: document.id, title: document.data().title })),
     });
   } catch (error) {
     console.error("Public leadership lookup failed:", error);
