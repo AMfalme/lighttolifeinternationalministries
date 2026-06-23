@@ -123,8 +123,8 @@ export default function DashboardTeamMembersPage() {
         throw new Error(payload?.error || "Failed to fetch team members.");
       }
       
-      const sorted = (payload.members || []).sort((a, b) => 
-        (a.displayOrder ?? 999) - (b.displayOrder ?? 999)
+      const sorted = ((payload.members || []) as ManagementMember[]).sort(
+        (a, b) => (a.displayOrder ?? 999) - (b.displayOrder ?? 999)
       );
       setMembers(sorted);
     } catch (error) {
