@@ -71,14 +71,35 @@ export interface Event {
 
 export interface Project {
   id?: string;
-  title: string;
-  description: string;
-  status: "ongoing" | "completed" | "planned";
+  
   startDate: string;
   endDate?: string;
-  imageUrl?: string;
+  
   createdAt?: any;
   updatedAt?: any;
+
+  title: string;
+  description: string;
+
+  category: string;
+  location: string;
+
+  status: "ongoing" | "future" | "completed";
+
+  plannedAmount: number;
+  donatedAmount: number;
+
+  beneficiaries: string;
+  timeline: string;
+
+  imageUrl: string;
+
+  objectives: string[];
+
+}
+
+export interface Projections {
+
 }
 
 export interface DashboardImage {

@@ -24,6 +24,14 @@ export default function Footer() {
             <h4 className={pageStyles.footerTitle}>Quick Links</h4>
             <ul className={pageStyles.footerLinks}>
               <li><a href="/#about">About Us</a></li>
+              <li><a
+                href="/Light to Life International Ministries Proposal.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={pageStyles.footerLinks}
+              >
+                Ministries Proposal (PDF)
+              </a></li>
               <li><a href="/#features">Mission</a></li>
               <li><a href="/#leadership">Leadership</a></li>
               <li><a href="/#testimonials">Testimonials</a></li>
@@ -44,11 +52,7 @@ export default function Footer() {
             <h4 className={pageStyles.footerTitle}>Contact</h4>
             <p className={pageStyles.footerText}>
               <strong>Email:</strong><br />
-              dlight360org@gmail.com
-            </p>
-            <p className={pageStyles.footerText}>
-              <strong>Phone:</strong><br />
-              +254 796 789443
+              dlight360.org@gmail.com
             </p>
           </div>
         </div>

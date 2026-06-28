@@ -42,6 +42,11 @@ export default function Navbar() {
           { label: "Mission", href: "/#features" },
           { label: "About", href: "/#about" },
           { label: "Team", href: "/team" },
+          {
+        label: "Projects & Future projections",
+        href: "/projects",
+        
+      },
         ],
       },
       {
@@ -53,6 +58,7 @@ export default function Navbar() {
           { label: "Nakuru", href: "/branch/nakuru" },
         ],
       },
+      
       {
         label: "Missions",
         href: "/#features",

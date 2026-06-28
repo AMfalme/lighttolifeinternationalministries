@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar/Navbar";
-import BranchStorySection from "@/app/member/page";
 import styles from "./page.module.css";
 
 type TeamBranchDetail = {
@@ -15,7 +14,6 @@ type TeamBranchDetail = {
   pastorTitle?: string;
   branchLocation: string;
   branchAddress?: string;
-  branchMapUrl?: string;
   branchDescription?: string;
   pastorDescription?: string;
   pastorImageURL?: string;
@@ -24,27 +22,20 @@ type TeamBranchDetail = {
   videos?: string[];
   phoneNumber?: string;
   email?: string;
-  branchHistory?: string;
-  pastorBiography?: string;
-  churchStory?: string;
-  vision?: string;
-  futureDirection?: string;
-  visionGoals?: string[];
-  directors?: BranchFeatureItem[];
-  projects?: BranchFeatureItem[];
+  photoURL?: string;
 };
 
 type BranchDocumentData = {
   branchKey?: string;
   branchLocation?: string;
   branchAddress?: string;
-  branchMapUrl?: string;
   branchDescription?: string;
   pastorDescription?: string;
   pastorTitle?: string;
   pastorImageURL?: string;
   pastorGallery?: string[];
   gallery?: string[];
+  mainImage?: string;
   videos?: string[];
 };
 
@@ -54,37 +45,14 @@ type TeamMemberDocumentData = {
   branchKey?: string;
   branchLocation?: string;
   branchAddress?: string;
-  branchMapUrl?: string;
   branchDescription?: string;
+  churchGallery?: string[];
   pastorDescription?: string;
   pastorImageURL?: string;
   pastorGallery?: string[];
-  churchGallery?: string[];
   phoneNumber?: string;
   email?: string;
-  branchHistory?: string;
-  pastorBiography?: string;
-  churchStory?: string;
-  vision?: string;
-  futureDirection?: string;
-  visionGoals?: string[];
-  directors?: BranchFeatureItem[];
-  projects?: BranchFeatureItem[];
-};
-
-type BranchFeatureItem = {
-  id?: string;
-  imageURL?: string;
-  name?: string;
-  role?: string;
-  description?: string;
-};
-
-type SectionBlock = {
-  title: string;
-  label: string;
-  body?: string;
-  items?: string[];
+  photoURL?: string;
 };
 
 const toLocationSlug = (value: string) =>
@@ -101,14 +69,6 @@ const toBranchKey = (value: string) =>
 
 const buildMapEmbedUrl = (address?: string) =>
   address ? `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed` : "";
-
-const normalizeMapUrl = (value?: string) => {
-  const trimmed = String(value || "").trim();
-  if (!trimmed) return "";
-  const iframeMatch = trimmed.match(/src=["']([^"']+)["']/i);
-  const url = iframeMatch?.[1] || trimmed;
-  return String(url || "").replace(/&amp;/gi, "&");
-};
 
 const isPlayableVideo = (value: string) => /res\.cloudinary\.com|\.(mp4|webm|ogg)(\?|$)/i.test(value);
 
@@ -173,7 +133,7 @@ function GalleryPager({ title, images, emptyLabel, pageSize = 6, actionLabel, on
           <div className={compact ? styles.modalGrid : styles.gallerySlideGrid}>
             {currentImages.map((src, index) => (
               <div key={`${src}-${startIndex + index}`} className={compact ? styles.modalItem : styles.gallerySlideItem}>
-                <Image unoptimized src={src} alt={`${title} image ${startIndex + index + 1}`} fill sizes="(max-width: 768px) 50vw, 240px" style={{ objectFit: "cover" }} />
+                <Image src={src} alt={`${title} image ${startIndex + index + 1}`} fill style={{ objectFit: "cover" }} />
               </div>
             ))}
           </div>
@@ -190,7 +150,7 @@ export default function TeamMemberBranchPage() {
   const routeUid = Array.isArray(routeParams?.uid) ? routeParams.uid[0] : routeParams?.uid || "";
   const [member, setMember] = useState<TeamBranchDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [relatedBlogs, setRelatedBlogs] = useState<Array<{ id: string; title?: string; excerpt?: string; imageUrl?: string; date?: string }>>([]);
+  const [relatedBlogs, setRelatedBlogs] = useState<Array<{ id: string; title?: string }>>([]);
   const [showPastorModal, setShowPastorModal] = useState(false);
   const [showChurchModal, setShowChurchModal] = useState(false);
 
@@ -239,55 +199,11 @@ export default function TeamMemberBranchPage() {
     new Set([member.pastorImageURL, ...(member.pastorGallery || [])].filter((image): image is string => Boolean(image))),
   );
   const churchGalleryImages = Array.from(
-    new Set(
-      ((member.churchGallery && member?.churchGallery.length ? member.churchGallery : member.pastorGallery) || [])
-        .filter((image): image is string => Boolean(image)),
-    ),
+    new Set((member.churchGallery || []).filter((image): image is string => Boolean(image))),
   );
-  const pastorPrimaryImage = member.pastorImageURL || pastorGalleryImages[0] || "";
-  const mapEmbedUrl = normalizeMapUrl(member.branchMapUrl) || buildMapEmbedUrl(member.branchAddress);
-  const mapLinkUrl = normalizeMapUrl(member.branchMapUrl) || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(member.branchAddress || member.branchLocation)}`;
-  const isMainBranch = /mosocho/i.test(String(member.branchKey || member.branchLocation || ""));
-  const sectionBlocks: SectionBlock[] = [
-    {
-      title: "Branch Description",
-      label: "Current identity",
-      body: member.branchDescription,
-    },
-    {
-      title: "Church History",
-      label: "Past",
-      body: member.branchHistory,
-    },
-    {
-      title: "Church Story",
-      label: "How it grew",
-      body: member.churchStory,
-    },
-    {
-      title: "Pastor Description",
-      label: "Current ministry focus",
-      body: member.pastorDescription,
-    },
-    {
-      title: "Pastor Biography",
-      label: "Education and calling",
-      body: member.pastorBiography,
-    },
-    {
-      title: "Vision",
-      label: "Future direction",
-      body: member.vision,
-      items: member.visionGoals || [],
-    },
-    {
-      title: "Future Direction",
-      label: "What comes next",
-      body: member.futureDirection,
-    },
-  ].filter((section) => Boolean(section.body) || Boolean(section.items?.length));
+  const pastorPrimaryImage = member.pastorImageURL || member.photoURL || pastorGalleryImages[0] || "";
+  const mapEmbedUrl = buildMapEmbedUrl(member.branchAddress);
 
-  const timelineSections = sectionBlocks.filter((s) => s.title !== "Branch Description" && s.title !== "Pastor Description");
   return (
     <>
       <Navbar />
@@ -298,7 +214,7 @@ export default function TeamMemberBranchPage() {
             <div className={styles.titleRow}>
               <div className={styles.profileIcon}>
                 {pastorPrimaryImage ? (
-                  <Image unoptimized src={pastorPrimaryImage} alt={member.displayName || "Pastor"} fill sizes="72px" style={{ objectFit: "cover", objectPosition: "center top" }} />
+                  <Image src={pastorPrimaryImage} alt={member.displayName} fill sizes="72px" style={{ objectFit: "cover" }} />
                 ) : (
                   <span>{member.displayName?.[0]?.toUpperCase() || "B"}</span>
                 )}
@@ -344,46 +260,12 @@ export default function TeamMemberBranchPage() {
           </div>
           <div className={styles.heroImage}>
             {pastorPrimaryImage ? (
-              <Image unoptimized src={pastorPrimaryImage} alt={member.displayName || "Branch Image"} fill sizes="(max-width: 768px) 100vw, 42vw" style={{ objectFit: "cover", objectPosition: "center top" }} />
+              <Image src={pastorPrimaryImage} alt={member.displayName} fill sizes="(max-width: 768px) 100vw, 42vw" style={{ objectFit: "cover" }} />
             ) : (
               <div className={styles.loading}>No profile image available.</div>
             )}
           </div>
         </section>
-
-        <BranchStorySection
-          branchHistory={member.branchHistory || member.churchStory || member.branchDescription}
-          pastorBiography={member.pastorBiography || member.pastorDescription}
-          pastorName={member.displayName}
-          churchTitle="Church History"
-          pastorTitle="Pastor Biography"
-        />
-
-        {isMainBranch ? (
-          <section className={styles.timelineSection}>
-            <div className={styles.timelineGrid}>
-              {timelineSections.map((section, index) => (
-                <article key={section.title} className={styles.timelineCard}>
-                  <div className={styles.timelineMeta}>
-                    <span className={styles.timelineStep}>{String(index + 1).padStart(2, "0")}</span>
-                    <div>
-                      <p className={styles.timelineLabel}>{section.label}</p>
-                      <h3>{section.title}</h3>
-                    </div>
-                  </div>
-                  {section.body ? <p className={styles.timelineBody}>{section.body}</p> : null}
-                  {section.items && section.items.length ? (
-                    <ul className={styles.timelineList}>
-                      {section.items.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
 
         <section className={styles.contentGrid}>
           <article className={styles.profileCard}>
@@ -391,13 +273,10 @@ export default function TeamMemberBranchPage() {
               <div>
                 <p className={styles.roleLabel}>{member.pastorTitle || "Branch Pastor"}</p>
                 <h2>{member.displayName}</h2>
-                <p className={styles.profileSubcopy}>
-                  {member.branchKey ? `Branch key: ${member.branchKey}` : "Branch key not set"}
-                </p>
               </div>
               {pastorPrimaryImage || pastorGalleryImages.length ? (
                 <div className={styles.profileImage}>
-                  <Image unoptimized src={pastorPrimaryImage || pastorGalleryImages[0] || ""} alt={member.displayName || "Profile"} fill sizes="180px" style={{ objectFit: "cover", objectPosition: "center top" }} />
+                  <Image src={pastorPrimaryImage || pastorGalleryImages[0] || ""} alt={member.displayName} fill sizes="180px" style={{ objectFit: "cover" }} />
                   <button className={styles.viewImagesBtn} onClick={() => setShowPastorModal(true)}>View pastor images</button>
                 </div>
               ) : null}
@@ -408,7 +287,7 @@ export default function TeamMemberBranchPage() {
                 {member.displayName} leads the {member.branchLocation} branch and serves this community through worship, discipleship, outreach, and pastoral care.
               </p>
               <p>{member.branchDescription}</p>
-              <p className={styles.profileMuted}>
+              <p>
                 This branch is designed for modern families, passionate believers, and seekers alike. Explore worship experiences, heart-led small groups, and ministry teams built for deeper connection.
               </p>
               <div className={styles.detailGrid}>
@@ -442,8 +321,8 @@ export default function TeamMemberBranchPage() {
             <article className={styles.mapCard}>
               <div className={styles.cardHeader}>
                 <h3>Branch Map</h3>
-                {member.branchAddress || member.branchMapUrl ? (
-                  <a href={mapLinkUrl} target="_blank" rel="noreferrer">
+                {member.branchAddress ? (
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(member.branchAddress)}`} target="_blank" rel="noreferrer">
                     Open in Maps
                   </a>
                 ) : null}
@@ -474,101 +353,6 @@ export default function TeamMemberBranchPage() {
               />
             </article>
           </div>
-
-          {isMainBranch ? (
-            <article className={styles.featureSection}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionKicker}>Leadership</p>
-                <h2>Directors and ministry team</h2>
-              </div>
-              <p className={styles.sectionLead}>
-                The people driving the branch forward across children, outreach, worship, administration, and care.
-              </p>
-            </div>
-
-            {member.directors && member.directors.length ? (
-              <div className={styles.featureGrid}>
-                {member.directors.map((director, index) => (
-                  <article key={director.id || index} className={styles.featureCard}>
-                    <div className={styles.featureMedia}>
-                      {director.imageURL ? (
-                        <Image unoptimized src={director.imageURL} alt={director.name || "Director"} fill sizes="(max-width: 768px) 100vw, 280px" style={{ objectFit: "cover" }} />
-                      ) : (
-                        <span>{(director.name || "D").slice(0, 1).toUpperCase()}</span>
-                      )}
-                    </div>
-                    <div className={styles.featureBody}>
-                      <p className={styles.featureLabel}>Director</p>
-                      <h3>{director.name || "Unnamed director"}</h3>
-                      <p className={styles.featureRole}>{director.role || "Role not set"}</p>
-                      <p>{director.description || "No description provided yet."}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className={styles.emptyState}>No directors added yet.</p>
-            )}
-            </article>
-          ) : (
-            <section className={styles.compactSection}>
-              { (member.vision || member.futureDirection || (member.visionGoals && member.visionGoals.length)) ? (
-                <article className={styles.infoCard}>
-                  <h3>Vision & Future</h3>
-                  {member.vision ? <p>{member.vision}</p> : null}
-                  {member.futureDirection && !member.vision ? <p>{member.futureDirection}</p> : null}
-                  {member.visionGoals && member.visionGoals.length ? (
-                    <ul>
-                      {member.visionGoals.map((g, i) => (
-                        <li key={i}>{g}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </article>
-              ) : null }
-
-              <article className={styles.infoCard}>
-                <p className={styles.profileMuted}>For more branch-specific details, see the main church profile on the homepage.</p>
-              </article>
-            </section>
-          )}
-
-          <article className={styles.featureSection}>
-            <div className={styles.sectionHeader}>
-              <div>
-                <p className={styles.sectionKicker}>Projects</p>
-                <h2>Current and future projects</h2>
-              </div>
-              <p className={styles.sectionLead}>
-                Use these to show what the branch is actively building or dreaming about next.
-              </p>
-            </div>
-
-            {member.projects && member.projects.length ? (
-              <div className={styles.featureGrid}>
-                {member.projects.map((project, index) => (
-                  <article key={project.id || index} className={styles.featureCard}>
-                    <div className={styles.featureMedia}>
-                      {project.imageURL ? (
-                        <Image unoptimized src={project.imageURL} alt={project.name || "Project"} fill sizes="(max-width: 768px) 100vw, 280px" style={{ objectFit: "cover" }} />
-                      ) : (
-                        <span>{(project.name || "P").slice(0, 1).toUpperCase()}</span>
-                      )}
-                    </div>
-                    <div className={styles.featureBody}>
-                      <p className={styles.featureLabel}>Project</p>
-                      <h3>{project.name || "Unnamed project"}</h3>
-                      <p className={styles.featureRole}>{project.role || "Type not set"}</p>
-                      <p>{project.description || "No description provided yet."}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className={styles.emptyState}>No projects added yet.</p>
-            )}
-          </article>
 
           <article className={styles.galleryCard}>
             <GalleryPager
@@ -619,23 +403,15 @@ export default function TeamMemberBranchPage() {
           <article className={styles.blogsCard}>
             <h3>Related Blog Posts</h3>
             {relatedBlogs && relatedBlogs.length ? (
-              <div className={styles.blogList}>
-                {relatedBlogs.map((blog) => (
-                  <article key={blog.id} className={styles.blogListItem}>
-                    <div className={styles.blogListMeta}>
-                      <Link href={`/news/${blog.id}`} className={styles.blogListTitle}>
-                        {blog.title || "Read more"}
-                      </Link>
-                      {blog.date ? <span className={styles.blogListDate}>{blog.date}</span> : null}
-                    </div>
-                    {blog.excerpt ? <p className={styles.blogListExcerpt}>{blog.excerpt.trim()}...</p> : null}
-                  </article>
+              <ul className={styles.blogList}>
+                {relatedBlogs.map((b) => (
+                  <li key={b.id}>
+                    <Link href={`/news?branch=${encodeURIComponent(member.branchLocation)}`}>{b.title || "Read more"}</Link>
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : (
-              <p className={styles.emptyState}>
-                No related blog posts yet. <Link href={`/news?branch=${encodeURIComponent(member.branchLocation)}`}>View all news</Link>
-              </p>
+              <p className={styles.emptyState}>No related blog posts yet. <Link href={`/news?branch=${encodeURIComponent(member.branchLocation)}`}>View all news</Link></p>
             )}
           </article>
         </section>
