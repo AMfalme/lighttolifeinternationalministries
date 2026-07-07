@@ -7,6 +7,12 @@ import { useRouter } from "next/navigation";
 import { applyTheme, getStoredTheme, type Theme } from "@/app/lib/theme";
 import styles from "./navbar.module.css";
 
+declare global {
+  interface Window {
+    PaystackPop?: any;
+  }
+}
+
 type NavItem = {
   label: string;
   href: string;
@@ -26,7 +32,16 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isDonateModalOpen, setIsDonateModalOpen] = useState(false);
+  const [donateAmount, setDonateAmount] = useState("5000");
+  const [donateEmail, setDonateEmail] = useState("");
+  const [donateStatusMessage, setDonateStatusMessage] = useState("");
+  const [donateSuccessMessage, setDonateSuccessMessage] = useState("");
+  const [isPaystackReady, setIsPaystackReady] = useState(false);
+  const [isPaystackProcessing, setIsPaystackProcessing] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const paystackPublicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
+  const paystackCurrency = process.env.NEXT_PUBLIC_PAYSTACK_CURRENCY || "NGN";
 
   const navItems = useMemo<NavItem[]>(
     () => [
@@ -154,7 +169,7 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen || isDonateModalOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
@@ -162,7 +177,35 @@ export default function Navbar() {
     return () => {
       document.body.style.overflow = "unset";
     };
-  }, [isOpen]);
+  }, [isOpen, isDonateModalOpen]);
+
+  useEffect(() => {
+    if (user?.email) {
+      setDonateEmail(user.email);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!isDonateModalOpen || !paystackPublicKey || typeof window === "undefined") {
+      return;
+    }
+
+    if (window.PaystackPop) {
+      setIsPaystackReady(true);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.async = true;
+    script.onload = () => setIsPaystackReady(true);
+    script.onerror = () => setDonateStatusMessage("Unable to load Paystack checkout script.");
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, [isDonateModalOpen, paystackPublicKey]);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -174,7 +217,10 @@ export default function Navbar() {
     };
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setProfileMenuOpen(false);
+      if (event.key === "Escape") {
+        setProfileMenuOpen(false);
+        setIsDonateModalOpen(false);
+      }
     };
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -197,25 +243,94 @@ export default function Navbar() {
     setActiveSubmenu((current) => (current === item.label ? null : item.label));
   };
 
+  const handleDonateSubmit = async () => {
+    setDonateStatusMessage("");
+    setDonateSuccessMessage("");
+
+    const donationValue = Number(donateAmount.replace(/[^0-9.]/g, ""));
+    if (!donationValue || donationValue <= 0) {
+      setDonateStatusMessage("Please enter a valid donation amount.");
+      return;
+    }
+
+    if (!donateEmail.trim()) {
+      setDonateStatusMessage("Please enter your email address.");
+      return;
+    }
+
+    if (!paystackPublicKey) {
+      setDonateStatusMessage("Paystack is not configured. Please add a public key.");
+      return;
+    }
+
+    if (!window.PaystackPop) {
+      setDonateStatusMessage("Paystack checkout is not available. Please refresh the page.");
+      return;
+    }
+
+    setIsPaystackProcessing(true);
+
+    try {
+      const handler = window.PaystackPop.setup({
+        key: paystackPublicKey,
+        email: donateEmail.trim(),
+        amount: Math.round(donationValue * 100),
+        currency: paystackCurrency,
+        channels: ["card", "bank", "ussd"],
+        onClose: () => {
+          setIsPaystackProcessing(false);
+          setDonateStatusMessage("Payment window closed. You can try again anytime.");
+        },
+        callback: async (response: { reference: string }) => {
+          try {
+            const verifyResponse = await fetch(
+              `/api/paystack/verify?reference=${encodeURIComponent(response.reference)}`
+            );
+            const payload = await verifyResponse.json();
+
+            if (!verifyResponse.ok) {
+              setDonateStatusMessage(payload?.error || "Payment completed but verification failed.");
+              setIsPaystackProcessing(false);
+              return;
+            }
+
+            setDonateSuccessMessage(`Payment confirmed: ${payload?.data?.status || "successful"}. Reference: ${response.reference}`);
+          } catch (error) {
+            setDonateStatusMessage("Payment completed but verification request failed.");
+          } finally {
+            setIsPaystackProcessing(false);
+          }
+        },
+      });
+
+      handler.openIframe();
+    } catch (error) {
+      console.error("Navbar donation error:", error);
+      setDonateStatusMessage("Unable to start Paystack checkout. Please try again later.");
+      setIsPaystackProcessing(false);
+    }
+  };
+
   return (
-    <header className={`${styles.navbar} ${isScrolled ? styles.navbarScrolled : ""}`}>
-      <Link className={styles.brand} href="/">
-        <Image src="/logo.jpeg" alt="LightToLife" width={180} height={86} priority />
-      </Link>
+    <>
+      <header className={`${styles.navbar} ${isScrolled ? styles.navbarScrolled : ""}`}>
+        <Link className={styles.brand} href="/">
+          <Image src="/logo.jpeg" alt="LightToLife" width={180} height={86} priority />
+        </Link>
 
-      <button
-        className={styles.hamburger}
-        aria-label="Toggle navigation menu"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <span className={styles.hamburgerLine}></span>
-        <span className={styles.hamburgerLine}></span>
-        <span className={styles.hamburgerLine}></span>
-      </button>
+        <button
+          className={styles.hamburger}
+          aria-label="Toggle navigation menu"
+          aria-expanded={isOpen}
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <span className={styles.hamburgerLine}></span>
+          <span className={styles.hamburgerLine}></span>
+          <span className={styles.hamburgerLine}></span>
+        </button>
 
-      {/* Desktop Navigation */}
-      <nav className="hidden gap-10 text-sm font-medium lg:flex text-amber-400" aria-label="Primary navigation">
+        {/* Desktop Navigation */}
+        <nav className="hidden gap-10 text-sm font-medium lg:flex text-amber-400" aria-label="Primary navigation">
         {navItems.map((item, index) => (
           <div key={item.label} className="group relative">
             <Link 
@@ -286,7 +401,16 @@ export default function Navbar() {
               <>
                 <Link className="hover:text-amber-400 transition" href="/login" onClick={() => setIsOpen(false)}>Login</Link>
                 <Link className="hover:text-amber-400 transition" href="/register" onClick={() => setIsOpen(false)}>Register</Link>
-                <Link className="hover:text-amber-400 transition" href="/donate" onClick={() => setIsOpen(false)}>Donate</Link>
+                <button
+                  type="button"
+                  className="hover:text-amber-400 transition text-left"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setIsDonateModalOpen(true);
+                  }}
+                >
+                  Donate
+                </button>
               </>
             ) : !authLoading && user ? (
               <>
@@ -309,7 +433,16 @@ export default function Navbar() {
                 >
                   Logout
                 </button>
-                <Link className="hover:text-amber-400 transition" href="/donate" onClick={() => setIsOpen(false)}>Donate</Link>
+                <button
+                  type="button"
+                  className="hover:text-amber-400 transition text-left"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setIsDonateModalOpen(true);
+                  }}
+                >
+                  Donate
+                </button>
               </>
             ) : null}
           </div>
@@ -325,7 +458,9 @@ export default function Navbar() {
             <Link className={`${styles.authLink} text-amber-400`} href="/register">
               Register
             </Link>
-            <Link className={styles.navButton} href="/donate">Donate</Link>
+            <button type="button" className={styles.navButton} onClick={() => setIsDonateModalOpen(true)}>
+              Donate
+            </button>
           </>
         ) : !authLoading && user ? (
           <>
@@ -396,5 +531,81 @@ export default function Navbar() {
         ) : null}
       </div>
     </header>
+
+      {isDonateModalOpen ? (
+        <div
+          className={styles.modalBackdrop}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="donate-modal-title"
+          onClick={() => setIsDonateModalOpen(false)}
+        >
+          <div className={styles.modalCard} onClick={(event) => event.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div>
+                <p className={styles.modalEyebrow}>Support Light to Life</p>
+                <h2 id="donate-modal-title" className={styles.modalTitle}>Make a donation</h2>
+              </div>
+              <button
+                type="button"
+                className={styles.modalCloseButton}
+                onClick={() => setIsDonateModalOpen(false)}
+                aria-label="Close donation dialog"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className={styles.modalText}>
+              Your generosity helps us continue our ministry, outreach, and care for the communities we serve.
+            </p>
+
+            <div className={styles.modalForm}>
+              <label className={styles.modalLabel} htmlFor="navbar-donate-amount">
+                Amount ({paystackCurrency})
+              </label>
+              <input
+                id="navbar-donate-amount"
+                type="text"
+                value={donateAmount}
+                onChange={(event) => setDonateAmount(event.target.value)}
+                className={styles.modalInput}
+                placeholder="Enter amount"
+              />
+
+              <label className={styles.modalLabel} htmlFor="navbar-donate-email">
+                Email
+              </label>
+              <input
+                id="navbar-donate-email"
+                type="email"
+                value={donateEmail}
+                onChange={(event) => setDonateEmail(event.target.value)}
+                className={styles.modalInput}
+                placeholder="you@example.com"
+              />
+
+              <button
+                type="button"
+                className={styles.modalSubmitButton}
+                onClick={handleDonateSubmit}
+                disabled={!paystackPublicKey || isPaystackProcessing || !isPaystackReady}
+              >
+                {isPaystackProcessing ? "Processing..." : "Donate with Paystack"}
+              </button>
+
+              {!paystackPublicKey ? (
+                <p className={styles.modalHint}>
+                  Paystack public key is not configured yet. Add NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY to enable this option.
+                </p>
+              ) : null}
+
+              {donateStatusMessage ? <p className={styles.modalStatus}>{donateStatusMessage}</p> : null}
+              {donateSuccessMessage ? <p className={styles.modalSuccess}>{donateSuccessMessage}</p> : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
