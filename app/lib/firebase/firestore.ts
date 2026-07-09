@@ -10,6 +10,7 @@ import {
   getDoc,
   query,
   orderBy,
+  where,
 } from "firebase/firestore";
 
 // Firestore settings doc for donation number
@@ -169,6 +170,32 @@ export const getDonationById = async (id: string) => {
   } catch (error) {
     console.error("Error fetching donation:", error);
     return null;
+  }
+};
+
+export const getDonationByReference = async (reference: string) => {
+  try {
+    const q = query(collection(db, "donations"), where("reference", "==", reference));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const doc = querySnapshot.docs[0];
+      return { id: doc.id, ...doc.data() } as Donation & { id: string };
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching donation by reference:", error);
+    return null;
+  }
+};
+
+export const updateDonationStatus = async (id: string, status: string) => {
+  try {
+    const docRef = doc(db, "donations", id);
+    await updateDoc(docRef, { status, updatedAt: new Date() });
+    return { id, status };
+  } catch (error) {
+    console.error("Error updating donation status:", error);
+    throw error;
   }
 };
 

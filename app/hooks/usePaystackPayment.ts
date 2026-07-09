@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { createDonation } from "@/app/lib/firebase/firestore";
 
 declare global {
   interface Window {
@@ -95,11 +94,36 @@ export function usePaystackPayment({
     setIsProcessing(true);
 
     try {
+      // Create payment intent on server
+      const intentResponse = await fetch("/api/paystack/intent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          amount: donationValue,
+          currency,
+          donorName: donorName?.trim(),
+          phone: phone?.trim(),
+          message: message?.trim(),
+        }),
+      });
+
+      const intentData = await intentResponse.json();
+
+      if (!intentResponse.ok) {
+        setStatusMessage(intentData.error || "Failed to initialize payment.");
+        setIsProcessing(false);
+        return;
+      }
+
       const handler = window.PaystackPop.setup({
         key: publicKey,
         email: email.trim(),
         amount: Math.round(donationValue * 100),
         currency,
+        reference: intentData.reference,
         channels: ["card", "bank", "ussd", "mobile_money", "qr"],
         onClose: () => {
           setIsProcessing(false);
@@ -108,10 +132,12 @@ export function usePaystackPayment({
         },
         callback: async (response: { reference: string; transaction?: string; status?: string }) => {
           try {
+            // Verify payment with server
             const verifyResponse = await fetch(
               `/api/paystack/verify?reference=${encodeURIComponent(response.reference)}`
             );
             const payload = await verifyResponse.json();
+            
             if (!verifyResponse.ok) {
               setStatusMessage(
                 payload?.error || "Payment completed but verification failed."
@@ -120,23 +146,7 @@ export function usePaystackPayment({
               return;
             }
 
-            // Save donation to Firestore
-            try {
-              await createDonation({
-                email: email.trim(),
-                amount: donationValue,
-                currency,
-                donorName: donorName?.trim() || "",
-                phone: phone?.trim() || "",
-                reference: response.reference,
-                channel: payload.data?.channel || "unknown",
-                status: payload.data?.status || "success",
-                message: message?.trim() || "",
-              });
-            } catch (dbError) {
-              console.error("Error saving donation to Firestore:", dbError);
-            }
-
+            // Payment successful
             setSuccessMessage(
               `Payment confirmed: ${payload.data.status}. Reference: ${response.reference}`
             );

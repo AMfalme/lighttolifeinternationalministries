@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getDonationByReference, updateDonationStatus } from "@/app/lib/firebase/firestore";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -35,6 +36,23 @@ export async function GET(request: Request) {
         { error: payload.message || "Payment verification failed." },
         { status: verifyResponse.status || 400 }
       );
+    }
+
+    // Verify payment amount matches the intended donation amount
+    const donation = await getDonationByReference(reference);
+    if (donation && donation.id) {
+      const paidAmount = payload.data.amount / 100; // Convert from kobo/cents
+      const intendedAmount = donation.amount;
+
+      // Check if amount matches (allow small floating point differences)
+      if (Math.abs(paidAmount - intendedAmount) >= 0.01) {
+        console.error(`Amount mismatch for ${reference}: expected ${intendedAmount}, got ${paidAmount}`);
+        // Still return success to Paystack, but log the discrepancy
+        // The webhook will handle updating the status
+      } else if (donation.status !== "success") {
+        // Update donation status to success
+        await updateDonationStatus(donation.id, "success");
+      }
     }
 
     return NextResponse.json(payload);
