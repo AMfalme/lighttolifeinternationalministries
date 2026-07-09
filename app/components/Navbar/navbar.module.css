@@ -459,6 +459,69 @@
   cursor: not-allowed;
 }
 
+.modalSegmentedControl {
+  display: flex;
+  gap: 0;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.modalSegment {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.9rem;
+}
+
+.modalSegment:hover {
+  color: #2563eb;
+}
+
+.modalSegmentActive {
+  background: #ffffff;
+  color: #1e293b;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+html[data-theme="dark"] .modalSegmentActive {
+  background: rgba(30, 41, 59, 0.95);
+  color: #f1f5f9;
+}
+
+.modalSegmentActive:hover {
+  color: #1e293b;
+}
+
+html[data-theme="dark"] .modalSegmentActive:hover {
+  color: #f1f5f9;
+}
+
+.modalSegmentIcon {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.modalSegmentLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .modalHint,
 .modalStatus,
 .modalSuccess {

@@ -2,119 +2,35 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Navbar from "../components/Navbar/Navbar";
 import styles from "./donate.module.css";
-
-declare global {
-  interface Window {
-    PaystackPop?: any;
-  }
-}
+import { usePaystackPayment } from "../hooks/usePaystackPayment";
 
 export default function DonatePage() {
-  const paystackPublicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
-  const paystackCurrency = process.env.NEXT_PUBLIC_PAYSTACK_CURRENCY || "NGN";
-
   const [email, setEmail] = useState("");
-  const [amount, setAmount] = useState("5000");
-  const [isReady, setIsReady] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [amount, setAmount] = useState("500");
+  const [currency, setCurrency] = useState("KES");
 
-  useEffect(() => {
-    if (!paystackPublicKey || typeof window === "undefined") {
-      return;
-    }
+  const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
 
-    if (window.PaystackPop) {
-      setIsReady(true);
-      return;
-    }
+  const handleSuccess = useCallback((reference: string) => {
+    console.log("Donation succeeded:", reference);
+  }, []);
 
-    const script = document.createElement("script");
-    script.src = "https://js.paystack.co/v1/inline.js";
-    script.async = true;
-    script.onload = () => setIsReady(true);
-    script.onerror = () => setStatusMessage("Unable to load Paystack checkout script.");
-    document.body.appendChild(script);
+  const handleClose = useCallback(() => {
+    console.log("Payment closed");
+  }, []);
 
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, [paystackPublicKey]);
-
-  const handlePayment = async () => {
-    setStatusMessage("");
-    setSuccessMessage("");
-
-    const donationValue = Number(amount.replace(/[^0-9.]/g, ""));
-    if (!donationValue || donationValue <= 0) {
-      setStatusMessage("Please enter a valid donation amount.");
-      return;
-    }
-
-    if (!email.trim()) {
-      setStatusMessage("Please enter your email address.");
-      return;
-    }
-
-    if (!paystackPublicKey) {
-      setStatusMessage("Paystack is not configured. Please add a public key.");
-      return;
-    }
-
-    if (!window.PaystackPop) {
-      setStatusMessage("Paystack checkout is not available. Please refresh the page.");
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      const handler = window.PaystackPop.setup({
-        key: paystackPublicKey,
-        email: email.trim(),
-        amount: Math.round(donationValue * 100),
-        currency: paystackCurrency,
-        channels: ["card", "bank", "ussd"],
-        onClose: () => {
-          setIsProcessing(false);
-          setStatusMessage("Payment window closed. You can try again anytime.");
-        },
-        callback: async (response: { reference: string }) => {
-          try {
-            const verifyResponse = await fetch(
-              `/api/paystack/verify?reference=${encodeURIComponent(response.reference)}`
-            );
-            const payload = await verifyResponse.json();
-            if (!verifyResponse.ok) {
-              setStatusMessage(
-                payload?.error || "Payment completed but verification failed."
-              );
-              setIsProcessing(false);
-              return;
-            }
-
-            setSuccessMessage(
-              `Payment confirmed: ${payload.data.status}. Reference: ${response.reference}`
-            );
-          } catch (error) {
-            setStatusMessage("Payment completed but verification request failed.");
-          } finally {
-            setIsProcessing(false);
-          }
-        },
-      });
-
-      handler.openIframe();
-    } catch (error) {
-      console.error("Paystack checkout error:", error);
-      setStatusMessage("Unable to start Paystack checkout. Please try again later.");
-      setIsProcessing(false);
-    }
-  };
+  const { isReady, isProcessing, statusMessage, successMessage, initializePayment } =
+    usePaystackPayment({
+      email,
+      amount,
+      currency,
+      publicKey,
+      onSuccess: handleSuccess,
+      onClose: handleClose,
+    });
 
   return (
     <div className={styles.page}>
@@ -149,7 +65,7 @@ export default function DonatePage() {
             <h2>Paystack Donation</h2>
 
             <div className={styles.paymentForm}>
-              <label htmlFor="donationAmount">Amount ({paystackCurrency})</label>
+              <label htmlFor="donationAmount">Amount ({currency})</label>
               <input
                 id="donationAmount"
                 type="text"
@@ -169,29 +85,45 @@ export default function DonatePage() {
                 placeholder="your@email.com"
               />
 
+              <label>Select Currency</label>
+              <div className={styles.segmentedControl}>
+                <button
+                  type="button"
+                  className={`${styles.segment} ${currency === "KES" ? styles.segmentActive : ""}`}
+                  onClick={() => setCurrency("KES")}
+                >
+                  <span className={styles.segmentIcon}>KSh</span>
+                  <span className={styles.segmentLabel}>KES</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.segment} ${currency === "USD" ? styles.segmentActive : ""}`}
+                  onClick={() => setCurrency("USD")}
+                >
+                  <span className={styles.segmentIcon}>$</span>
+                  <span className={styles.segmentLabel}>USD</span>
+                </button>
+              </div>
+
               <button
                 type="button"
                 className={styles.primaryBtn}
-                onClick={handlePayment}
-                disabled={!paystackPublicKey || isProcessing || !isReady}
+                onClick={initializePayment}
+                disabled={!publicKey || isProcessing || !isReady}
               >
                 {isProcessing ? "Processing..." : "Donate with Paystack"}
               </button>
 
-              {!paystackPublicKey && (
+              {!publicKey && (
                 <p className={styles.note}>
                   Paystack public key is not configured. Add `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`
                   to enable this option.
                 </p>
               )}
 
-              {statusMessage && (
-                <p className={styles.statusMessage}>{statusMessage}</p>
-              )}
+              {statusMessage && <p className={styles.statusMessage}>{statusMessage}</p>}
 
-              {successMessage && (
-                <p className={styles.successMessage}>{successMessage}</p>
-              )}
+              {successMessage && <p className={styles.successMessage}>{successMessage}</p>}
             </div>
 
             <div className={styles.detailBox}>

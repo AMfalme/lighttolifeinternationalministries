@@ -39,9 +39,9 @@ export default function Navbar() {
   const [donateSuccessMessage, setDonateSuccessMessage] = useState("");
   const [isPaystackReady, setIsPaystackReady] = useState(false);
   const [isPaystackProcessing, setIsPaystackProcessing] = useState(false);
+  const [donateCurrency, setDonateCurrency] = useState("KES");
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const paystackPublicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
-  const paystackCurrency = process.env.NEXT_PUBLIC_PAYSTACK_CURRENCY || "NGN";
 
   const navItems = useMemo<NavItem[]>(
     () => [
@@ -185,6 +185,13 @@ export default function Navbar() {
     }
   }, [user]);
 
+  // Listen for custom "openDonateModal" event from other components
+  useEffect(() => {
+    const handler = () => setIsDonateModalOpen(true);
+    window.addEventListener("openDonateModal", handler);
+    return () => window.removeEventListener("openDonateModal", handler);
+  }, []);
+
   useEffect(() => {
     if (!isDonateModalOpen || !paystackPublicKey || typeof window === "undefined") {
       return;
@@ -195,15 +202,28 @@ export default function Navbar() {
       return;
     }
 
+    let cancelled = false;
     const script = document.createElement("script");
     script.src = "https://js.paystack.co/v1/inline.js";
     script.async = true;
-    script.onload = () => setIsPaystackReady(true);
-    script.onerror = () => setDonateStatusMessage("Unable to load Paystack checkout script.");
+    script.onload = () => {
+      if (!cancelled) {
+        setIsPaystackReady(true);
+      }
+    };
+    script.onerror = () => {
+      if (!cancelled) {
+        setDonateStatusMessage("Unable to load the Paystack checkout script. Please check your internet connection or browser settings.");
+        setIsPaystackReady(false);
+      }
+    };
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      cancelled = true;
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
     };
   }, [isDonateModalOpen, paystackPublicKey]);
 
@@ -264,7 +284,7 @@ export default function Navbar() {
     }
 
     if (!window.PaystackPop) {
-      setDonateStatusMessage("Paystack checkout is not available. Please refresh the page.");
+      setDonateStatusMessage("Paystack checkout is not available yet. Please wait a moment and try again.");
       return;
     }
 
@@ -275,38 +295,40 @@ export default function Navbar() {
         key: paystackPublicKey,
         email: donateEmail.trim(),
         amount: Math.round(donationValue * 100),
-        currency: paystackCurrency,
+        currency: donateCurrency,
         channels: ["card", "bank", "ussd"],
-        onClose: () => {
+        onClose: function () {
           setIsPaystackProcessing(false);
           setDonateStatusMessage("Payment window closed. You can try again anytime.");
         },
-        callback: async (response: { reference: string }) => {
-          try {
-            const verifyResponse = await fetch(
-              `/api/paystack/verify?reference=${encodeURIComponent(response.reference)}`
-            );
-            const payload = await verifyResponse.json();
+        callback: function (response: { reference: string }) {
+          void (async () => {
+            try {
+              const verifyResponse = await fetch(
+                `/api/paystack/verify?reference=${encodeURIComponent(response.reference)}`
+              );
+              const payload = await verifyResponse.json();
 
-            if (!verifyResponse.ok) {
-              setDonateStatusMessage(payload?.error || "Payment completed but verification failed.");
+              if (!verifyResponse.ok) {
+                setDonateStatusMessage(payload?.error || "Payment completed but verification failed.");
+                setIsPaystackProcessing(false);
+                return;
+              }
+
+              setDonateSuccessMessage(`Payment confirmed: ${payload?.data?.status || "successful"}. Reference: ${response.reference}`);
+            } catch (error) {
+              setDonateStatusMessage("Payment completed but verification request failed.");
+            } finally {
               setIsPaystackProcessing(false);
-              return;
             }
-
-            setDonateSuccessMessage(`Payment confirmed: ${payload?.data?.status || "successful"}. Reference: ${response.reference}`);
-          } catch (error) {
-            setDonateStatusMessage("Payment completed but verification request failed.");
-          } finally {
-            setIsPaystackProcessing(false);
-          }
+          })();
         },
       });
 
       handler.openIframe();
     } catch (error) {
       console.error("Navbar donation error:", error);
-      setDonateStatusMessage("Unable to start Paystack checkout. Please try again later.");
+      setDonateStatusMessage(`Unable to start Paystack checkout. ${error instanceof Error ? error.message : "Please try again later."}`);
       setIsPaystackProcessing(false);
     }
   };
@@ -562,7 +584,7 @@ export default function Navbar() {
 
             <div className={styles.modalForm}>
               <label className={styles.modalLabel} htmlFor="navbar-donate-amount">
-                Amount ({paystackCurrency})
+                Amount ({donateCurrency})
               </label>
               <input
                 id="navbar-donate-amount"
@@ -584,6 +606,26 @@ export default function Navbar() {
                 className={styles.modalInput}
                 placeholder="you@example.com"
               />
+
+              <label className={styles.modalLabel}>Select Currency</label>
+              <div className={styles.modalSegmentedControl}>
+                <button
+                  type="button"
+                  className={`${styles.modalSegment} ${donateCurrency === "KES" ? styles.modalSegmentActive : ""}`}
+                  onClick={() => setDonateCurrency("KES")}
+                >
+                  <span className={styles.modalSegmentIcon}>KSh</span>
+                  <span className={styles.modalSegmentLabel}>KES</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.modalSegment} ${donateCurrency === "USD" ? styles.modalSegmentActive : ""}`}
+                  onClick={() => setDonateCurrency("USD")}
+                >
+                  <span className={styles.modalSegmentIcon}>$</span>
+                  <span className={styles.modalSegmentLabel}>USD</span>
+                </button>
+              </div>
 
               <button
                 type="button"

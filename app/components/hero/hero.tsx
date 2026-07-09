@@ -51,7 +51,7 @@ const slides = [
     ),
     description: "A Christ-centered ministry committed to sharing God's grace through compassionate service and outreach.",
     primaryCta: "Support Us",
-    primaryLink: "/donate",
+    primaryLink: "#",
   }
 ];
 
@@ -115,12 +115,21 @@ export default function HeroSection() {
 
             {/* Buttons */}
             <div className="mt-10 flex flex-wrap gap-5">
-              <a 
-                href={slides[currentSlide].primaryLink} 
-                className="flex items-center gap-2 rounded-lg px-8 py-4 font-semibold text-black transition" style={{ backgroundColor: "var(--gold)", background: "var(--nav-cta-bg)" }}>
-                {slides[currentSlide].primaryCta}
-                <ArrowRight size={18} />
-              </a>
+              {slides[currentSlide].primaryCta === "Support Us" ? (
+                <button 
+                  onClick={() => window.dispatchEvent(new CustomEvent("openDonateModal"))}
+                  className="flex items-center gap-2 rounded-lg px-8 py-4 font-semibold text-black transition cursor-pointer" style={{ backgroundColor: "var(--gold)", background: "var(--nav-cta-bg)" }}>
+                  {slides[currentSlide].primaryCta}
+                  <ArrowRight size={18} />
+                </button>
+              ) : (
+                <a 
+                  href={slides[currentSlide].primaryLink} 
+                  className="flex items-center gap-2 rounded-lg px-8 py-4 font-semibold text-black transition" style={{ backgroundColor: "var(--gold)", background: "var(--nav-cta-bg)" }}>
+                  {slides[currentSlide].primaryCta}
+                  <ArrowRight size={18} />
+                </a>
+              )}
 
               <a href="/news" className="flex items-center gap-3 rounded-lg border-2 px-8 py-4 font-semibold transition hover:text-black" style={{ borderColor: "var(--gold)", color: "var(--gold)", backgroundColor: "transparent" }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--gold)"; e.currentTarget.style.color = "#000"; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "var(--gold)"; }}>
                 <Play size={18} />
