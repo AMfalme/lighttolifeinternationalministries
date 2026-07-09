@@ -116,6 +116,62 @@ export interface DashboardImage {
   updatedAt?: any;
 }
 
+// DONATION
+export interface Donation {
+  id?: string;
+  email: string;
+  amount: number;
+  currency: string;
+  donorName?: string;
+  phone?: string;
+  reference: string;
+  channel?: string;
+  status: string;
+  message?: string;
+  createdAt?: any;
+}
+
+export const createDonation = async (donation: Omit<Donation, "id" | "createdAt">) => {
+  try {
+    const docRef = await addDoc(collection(db, "donations"), {
+      ...donation,
+      createdAt: new Date(),
+    });
+    return { id: docRef.id, ...donation, createdAt: new Date() };
+  } catch (error) {
+    console.error("Error creating donation:", error);
+    throw error;
+  }
+};
+
+export const getAllDonations = async () => {
+  try {
+    const q = query(collection(db, "donations"), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as (Donation & { id: string })[];
+  } catch (error) {
+    console.error("Error fetching donations:", error);
+    return [];
+  }
+};
+
+export const getDonationById = async (id: string) => {
+  try {
+    const docRef = doc(db, "donations", id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as Donation & { id: string };
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching donation:", error);
+    return null;
+  }
+};
+
 // BLOGS
 export const createBlog = async (blog: BlogPost) => {
   const { id, ...payload } = blog;

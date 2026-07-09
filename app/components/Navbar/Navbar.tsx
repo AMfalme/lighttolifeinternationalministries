@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { applyTheme, getStoredTheme, type Theme } from "@/app/lib/theme";
+import ToastContainer, { showToast } from "../Toast/Toast";
+import { createDonation } from "@/app/lib/firebase/firestore";
 import styles from "./navbar.module.css";
 
 declare global {
@@ -315,7 +317,29 @@ export default function Navbar() {
                 return;
               }
 
-              setDonateSuccessMessage(`Payment confirmed: ${payload?.data?.status || "successful"}. Reference: ${response.reference}`);
+              // Save donation to Firestore
+              try {
+                await createDonation({
+                  email: donateEmail.trim(),
+                  amount: donationValue,
+                  currency: donateCurrency,
+                  donorName: user?.displayName || "",
+                  phone: "",
+                  reference: response.reference,
+                  channel: payload.data?.channel || "unknown",
+                  status: payload.data?.status || "success",
+                  message: "",
+                });
+              } catch (dbError) {
+                console.error("Error saving donation to Firestore:", dbError);
+              }
+
+              // Close modal and show toast notification
+              setIsDonateModalOpen(false);
+              setDonateAmount("5000");
+              setDonateStatusMessage("");
+              setDonateSuccessMessage("");
+              showToast("success", `🎉 Thank you for your generous donation of ${donateCurrency === "KES" ? "KSh" : "$"}${donationValue.toLocaleString()}! God bless you abundantly.`);
             } catch (error) {
               setDonateStatusMessage("Payment completed but verification request failed.");
             } finally {
@@ -335,6 +359,7 @@ export default function Navbar() {
 
   return (
     <>
+      <ToastContainer />
       <header className={`${styles.navbar} ${isScrolled ? styles.navbarScrolled : ""}`}>
         <Link className={styles.brand} href="/">
           <Image src="/logo.jpeg" alt="LightToLife" width={180} height={86} priority />
@@ -486,6 +511,9 @@ export default function Navbar() {
           </>
         ) : !authLoading && user ? (
           <>
+            <button type="button" className={styles.navButton} onClick={() => setIsDonateModalOpen(true)}>
+              Donate
+            </button>
             <button
               type="button"
               className={styles.profileTrigger}

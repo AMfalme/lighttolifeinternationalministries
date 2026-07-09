@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { createDonation } from "@/app/lib/firebase/firestore";
 
 declare global {
   interface Window {
@@ -13,6 +14,9 @@ interface UsePaystackPaymentOptions {
   amount: string;
   currency?: string;
   publicKey?: string;
+  donorName?: string;
+  phone?: string;
+  message?: string;
   onSuccess?: (reference: string) => void;
   onClose?: () => void;
 }
@@ -30,6 +34,9 @@ export function usePaystackPayment({
   amount,
   currency = "NGN",
   publicKey,
+  donorName,
+  phone,
+  message,
   onSuccess,
   onClose,
 }: UsePaystackPaymentOptions): UsePaystackPaymentReturn {
@@ -93,13 +100,13 @@ export function usePaystackPayment({
         email: email.trim(),
         amount: Math.round(donationValue * 100),
         currency,
-        channels: ["card", "bank", "ussd"],
+        channels: ["card", "bank", "ussd", "mobile_money", "qr"],
         onClose: () => {
           setIsProcessing(false);
           setStatusMessage("Payment window closed. You can try again anytime.");
           onClose?.();
         },
-        callback: async (response: { reference: string }) => {
+        callback: async (response: { reference: string; transaction?: string; status?: string }) => {
           try {
             const verifyResponse = await fetch(
               `/api/paystack/verify?reference=${encodeURIComponent(response.reference)}`
@@ -111,6 +118,23 @@ export function usePaystackPayment({
               );
               setIsProcessing(false);
               return;
+            }
+
+            // Save donation to Firestore
+            try {
+              await createDonation({
+                email: email.trim(),
+                amount: donationValue,
+                currency,
+                donorName: donorName?.trim() || "",
+                phone: phone?.trim() || "",
+                reference: response.reference,
+                channel: payload.data?.channel || "unknown",
+                status: payload.data?.status || "success",
+                message: message?.trim() || "",
+              });
+            } catch (dbError) {
+              console.error("Error saving donation to Firestore:", dbError);
             }
 
             setSuccessMessage(
@@ -131,7 +155,7 @@ export function usePaystackPayment({
       setStatusMessage("Unable to start Paystack checkout. Please try again later.");
       setIsProcessing(false);
     }
-  }, [email, amount, currency, publicKey, onSuccess, onClose]);
+  }, [email, amount, currency, publicKey, donorName, phone, message, onSuccess, onClose]);
 
   return {
     isReady,

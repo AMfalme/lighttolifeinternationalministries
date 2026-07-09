@@ -67,7 +67,8 @@ export default function LoginPage() {
   return (
     <div className={styles.page}>
       <Navbar />
-      <main className={styles.container}>
+      <main className={styles.main}>
+        <div className={styles.container}>
         <div className={styles.header}>
           <Image
             src="/favicon.ico"
@@ -125,6 +126,7 @@ export default function LoginPage() {
           <p className={styles.footer}>
             <Link href="/">Back to Home</Link>
           </p>
+        </div>
         </div>
       </main>
     </div>

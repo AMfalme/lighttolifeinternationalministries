@@ -193,6 +193,7 @@ export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
                 <li><a href="/dashboard/events" className={styles.navLink}>📅 Manage Events</a></li>
                 <li><a href="/dashboard/projects" className={styles.navLink}>🏗️ Projects</a></li>
                 <li><a href="/dashboard/projects" className={styles.navLink}>🏗️ Manage Projects</a></li>
+                <li><a href="/dashboard/donations" className={styles.navLink}>💰 Donations</a></li>
                 <li><a href="/dashboard/users" className={styles.navLink}>🔐 Users</a></li>
               </>
             )}
