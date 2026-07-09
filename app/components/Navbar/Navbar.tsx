@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { applyTheme, getStoredTheme, type Theme } from "@/app/lib/theme";
-import ToastContainer, { showToast } from "../Toast/Toast";
+import { showToast } from "../Toast/Toast";
 import { createDonation } from "@/app/lib/firebase/firestore";
 import styles from "./navbar.module.css";
 
@@ -359,7 +359,6 @@ export default function Navbar() {
 
   return (
     <>
-      <ToastContainer />
       <header className={`${styles.navbar} ${isScrolled ? styles.navbarScrolled : ""}`}>
         <Link className={styles.brand} href="/">
           <Image src="/logo.jpeg" alt="LightToLife" width={180} height={86} priority />

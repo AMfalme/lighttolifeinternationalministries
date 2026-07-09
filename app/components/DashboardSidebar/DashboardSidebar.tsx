@@ -17,6 +17,7 @@ export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
   const [role, setRole] = useState<string | null>(null);
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -39,7 +40,6 @@ export default function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
   }, [user]);
 
   const isPrivileged = role === "admin" || role === "leadership";
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     // On initial load, if desktop, ensure sidebar is open

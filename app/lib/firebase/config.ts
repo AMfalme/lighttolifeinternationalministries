@@ -24,12 +24,12 @@ const firebaseApp = hasFirebaseClientConfig
   ? getApps().length
     ? getApp()
     : initializeApp(firebaseConfig)
-  : initializeApp(firebaseConfig as any);
+  : ({} as any);
 
 export { hasFirebaseClientConfig };
 
-export const auth = getAuth(firebaseApp);
-export const db = getFirestore(firebaseApp);
-export const storage = getStorage(firebaseApp);
+export const auth = hasFirebaseClientConfig ? getAuth(firebaseApp as any) : (null as any);
+export const db = hasFirebaseClientConfig ? getFirestore(firebaseApp as any) : (null as any);
+export const storage = hasFirebaseClientConfig ? getStorage(firebaseApp as any) : (null as any);
 
 export default firebaseApp;
