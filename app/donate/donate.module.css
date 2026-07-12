@@ -497,6 +497,20 @@ html[data-theme="dark"] .bankCard {
   margin: 0 0 16px;
 }
 
+.bankSubHeading {
+  color: var(--text-main);
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 16px 0 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.bankSubHeading:first-of-type {
+  border-top: none;
+  margin-top: 0;
+}
+
 .bankDetails {
   display: flex;
   flex-direction: column;

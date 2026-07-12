@@ -270,15 +270,13 @@ export default function DonatePage() {
 
             {/* Bank Transfer Details */}
             <div className={styles.bankCard}>
-              <h3>🏦 Bank Transfer / SWIFT</h3>
+              <h3>🏦 Bank Transfer / M-Pesa</h3>
               <p>
-                Prefer to give via direct bank transfer? Use the details below:
+                Prefer to give via direct bank transfer or M-Pesa? Use the details below:
               </p>
+
+              <h4 className={styles.bankSubHeading}>Equity Bank Kenya</h4>
               <div className={styles.bankDetails}>
-                <div className={styles.bankRow}>
-                  <span className={styles.bankLabel}>Bank</span>
-                  <span className={styles.bankValue}>Equity Bank Kenya</span>
-                </div>
                 <div className={styles.bankRow}>
                   <span className={styles.bankLabel}>Account Name</span>
                   <span className={styles.bankValue}>Light to Life International Ministries</span>
@@ -292,6 +290,19 @@ export default function DonatePage() {
                   <span className={styles.bankValue}>EQBLKENA</span>
                 </div>
               </div>
+
+              <h4 className={styles.bankSubHeading}>Cooperative Bank of Kenya</h4>
+              <div className={styles.bankDetails}>
+                <div className={styles.bankRow}>
+                  <span className={styles.bankLabel}>Account Name</span>
+                  <span className={styles.bankValue}>Light to Life International Ministries</span>
+                </div>
+                <div className={styles.bankRow}>
+                  <span className={styles.bankLabel}>Account Number</span>
+                  <span className={styles.bankValue}>01109424066100</span>
+                </div>
+              </div>
+
               <p className={styles.bankNote}>
                 Please email us at <a href="mailto:lighttolifeinternationalministries@gmail.com">lighttolifeinternationalministries@gmail.com</a> after your transfer so we can confirm and send you a receipt.
               </p>

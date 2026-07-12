@@ -5,15 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { applyTheme, getStoredTheme, type Theme } from "@/app/lib/theme";
-import { showToast } from "../Toast/Toast";
-import { createDonation } from "@/app/lib/firebase/firestore";
 import styles from "./navbar.module.css";
-
-declare global {
-  interface Window {
-    PaystackPop?: any;
-  }
-}
 
 type NavItem = {
   label: string;
@@ -34,16 +26,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [isDonateModalOpen, setIsDonateModalOpen] = useState(false);
-  const [donateAmount, setDonateAmount] = useState("5000");
-  const [donateEmail, setDonateEmail] = useState("");
-  const [donateStatusMessage, setDonateStatusMessage] = useState("");
-  const [donateSuccessMessage, setDonateSuccessMessage] = useState("");
-  const [isPaystackReady, setIsPaystackReady] = useState(false);
-  const [isPaystackProcessing, setIsPaystackProcessing] = useState(false);
-  const [donateCurrency, setDonateCurrency] = useState("KES");
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
-  const paystackPublicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
 
   const navItems = useMemo<NavItem[]>(
     () => [
@@ -171,7 +154,7 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    if (isOpen || isDonateModalOpen) {
+    if (isOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
@@ -179,55 +162,7 @@ export default function Navbar() {
     return () => {
       document.body.style.overflow = "unset";
     };
-  }, [isOpen, isDonateModalOpen]);
-
-  useEffect(() => {
-    if (user?.email) {
-      setDonateEmail(user.email);
-    }
-  }, [user]);
-
-  // Listen for custom "openDonateModal" event from other components
-  useEffect(() => {
-    const handler = () => setIsDonateModalOpen(true);
-    window.addEventListener("openDonateModal", handler);
-    return () => window.removeEventListener("openDonateModal", handler);
-  }, []);
-
-  useEffect(() => {
-    if (!isDonateModalOpen || !paystackPublicKey || typeof window === "undefined") {
-      return;
-    }
-
-    if (window.PaystackPop) {
-      setIsPaystackReady(true);
-      return;
-    }
-
-    let cancelled = false;
-    const script = document.createElement("script");
-    script.src = "https://js.paystack.co/v1/inline.js";
-    script.async = true;
-    script.onload = () => {
-      if (!cancelled) {
-        setIsPaystackReady(true);
-      }
-    };
-    script.onerror = () => {
-      if (!cancelled) {
-        setDonateStatusMessage("Unable to load the Paystack checkout script. Please check your internet connection or browser settings.");
-        setIsPaystackReady(false);
-      }
-    };
-    document.body.appendChild(script);
-
-    return () => {
-      cancelled = true;
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-    };
-  }, [isDonateModalOpen, paystackPublicKey]);
+  }, [isOpen]);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -241,7 +176,6 @@ export default function Navbar() {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setProfileMenuOpen(false);
-        setIsDonateModalOpen(false);
       }
     };
 
@@ -263,98 +197,6 @@ export default function Navbar() {
 
     event.preventDefault();
     setActiveSubmenu((current) => (current === item.label ? null : item.label));
-  };
-
-  const handleDonateSubmit = async () => {
-    setDonateStatusMessage("");
-    setDonateSuccessMessage("");
-
-    const donationValue = Number(donateAmount.replace(/[^0-9.]/g, ""));
-    if (!donationValue || donationValue <= 0) {
-      setDonateStatusMessage("Please enter a valid donation amount.");
-      return;
-    }
-
-    if (!donateEmail.trim()) {
-      setDonateStatusMessage("Please enter your email address.");
-      return;
-    }
-
-    if (!paystackPublicKey) {
-      setDonateStatusMessage("Paystack is not configured. Please add a public key.");
-      return;
-    }
-
-    if (!window.PaystackPop) {
-      setDonateStatusMessage("Paystack checkout is not available yet. Please wait a moment and try again.");
-      return;
-    }
-
-    setIsPaystackProcessing(true);
-
-    try {
-      const handler = window.PaystackPop.setup({
-        key: paystackPublicKey,
-        email: donateEmail.trim(),
-        amount: Math.round(donationValue * 100),
-        currency: donateCurrency,
-        channels: ["card", "bank", "ussd"],
-        onClose: function () {
-          setIsPaystackProcessing(false);
-          setDonateStatusMessage("Payment window closed. You can try again anytime.");
-        },
-        callback: function (response: { reference: string }) {
-          void (async () => {
-            try {
-              const verifyResponse = await fetch(
-                `/api/paystack/verify?reference=${encodeURIComponent(response.reference)}`
-              );
-              const payload = await verifyResponse.json();
-
-              if (!verifyResponse.ok) {
-                setDonateStatusMessage(payload?.error || "Payment completed but verification failed.");
-                setIsPaystackProcessing(false);
-                return;
-              }
-
-              // Save donation to Firestore
-              try {
-                await createDonation({
-                  email: donateEmail.trim(),
-                  amount: donationValue,
-                  currency: donateCurrency,
-                  donorName: user?.displayName || "",
-                  phone: "",
-                  reference: response.reference,
-                  channel: payload.data?.channel || "unknown",
-                  status: payload.data?.status || "success",
-                  message: "",
-                });
-              } catch (dbError) {
-                console.error("Error saving donation to Firestore:", dbError);
-              }
-
-              // Close modal and show toast notification
-              setIsDonateModalOpen(false);
-              setDonateAmount("5000");
-              setDonateStatusMessage("");
-              setDonateSuccessMessage("");
-              showToast("success", `🎉 Thank you for your generous donation of ${donateCurrency === "KES" ? "KSh" : "$"}${donationValue.toLocaleString()}! God bless you abundantly.`);
-            } catch (error) {
-              setDonateStatusMessage("Payment completed but verification request failed.");
-            } finally {
-              setIsPaystackProcessing(false);
-            }
-          })();
-        },
-      });
-
-      handler.openIframe();
-    } catch (error) {
-      console.error("Navbar donation error:", error);
-      setDonateStatusMessage(`Unable to start Paystack checkout. ${error instanceof Error ? error.message : "Please try again later."}`);
-      setIsPaystackProcessing(false);
-    }
   };
 
   return (
@@ -447,16 +289,9 @@ export default function Navbar() {
               <>
                 <Link className="hover:text-amber-400 transition" href="/login" onClick={() => setIsOpen(false)}>Login</Link>
                 <Link className="hover:text-amber-400 transition" href="/register" onClick={() => setIsOpen(false)}>Register</Link>
-                <button
-                  type="button"
-                  className="hover:text-amber-400 transition text-left"
-                  onClick={() => {
-                    setIsOpen(false);
-                    setIsDonateModalOpen(true);
-                  }}
-                >
+                <Link className="hover:text-amber-400 transition" href="/donate" onClick={() => setIsOpen(false)}>
                   Donate
-                </button>
+                </Link>
               </>
             ) : !authLoading && user ? (
               <>
@@ -479,16 +314,9 @@ export default function Navbar() {
                 >
                   Logout
                 </button>
-                <button
-                  type="button"
-                  className="hover:text-amber-400 transition text-left"
-                  onClick={() => {
-                    setIsOpen(false);
-                    setIsDonateModalOpen(true);
-                  }}
-                >
+                <Link className="hover:text-amber-400 transition" href="/donate" onClick={() => setIsOpen(false)}>
                   Donate
-                </button>
+                </Link>
               </>
             ) : null}
           </div>
@@ -504,15 +332,15 @@ export default function Navbar() {
             <Link className={`${styles.authLink} text-amber-400`} href="/register">
               Register
             </Link>
-            <button type="button" className={styles.navButton} onClick={() => setIsDonateModalOpen(true)}>
+            <Link className={styles.navButton} href="/donate">
               Donate
-            </button>
+            </Link>
           </>
         ) : !authLoading && user ? (
           <>
-            <button type="button" className={styles.navButton} onClick={() => setIsDonateModalOpen(true)}>
+            <Link className={styles.navButton} href="/donate">
               Donate
-            </button>
+            </Link>
             <button
               type="button"
               className={styles.profileTrigger}
@@ -580,101 +408,6 @@ export default function Navbar() {
         ) : null}
       </div>
     </header>
-
-      {isDonateModalOpen ? (
-        <div
-          className={styles.modalBackdrop}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="donate-modal-title"
-          onClick={() => setIsDonateModalOpen(false)}
-        >
-          <div className={styles.modalCard} onClick={(event) => event.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <div>
-                <p className={styles.modalEyebrow}>Support Light to Life</p>
-                <h2 id="donate-modal-title" className={styles.modalTitle}>Make a donation</h2>
-              </div>
-              <button
-                type="button"
-                className={styles.modalCloseButton}
-                onClick={() => setIsDonateModalOpen(false)}
-                aria-label="Close donation dialog"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className={styles.modalText}>
-              Your generosity helps us continue our ministry, outreach, and care for the communities we serve.
-            </p>
-
-            <div className={styles.modalForm}>
-              <label className={styles.modalLabel} htmlFor="navbar-donate-amount">
-                Amount ({donateCurrency})
-              </label>
-              <input
-                id="navbar-donate-amount"
-                type="text"
-                value={donateAmount}
-                onChange={(event) => setDonateAmount(event.target.value)}
-                className={styles.modalInput}
-                placeholder="Enter amount"
-              />
-
-              <label className={styles.modalLabel} htmlFor="navbar-donate-email">
-                Email
-              </label>
-              <input
-                id="navbar-donate-email"
-                type="email"
-                value={donateEmail}
-                onChange={(event) => setDonateEmail(event.target.value)}
-                className={styles.modalInput}
-                placeholder="you@example.com"
-              />
-
-              <label className={styles.modalLabel}>Select Currency</label>
-              <div className={styles.modalSegmentedControl}>
-                <button
-                  type="button"
-                  className={`${styles.modalSegment} ${donateCurrency === "KES" ? styles.modalSegmentActive : ""}`}
-                  onClick={() => setDonateCurrency("KES")}
-                >
-                  <span className={styles.modalSegmentIcon}>KSh</span>
-                  <span className={styles.modalSegmentLabel}>KES</span>
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.modalSegment} ${donateCurrency === "USD" ? styles.modalSegmentActive : ""}`}
-                  onClick={() => setDonateCurrency("USD")}
-                >
-                  <span className={styles.modalSegmentIcon}>$</span>
-                  <span className={styles.modalSegmentLabel}>USD</span>
-                </button>
-              </div>
-
-              <button
-                type="button"
-                className={styles.modalSubmitButton}
-                onClick={handleDonateSubmit}
-                disabled={!paystackPublicKey || isPaystackProcessing || !isPaystackReady}
-              >
-                {isPaystackProcessing ? "Processing..." : "Donate with Paystack"}
-              </button>
-
-              {!paystackPublicKey ? (
-                <p className={styles.modalHint}>
-                  Paystack public key is not configured yet. Add NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY to enable this option.
-                </p>
-              ) : null}
-
-              {donateStatusMessage ? <p className={styles.modalStatus}>{donateStatusMessage}</p> : null}
-              {donateSuccessMessage ? <p className={styles.modalSuccess}>{donateSuccessMessage}</p> : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
     </>
   );
 }
