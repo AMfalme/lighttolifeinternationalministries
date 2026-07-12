@@ -2,11 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Navbar from "../components/Navbar/Navbar";
 import ToastContainer, { showToast } from "../components/Toast/Toast";
 import styles from "./donate.module.css";
-import { usePaystackPayment } from "../hooks/usePaystackPayment";
+import { createDonation } from "../lib/firebase/firestore";
+
+declare global {
+  interface Window {
+    PaystackPop?: any;
+  }
+}
 
 export default function DonatePage() {
   const [email, setEmail] = useState("");
@@ -15,38 +21,135 @@ export default function DonatePage() {
   const [donorName, setDonorName] = useState("");
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
-  const [lastReference, setLastReference] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [isPaystackReady, setIsPaystackReady] = useState(false);
 
   const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
 
+  // Load Paystack script
+  useEffect(() => {
+    if (!publicKey || typeof window === "undefined") return;
+
+    if (window.PaystackPop) {
+      setIsPaystackReady(true);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.async = true;
+    script.onload = () => setIsPaystackReady(true);
+    script.onerror = () => setStatusMessage("Unable to load the Paystack checkout script. Please check your internet connection or browser settings.");
+    document.body.appendChild(script);
+
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, [publicKey]);
+
   const handleSuccess = useCallback((reference: string) => {
-    setLastReference(reference);
-    showToast("success", `Thank you! Your donation of KSh ${Number(amount.replace(/[^0-9.]/g, "") || 0).toLocaleString()} was successful. Reference: ${reference}`);
+    showToast("success", `Thank you! Your donation of ${currency === "KES" ? "KSh" : "$"}${Number(amount.replace(/[^0-9.]/g, "") || 0).toLocaleString()} was successful. Reference: ${reference}`);
     // Reset form
     setAmount("500");
     setEmail("");
     setDonorName("");
     setPhone("");
     setMessage("");
+    setStatusMessage("");
     console.log("Donation succeeded:", reference);
-  }, [amount]);
+  }, [amount, currency]);
 
-  const handleClose = useCallback(() => {
-    console.log("Payment closed");
-  }, []);
+  const handleDonateSubmit = async () => {
+    setStatusMessage("");
 
-  const { isReady, isProcessing, statusMessage, successMessage, initializePayment } =
-    usePaystackPayment({
-      email,
-      amount,
-      currency,
-      publicKey,
-      donorName,
-      phone,
-      message,
-      onSuccess: handleSuccess,
-      onClose: handleClose,
-    });
+    const donationValue = Number(amount.replace(/[^0-9.]/g, ""));
+    if (!donationValue || donationValue <= 0) {
+      setStatusMessage("Please enter a valid donation amount.");
+      return;
+    }
+
+    if (!email.trim()) {
+      setStatusMessage("Please enter your email address.");
+      return;
+    }
+
+    if (!publicKey) {
+      setStatusMessage("Paystack is not configured. Please add a public key.");
+      return;
+    }
+
+    if (!window.PaystackPop) {
+      setStatusMessage("Paystack checkout is not available yet. Please wait a moment and try again.");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const handler = window.PaystackPop.setup({
+        key: publicKey,
+        email: email.trim(),
+        amount: Math.round(donationValue * 100),
+        currency,
+        channels: ["card", "bank", "ussd", "mobile_money", "qr"],
+        onClose: function () {
+          setIsProcessing(false);
+          setStatusMessage("Payment window closed. You can try again anytime.");
+        },
+        callback: function (response: { reference: string }) {
+          void (async () => {
+            try {
+              const verifyResponse = await fetch(
+                `/api/paystack/verify?reference=${encodeURIComponent(response.reference)}`
+              );
+              const payload = await verifyResponse.json();
+
+              if (!verifyResponse.ok) {
+                setStatusMessage(payload?.error || "Payment completed but verification failed.");
+                setIsProcessing(false);
+                return;
+              }
+
+              // Save donation to Firestore
+              try {
+                await createDonation({
+                  email: email.trim(),
+                  amount: donationValue,
+                  currency,
+                  donorName: donorName?.trim() || "",
+                  phone: phone?.trim() || "",
+                  reference: response.reference,
+                  channel: payload.data?.channel || "unknown",
+                  status: payload.data?.status || "success",
+                  message: message?.trim() || "",
+                });
+              } catch (dbError) {
+                console.error("Error saving donation to Firestore:", dbError);
+              }
+
+              // Show success toast
+              setIsProcessing(false);
+              setStatusMessage("");
+              showToast("success", `🎉 Thank you for your generous donation of ${currency === "KES" ? "KSh" : "$"}${donationValue.toLocaleString()}! God bless you abundantly.`);
+              handleSuccess(response.reference);
+            } catch (error) {
+              setStatusMessage("Payment completed but verification request failed.");
+              setIsProcessing(false);
+            }
+          })();
+        },
+      });
+
+      handler.openIframe();
+    } catch (error) {
+      console.error("Donation error:", error);
+      setStatusMessage(`Unable to start Paystack checkout. ${error instanceof Error ? error.message : "Please try again later."}`);
+      setIsProcessing(false);
+    }
+  };
 
   const presetAmounts = [200, 500, 1000, 2000, 5000];
 
@@ -231,8 +334,8 @@ export default function DonatePage() {
                 <button
                   type="button"
                   className={styles.primaryBtn}
-                  onClick={initializePayment}
-                  disabled={!publicKey || isProcessing || !isReady}
+                  onClick={handleDonateSubmit}
+                  disabled={!publicKey || isProcessing || !isPaystackReady}
                 >
                   {isProcessing ? (
                     <span className={styles.btnProcessing}>
@@ -251,7 +354,7 @@ export default function DonatePage() {
                   </p>
                 )}
 
-                {statusMessage && !statusMessage.toLowerCase().includes("confirmed") && (
+                {statusMessage && (
                   <p className={styles.statusMessage}>{statusMessage}</p>
                 )}
 
@@ -270,26 +373,10 @@ export default function DonatePage() {
 
             {/* Bank Transfer Details */}
             <div className={styles.bankCard}>
-              <h3>🏦 Bank Transfer / M-Pesa</h3>
+              <h3>🏦 Bank Transfer</h3>
               <p>
-                Prefer to give via direct bank transfer or M-Pesa? Use the details below:
+                Prefer to give via direct bank transfer? Use the details below:
               </p>
-
-              <h4 className={styles.bankSubHeading}>Equity Bank Kenya</h4>
-              <div className={styles.bankDetails}>
-                <div className={styles.bankRow}>
-                  <span className={styles.bankLabel}>Account Name</span>
-                  <span className={styles.bankValue}>Light to Life International Ministries</span>
-                </div>
-                <div className={styles.bankRow}>
-                  <span className={styles.bankLabel}>Account Number</span>
-                  <span className={styles.bankValue}>1270290161040</span>
-                </div>
-                <div className={styles.bankRow}>
-                  <span className={styles.bankLabel}>SWIFT Code</span>
-                  <span className={styles.bankValue}>EQBLKENA</span>
-                </div>
-              </div>
 
               <h4 className={styles.bankSubHeading}>Cooperative Bank of Kenya</h4>
               <div className={styles.bankDetails}>
@@ -300,6 +387,10 @@ export default function DonatePage() {
                 <div className={styles.bankRow}>
                   <span className={styles.bankLabel}>Account Number</span>
                   <span className={styles.bankValue}>01109424066100</span>
+                </div>
+                <div className={styles.bankRow}>
+                  <span className={styles.bankLabel}>SWIFT Code</span>
+                  <span className={styles.bankValue}>KCOOKENA</span>
                 </div>
               </div>
 
