@@ -372,7 +372,7 @@ export default function DonatePage() {
             </div>
 
             {/* Bank Transfer Details */}
-            <div className={styles.bankCard}>
+            <div className={styles.bankCard} id="bank">
               <h3>🏦 Bank Transfer</h3>
               <p>
                 Prefer to give via direct bank transfer? Use the details below:
@@ -395,7 +395,7 @@ export default function DonatePage() {
               </div>
 
               <p className={styles.bankNote}>
-                Please email us at <a href="mailto:lighttolifeinternationalministries@gmail.com">lighttolifeinternationalministries@gmail.com</a> after your transfer so we can confirm and send you a receipt.
+                Please email us at <a href="mailto:dlight360.org@gmail.com">dlight360.org@gmail.com</a> after your transfer so we can confirm and send you a receipt.
               </p>
             </div>
 

@@ -1,0 +1,153 @@
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.14), transparent 28%),
+    var(--background);
+}
+
+.main {
+  width: min(760px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 80px 0 80px;
+}
+
+.hero {
+  text-align: center;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.hero h1 {
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  line-height: 1;
+  margin: 16px 0;
+  color: var(--text-main);
+}
+
+.intro {
+  color: var(--text-nav);
+  font-size: 1.05rem;
+  line-height: 1.75;
+  max-width: 60ch;
+  margin: 0 auto 40px;
+}
+
+/* Bank Card */
+.bankCard {
+  text-align: left;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+html[data-theme="dark"] .bankCard {
+  background: rgba(8, 28, 51, 0.97);
+  border-color: rgba(148, 163, 184, 0.12);
+}
+
+.bankCard h3 {
+  color: var(--text-main);
+  font-size: 1.3rem;
+  margin: 0 0 8px;
+}
+
+.bankCard > p {
+  color: var(--text-nav);
+  font-size: 0.95rem;
+  margin: 0 0 16px;
+}
+
+.bankSubHeading {
+  color: var(--text-main);
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 16px 0 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.bankSubHeading:first-of-type {
+  border-top: none;
+  margin-top: 0;
+}
+
+.bankDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.bankRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.bankRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.bankLabel {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.bankValue {
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: right;
+  font-size: 0.95rem;
+}
+
+.bankNote {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin: 0 !important;
+}
+
+.bankNote a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.ctaRow {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+}
+
+.secondaryBtn {
+  padding: 14px 20px;
+  border-radius: 14px;
+  font-weight: 700;
+  border: 1px solid var(--button-secondary-border);
+  background: var(--button-secondary-bg);
+  color: var(--text-main);
+  text-decoration: none;
+  transition: transform 0.2s ease;
+}
+
+.secondaryBtn:hover {
+  transform: translateY(-2px);
+}
